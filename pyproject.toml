@@ -38,7 +38,7 @@ dependencies = [
 dev = ["pytest", "httpx", "pytest-asyncio", "ruff"]
 
 [project.urls]
-Repository = "https://github.com/kalinds-ysi/RAG-Eval"
+Repository = "https://github.com/devanshmakam-youngsoft/ragevalkit"
 
 [tool.setuptools.packages.find]
 where = ["."]
