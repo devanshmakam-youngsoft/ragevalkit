@@ -503,12 +503,15 @@ class RunManager:
         rows: list[dict] = []
 
         # Import this dataset's questions into the test_cases table for traceability.
+        # Skip for multi-group runs — test cases already live in their individual groups
+        # and import_dataset would create a spurious combined group in the store.
         fingerprint = df.attrs.get("fingerprint", "")
         dataset_id = ""
-        try:
-            dataset_id = self.store.import_dataset(run.dataset_name, df, fingerprint)
-        except Exception as e:
-            logger.warning("Could not import dataset into test_cases table: %s", e)
+        if len(run.group_names) <= 1:
+            try:
+                dataset_id = self.store.import_dataset(run.dataset_name, df, fingerprint)
+            except Exception as e:
+                logger.warning("Could not import dataset into test_cases table: %s", e)
 
         try:
             run.emit("started")
