@@ -1,0 +1,988 @@
+<title>ragevalkit Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Sora:wght@600;700&display=swap" rel="stylesheet">
+
+<style>
+/* Layout: sticky sidebar nav on desktop, stacked on mobile */
+:root {
+  --bg: #f8f8fb;
+  --bg-card: #ffffff;
+  --bg-code: #f0f0f6;
+  --fg: #1a1a2e;
+  --fg-muted: #6b7080;
+  --border: #e4e4ef;
+  --accent: #4f46e5;
+  --accent-dim: #eef2ff;
+  --accent-light: #818cf8;
+  --green: #059669;
+  --green-dim: #ecfdf5;
+  --amber: #d97706;
+  --amber-dim: #fffbeb;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-display: 'Sora', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --radius: 8px;
+  --sidebar-w: 240px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f0f1a;
+    --bg-card: #171727;
+    --bg-code: #1e1e32;
+    --fg: #e8e8f4;
+    --fg-muted: #8888aa;
+    --border: #2a2a42;
+    --accent: #818cf8;
+    --accent-dim: #1e1e38;
+    --accent-light: #a5b4fc;
+    --green: #34d399;
+    --green-dim: #0d2b20;
+    --amber: #fbbf24;
+    --amber-dim: #2b2005;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f0f1a;
+  --bg-card: #171727;
+  --bg-code: #1e1e32;
+  --fg: #e8e8f4;
+  --fg-muted: #8888aa;
+  --border: #2a2a42;
+  --accent: #818cf8;
+  --accent-dim: #1e1e38;
+  --accent-light: #a5b4fc;
+  --green: #34d399;
+  --green-dim: #0d2b20;
+  --amber: #fbbf24;
+  --amber-dim: #2b2005;
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--fg);
+  font-size: 15px;
+  line-height: 1.65;
+  margin: 0;
+}
+
+/* Shell */
+.shell {
+  display: flex;
+  min-height: 100vh;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Sidebar */
+.sidebar {
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  padding: 32px 0 32px 24px;
+  border-right: 1px solid var(--border);
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 28px;
+  padding-right: 16px;
+}
+.brand-icon {
+  width: 28px; height: 28px;
+  background: var(--accent);
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.brand-icon svg { width: 16px; height: 16px; }
+.brand-name {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--fg);
+  letter-spacing: -0.3px;
+}
+.brand-ver {
+  font-size: 11px;
+  color: var(--fg-muted);
+  background: var(--bg-code);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+}
+
+.nav-group { margin-bottom: 20px; }
+.nav-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--fg-muted);
+  padding: 0 16px 6px 0;
+  display: block;
+}
+.nav-link {
+  display: block;
+  font-size: 13.5px;
+  color: var(--fg-muted);
+  text-decoration: none;
+  padding: 4px 16px 4px 0;
+  border-radius: 4px 0 0 4px;
+  transition: color 0.15s;
+  line-height: 1.4;
+}
+.nav-link:hover { color: var(--fg); }
+.nav-link.active { color: var(--accent); font-weight: 500; }
+
+/* Main */
+.main {
+  flex: 1;
+  min-width: 0;
+  padding: 48px 40px 80px 48px;
+}
+
+/* Hero */
+.hero {
+  margin-bottom: 56px;
+}
+.hero-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--accent);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+.hero h1 {
+  font-family: var(--font-display);
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1.15;
+  margin: 0 0 14px;
+  text-wrap: balance;
+}
+.hero-sub {
+  font-size: 16px;
+  color: var(--fg-muted);
+  max-width: 580px;
+  margin: 0 0 24px;
+}
+.hero-install {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-code);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 16px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--fg);
+}
+.hero-install .prompt { color: var(--accent-light); user-select: none; }
+
+/* Section */
+.section {
+  margin-bottom: 56px;
+  scroll-margin-top: 24px;
+}
+.section-title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0 0 4px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  text-wrap: balance;
+}
+.section-intro {
+  color: var(--fg-muted);
+  margin: 12px 0 20px;
+  font-size: 14.5px;
+}
+
+/* Subsection */
+.sub {
+  margin: 28px 0 0;
+}
+.sub-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 10px;
+  color: var(--fg);
+}
+
+/* Code */
+pre {
+  background: var(--bg-code);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  overflow-x: auto;
+  margin: 12px 0;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+}
+code {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  background: var(--bg-code);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 13px;
+}
+
+/* Syntax colours (theme-neutral) */
+.kw { color: var(--accent-light); }
+.st { color: var(--green); }
+.cm { color: var(--fg-muted); font-style: italic; }
+.fn { color: #f59e0b; }
+.kv { color: var(--accent); }
+
+/* Param table */
+.param-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  margin: 14px 0;
+}
+.param-table th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg-muted);
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.param-table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.param-table tr:last-child td { border-bottom: none; }
+.param-name {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.param-default {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+.param-desc { color: var(--fg); font-size: 13.5px; }
+
+/* Badge */
+.badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+}
+.badge-green { background: var(--green-dim); color: var(--green); }
+.badge-indigo { background: var(--accent-dim); color: var(--accent); }
+.badge-amber { background: var(--amber-dim); color: var(--amber); }
+
+/* Callout */
+.callout {
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  margin: 16px 0;
+  font-size: 13.5px;
+}
+.callout-info { background: var(--accent-dim); border-left: 3px solid var(--accent); }
+.callout-tip { background: var(--green-dim); border-left: 3px solid var(--green); }
+.callout-icon { flex-shrink: 0; font-size: 15px; margin-top: 1px; }
+.callout p { margin: 0; }
+
+/* Feature grid */
+.feat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+  margin: 20px 0;
+}
+.feat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+.feat-icon { font-size: 20px; margin-bottom: 8px; }
+.feat-title { font-weight: 600; font-size: 13.5px; margin-bottom: 4px; }
+.feat-desc { font-size: 13px; color: var(--fg-muted); line-height: 1.5; }
+
+/* Step flow */
+.step-flow { margin: 20px 0; }
+.step-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+  align-items: flex-start;
+}
+.step-num {
+  width: 28px; height: 28px;
+  background: var(--accent);
+  color: white;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.step-body { flex: 1; min-width: 0; }
+.step-title { font-weight: 600; margin-bottom: 4px; font-size: 14px; }
+.step-desc { color: var(--fg-muted); font-size: 13.5px; }
+
+/* Mobile */
+@media (max-width: 700px) {
+  .sidebar { display: none; }
+  .main { padding: 28px 20px 60px; }
+  .hero h1 { font-size: 26px; }
+  .param-table th:nth-child(2), .param-table td:nth-child(2) { display: none; }
+}
+</style>
+
+<div class="shell">
+  <!-- Sidebar nav -->
+  <nav class="sidebar" aria-label="Guide navigation">
+    <div class="sidebar-brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 9l3 3 7-8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <span class="brand-name">ragevalkit</span>
+      <span class="brand-ver">v0.1</span>
+    </div>
+
+    <div class="nav-group">
+      <span class="nav-label">Getting started</span>
+      <a class="nav-link" href="#install">Installation</a>
+      <a class="nav-link" href="#quickstart">Quick start</a>
+    </div>
+    <div class="nav-group">
+      <span class="nav-label">Core concepts</span>
+      <a class="nav-link" href="#fn-signatures">Pipeline function</a>
+      <a class="nav-link" href="#steps">Step recording</a>
+      <a class="nav-link" href="#notes">Notes</a>
+    </div>
+    <div class="nav-group">
+      <span class="nav-label">Configuration</span>
+      <a class="nav-link" href="#serve-ref">serve() reference</a>
+      <a class="nav-link" href="#judge">Judge</a>
+      <a class="nav-link" href="#metrics">Metrics</a>
+      <a class="nav-link" href="#auth">Auth</a>
+    </div>
+    <div class="nav-group">
+      <span class="nav-label">Dashboard</span>
+      <a class="nav-link" href="#test-cases">Test cases & groups</a>
+      <a class="nav-link" href="#runs">Running evaluations</a>
+      <a class="nav-link" href="#export">Excel export</a>
+    </div>
+    <div class="nav-group">
+      <span class="nav-label">Advanced</span>
+      <a class="nav-link" href="#hooks">Hooks</a>
+      <a class="nav-link" href="#versioning">Versioning</a>
+    </div>
+  </nav>
+
+  <!-- Main content -->
+  <main class="main">
+
+    <!-- Hero -->
+    <div class="hero">
+      <div class="hero-eyebrow">Developer & User Guide</div>
+      <h1>ragevalkit</h1>
+      <p class="hero-sub">
+        Evaluate any RAG pipeline or LLM chatbot version-by-version, with an LLM judge, lexical metrics, a React dashboard, and zero-setup persistence.
+      </p>
+      <div class="hero-install">
+        <span class="prompt">pip</span>
+        install git+https://github.com/devanshmakam-youngsoft/ragevalkit.git@v0.1.0
+      </div>
+    </div>
+
+    <!-- What it does -->
+    <div class="feat-grid" style="margin-bottom:56px">
+      <div class="feat-card">
+        <div class="feat-icon">🎯</div>
+        <div class="feat-title">LLM judge</div>
+        <div class="feat-desc">Scores each answer 0–10 for quality and retrieved material via any LiteLLM model.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">📐</div>
+        <div class="feat-title">Lexical metrics</div>
+        <div class="feat-desc">Keyword recall, BM25, and semantic cosine similarity run automatically.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">📊</div>
+        <div class="feat-title">React dashboard</div>
+        <div class="feat-desc">Version trend, score distribution, per-question detail with tier filters.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">🗂️</div>
+        <div class="feat-title">Test case groups</div>
+        <div class="feat-desc">Organise test cases into groups; run any combination in one evaluation.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">📁</div>
+        <div class="feat-title">Excel export</div>
+        <div class="feat-desc">Full report with summary sheet + per-question results, formatted with colour.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">🔍</div>
+        <div class="feat-title">Step recording</div>
+        <div class="feat-desc">Capture retrieval context, sources, and per-node timings with one decorator.</div>
+      </div>
+    </div>
+
+    <!-- Installation -->
+    <section class="section" id="install">
+      <h2 class="section-title">Installation</h2>
+      <p class="section-intro">Install directly from GitHub. No PyPI package yet — pin to a release tag.</p>
+
+      <div class="sub">
+        <div class="sub-title">Direct install</div>
+        <pre><code><span class="kw">pip install</span> git+https://github.com/devanshmakam-youngsoft/ragevalkit.git<span class="st">@v0.1.0</span></code></pre>
+      </div>
+
+      <div class="sub">
+        <div class="sub-title">In requirements.txt</div>
+        <pre><code>git+https://github.com/devanshmakam-youngsoft/ragevalkit.git@v0.1.0</code></pre>
+        <div class="callout callout-info">
+          <div class="callout-icon">ℹ️</div>
+          <p>Run <code>pip install -r requirements.txt</code> from Git Bash on Windows if <code>git</code> is not in your PowerShell PATH.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quick start -->
+    <section class="section" id="quickstart">
+      <h2 class="section-title">Quick start</h2>
+      <p class="section-intro">Pass your RAG function to <code>serve()</code>. ragevalkit wraps it, runs the eval engine, and opens the dashboard.</p>
+
+      <pre><code><span class="kw">import</span> ragevalkit
+
+<span class="cm"># Your RAG function — any of these signatures work</span>
+<span class="kw">def</span> <span class="fn">my_rag</span>(question: str) -> str:
+    <span class="kw">return</span> pipeline.run(question)
+
+ragevalkit.<span class="fn">serve</span>(my_rag)</code></pre>
+
+      <p style="color:var(--fg-muted);font-size:13.5px">The dashboard opens at <code>http://localhost:8001</code>. Add test cases, run evaluations, and compare versions — all from the UI.</p>
+
+      <div class="sub">
+        <div class="sub-title">Minimal real example</div>
+        <pre><code><span class="kw">import</span> ragevalkit
+
+<span class="kw">def</span> <span class="fn">my_rag</span>(question: str, session_id: str = <span class="st">""</span>) -> str:
+    result = backend.chat(session_id, question)
+    <span class="kw">return</span> result[<span class="st">"answer"</span>]
+
+ragevalkit.<span class="fn">serve</span>(
+    my_rag,
+    port=<span class="kv">8002</span>,
+    store_path=<span class="st">"eval_store.json"</span>,
+    judge_model=<span class="st">"groq/llama-3.3-70b-versatile"</span>,
+    require_login=<span class="kv">False</span>,
+)</code></pre>
+      </div>
+    </section>
+
+    <!-- Pipeline function -->
+    <section class="section" id="fn-signatures">
+      <h2 class="section-title">Pipeline function</h2>
+      <p class="section-intro">ragevalkit inspects your function's parameter names at startup and adapts automatically — no config needed for the common cases.</p>
+
+      <div class="sub">
+        <div class="sub-title">Accepted signatures</div>
+        <table class="param-table">
+          <thead><tr><th>Signature</th><th>Mode</th><th>How it runs</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><code class="param-name">fn(question)</code></td>
+              <td><span class="badge badge-indigo">stateless</span></td>
+              <td class="param-desc">Runner calls with the question only. No history passed.</td>
+            </tr>
+            <tr>
+              <td><code class="param-name">fn(question, history)</code></td>
+              <td><span class="badge badge-indigo">stateless</span></td>
+              <td class="param-desc">Runner builds and passes the full conversation history each turn. Use <code>history_format="openai"</code> for OpenAI message format.</td>
+            </tr>
+            <tr>
+              <td><code class="param-name">fn(question, session_id)</code></td>
+              <td><span class="badge badge-green">stateful</span></td>
+              <td class="param-desc">Runner passes a session token; your backend manages history. Each <code>chat_id</code> gets a fresh session.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sub">
+        <div class="sub-title">Return value</div>
+        <p style="color:var(--fg-muted);font-size:13.5px">Return a <code>str</code>, a <code>dict</code> (ragevalkit finds the answer via <code>answer_keys</code>), or a Pydantic model. Async functions work too.</p>
+        <pre><code><span class="cm"># All of these work</span>
+<span class="kw">return</span> <span class="st">"The answer is..."</span>
+<span class="kw">return</span> {<span class="st">"answer"</span>: <span class="st">"The answer"</span>, <span class="st">"sources"</span>: [...]}
+<span class="kw">return</span> MyResponseModel(answer=<span class="st">"The answer"</span>)</code></pre>
+      </div>
+
+      <div class="sub">
+        <div class="sub-title">Custom parameter names</div>
+        <pre><code><span class="cm"># If your function uses non-standard param names</span>
+ragevalkit.<span class="fn">serve</span>(
+    my_rag,
+    session_params=[<span class="st">"thread_id"</span>, <span class="st">"conversation_id"</span>],
+    history_params=[<span class="st">"chat_history"</span>, <span class="st">"messages"</span>],
+    history_format=<span class="st">"openai"</span>,  <span class="cm"># or "dict" (default)</span>
+    answer_keys=[<span class="st">"response"</span>, <span class="st">"output"</span>, <span class="st">"answer"</span>],
+)</code></pre>
+      </div>
+    </section>
+
+    <!-- Step recording -->
+    <section class="section" id="steps">
+      <h2 class="section-title">Step recording</h2>
+      <p class="section-intro">
+        <code>@ragevalkit.step("name")</code> instruments any function in your pipeline. Steps record timing, inputs/outputs, retrieved material, and sources — all visible per-question in the dashboard. Steps are zero-overhead outside eval runs.
+      </p>
+
+      <div class="sub">
+        <div class="sub-title">As a decorator</div>
+        <pre><code><span class="kw">import</span> ragevalkit
+
+<span class="cm"># Timing + inputs + output captured automatically</span>
+<span class="kw">@</span>ragevalkit.<span class="fn">step</span>(<span class="st">"analysis"</span>)
+<span class="kw">def</span> <span class="fn">analyse</span>(question, history):
+    ...
+
+<span class="kw">@</span>ragevalkit.<span class="fn">step</span>(<span class="st">"rerank"</span>)
+<span class="kw">def</span> <span class="fn">rerank</span>(query, docs):
+    ...
+
+<span class="kw">@</span>ragevalkit.<span class="fn">step</span>(<span class="st">"generation"</span>)
+<span class="kw">def</span> <span class="fn">generate</span>(question, context):
+    ...</code></pre>
+      </div>
+
+      <div class="sub">
+        <div class="sub-title">As a context manager — set material and sources</div>
+        <p style="font-size:13.5px;color:var(--fg-muted)">Use this form when you need to explicitly set <code>.material</code> (the retrieved context sent to the judge) and <code>.sources</code>.</p>
+        <pre><code><span class="kw">with</span> ragevalkit.<span class="fn">step</span>(<span class="st">"retrieval"</span>) <span class="kw">as</span> s:
+    docs = vector_db.search(query)
+    s.material = <span class="st">"\n\n"</span>.join(d.text <span class="kw">for</span> d <span class="kw">in</span> docs)
+    s.sources  = [d.id <span class="kw">for</span> d <span class="kw">in</span> docs]</code></pre>
+      </div>
+
+      <div class="sub">
+        <div class="sub-title">What steps capture</div>
+        <table class="param-table">
+          <thead><tr><th>Field</th><th>How set</th><th>Used for</th></tr></thead>
+          <tbody>
+            <tr><td><code class="param-name">elapsed</code></td><td class="param-desc">Always, automatically</td><td class="param-desc">Per-node timing bar in dashboard</td></tr>
+            <tr><td><code class="param-name">inputs</code></td><td class="param-desc">Decorator only (auto)</td><td class="param-desc">Input args visible in receipt</td></tr>
+            <tr><td><code class="param-name">output</code></td><td class="param-desc">Decorator only (auto)</td><td class="param-desc">Return value visible in receipt</td></tr>
+            <tr><td><code class="param-name">material</code></td><td class="param-desc">Explicit <code>s.material = …</code></td><td class="param-desc">Retrieved context → sent to judge</td></tr>
+            <tr><td><code class="param-name">sources</code></td><td class="param-desc">Explicit <code>s.sources = […]</code></td><td class="param-desc">Source list in dashboard receipt</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sub">
+        <div class="sub-title">record_detail modes</div>
+        <table class="param-table">
+          <thead><tr><th>Mode</th><th>What's captured</th></tr></thead>
+          <tbody>
+            <tr><td><code class="param-name">"all"</code> <span class="badge badge-green">default</span></td><td class="param-desc">Everything: inputs, outputs, material, sources, timing. Decorator output auto-becomes material.</td></tr>
+            <tr><td><code class="param-name">"selected"</code></td><td class="param-desc">Timing always; material/sources only when explicitly set with <code>s.material = …</code>. Use this to keep decorator steps from polluting the judge's context.</td></tr>
+            <tr><td><code class="param-name">"off"</code></td><td class="param-desc">Step name + timing only. No content captured.</td></tr>
+          </tbody>
+        </table>
+        <div class="callout callout-tip">
+          <div class="callout-icon">💡</div>
+          <p>Use <code>record_detail="selected"</code> when you decorate multiple steps but only want the retrieval step's context sent to the judge.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Notes -->
+    <section class="section" id="notes">
+      <h2 class="section-title">Notes — ragevalkit.note()</h2>
+      <p class="section-intro">Attach free-form metadata to the current question's result. Visible as flags on each row in the dashboard.</p>
+      <pre><code><span class="cm"># Inside your pipeline function, during an eval run</span>
+ragevalkit.<span class="fn">note</span>(<span class="st">"intent"</span>, <span class="st">"billing_query"</span>)
+ragevalkit.<span class="fn">note</span>(<span class="st">"difficulty"</span>, <span class="st">"hard"</span>)
+ragevalkit.<span class="fn">note</span>(<span class="st">"sub_queries"</span>, str(len(sub_queries)))</code></pre>
+      <p style="font-size:13.5px;color:var(--fg-muted)">No-op when called outside an active eval run. Secret key names (containing "password", "token", "key", etc.) are silently dropped.</p>
+    </section>
+
+    <!-- serve() reference -->
+    <section class="section" id="serve-ref">
+      <h2 class="section-title">serve() — full reference</h2>
+      <p class="section-intro">All parameters of <code>ragevalkit.serve(fn, ...)</code>.</p>
+
+      <div class="sub"><div class="sub-title">Server</div>
+      <table class="param-table">
+        <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="param-name">port</td><td class="param-default">8001</td><td class="param-desc">HTTP port for the eval server and dashboard.</td></tr>
+          <tr><td class="param-name">store_path</td><td class="param-default">"eval_store.json"</td><td class="param-desc">Path to the TinyDB JSON file. Created automatically on first start.</td></tr>
+          <tr><td class="param-name">open_browser</td><td class="param-default">True</td><td class="param-desc">Opens the dashboard in a browser 1.5 s after startup.</td></tr>
+          <tr><td class="param-name">eval_env</td><td class="param-default">"dev"</td><td class="param-desc"><code>"dev"</code> — full dashboard. <code>"prod"</code> — only <code>/health</code>, dashboard blocked. <code>"uat"</code> — like dev with UAT logging.</td></tr>
+        </tbody>
+      </table></div>
+
+      <div class="sub"><div class="sub-title">Recording</div>
+      <table class="param-table">
+        <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="param-name">record_mode</td><td class="param-default">"eval"</td><td class="param-desc"><code>"eval"</code> — steps fire only during eval runs (zero overhead in production). <code>"off"</code> — disable entirely.</td></tr>
+          <tr><td class="param-name">record_detail</td><td class="param-default">"all"</td><td class="param-desc">See <a href="#steps">Step recording</a> for modes.</td></tr>
+        </tbody>
+      </table></div>
+
+      <div class="sub"><div class="sub-title">Scoring & recommendation</div>
+      <table class="param-table">
+        <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="param-name">answer_weight</td><td class="param-default">0.6</td><td class="param-desc">Weight of answer quality score in the version recommendation ranking.</td></tr>
+          <tr><td class="param-name">material_weight</td><td class="param-default">0.4</td><td class="param-desc">Weight of retrieved material score. Set to <code>0</code> for systems with no retrieval.</td></tr>
+          <tr><td class="param-name">recommendation_tolerance</td><td class="param-default">0.25</td><td class="param-desc">Versions within this quality delta are considered tied; the faster one wins.</td></tr>
+          <tr><td class="param-name">max_response_time</td><td class="param-default">None</td><td class="param-desc">Exclude versions slower than this (seconds) from recommendation candidates.</td></tr>
+        </tbody>
+      </table></div>
+
+      <div class="sub"><div class="sub-title">Function signature hints</div>
+      <table class="param-table">
+        <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="param-name">session_params</td><td class="param-default">—</td><td class="param-desc">Extra parameter names that mean "pass a session ID", e.g. <code>["thread_id"]</code>.</td></tr>
+          <tr><td class="param-name">history_params</td><td class="param-default">—</td><td class="param-desc">Extra parameter names that mean "pass conversation history".</td></tr>
+          <tr><td class="param-name">history_format</td><td class="param-default">"dict"</td><td class="param-desc"><code>"dict"</code> → <code>[{"question":…,"answer":…}]</code>. <code>"openai"</code> → role/content message list.</td></tr>
+          <tr><td class="param-name">answer_keys</td><td class="param-default">—</td><td class="param-desc">Keys tried in order when <code>fn()</code> returns a dict, e.g. <code>["response","output"]</code>.</td></tr>
+          <tr><td class="param-name">conversational_types</td><td class="param-default">—</td><td class="param-desc">Row <code>type</code> values that skip material scoring and lexical metrics, e.g. <code>["greeting"]</code>.</td></tr>
+        </tbody>
+      </table></div>
+
+      <div class="sub"><div class="sub-title">Dataset</div>
+      <table class="param-table">
+        <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="param-name">default_dataset</td><td class="param-default">None</td><td class="param-desc">Path to a default <code>.xlsx</code> or <code>.csv</code> shown in the dashboard dataset picker.</td></tr>
+          <tr><td class="param-name">column_map</td><td class="param-default">None</td><td class="param-desc">Rename xlsx columns before validation, e.g. <code>{"user_query": "question"}</code>.</td></tr>
+          <tr><td class="param-name">extra_columns</td><td class="param-default">None</td><td class="param-desc">Extra xlsx columns to carry into every result receipt, e.g. <code>["difficulty","topic"]</code>.</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <!-- Judge -->
+    <section class="section" id="judge">
+      <h2 class="section-title">Judge configuration</h2>
+      <p class="section-intro">The judge scores each answer 0–10 for answer quality and retrieved material quality. Uses any LiteLLM model — configure with the matching API key in your <code>.env</code>.</p>
+
+      <div class="sub"><div class="sub-title">Model</div>
+      <table class="param-table">
+        <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="param-name">judge_model</td><td class="param-default">"groq/openai/gpt-oss-120b"</td><td class="param-desc">Any LiteLLM model string. Examples below.</td></tr>
+          <tr><td class="param-name">judge_api_key</td><td class="param-default">None</td><td class="param-desc">Explicit API key. If omitted, LiteLLM reads <code>GROQ_API_KEY</code>, <code>OPENAI_API_KEY</code>, etc. from env.</td></tr>
+          <tr><td class="param-name">judge_retries</td><td class="param-default">3</td><td class="param-desc">Retries on transient LLM failures before a row is marked failed.</td></tr>
+        </tbody>
+      </table>
+      <pre><code><span class="cm"># Model examples (set matching env var)</span>
+judge_model=<span class="st">"groq/llama-3.3-70b-versatile"</span>    <span class="cm"># GROQ_API_KEY</span>
+judge_model=<span class="st">"openai/gpt-4o"</span>                    <span class="cm"># OPENAI_API_KEY</span>
+judge_model=<span class="st">"gemini/gemini-1.5-pro"</span>            <span class="cm"># GEMINI_API_KEY</span>
+judge_model=<span class="st">"ollama/llama3"</span>                    <span class="cm"># no key needed</span></code></pre>
+      </div>
+
+      <div class="sub"><div class="sub-title">Custom judge function</div>
+      <p style="font-size:13.5px;color:var(--fg-muted)">Replace the LLM judge entirely with your own scoring logic.</p>
+      <pre><code><span class="kw">def</span> <span class="fn">my_judge</span>(question, expected, generated, material) -> dict:
+    score = compute_my_score(expected, generated)
+    <span class="kw">return</span> {
+        <span class="st">"answer_marks"</span>:    score,
+        <span class="st">"answer_comment"</span>:  <span class="st">"Custom score"</span>,
+        <span class="st">"material_marks"</span>:  None,  <span class="cm"># optional</span>
+    }
+
+ragevalkit.<span class="fn">serve</span>(my_rag, judge_fn=my_judge)</code></pre>
+      </div>
+
+      <div class="sub"><div class="sub-title">Custom judge prompt</div>
+      <pre><code>ragevalkit.<span class="fn">serve</span>(
+    my_rag,
+    judge_prompt=<span class="st">"""
+    You are evaluating a customer support chatbot.
+    Score answer quality 0-10 based on accuracy and tone.
+    Respond with JSON: {"answer_marks": N, "answer_comment": "..."}
+    """</span>,
+)</code></pre>
+      </div>
+    </section>
+
+    <!-- Metrics -->
+    <section class="section" id="metrics">
+      <h2 class="section-title">Metrics</h2>
+      <p class="section-intro">Built-in metrics run automatically on non-conversational rows. Add custom metrics alongside them.</p>
+
+      <table class="param-table">
+        <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="param-name">run_keyword_recall</td><td class="param-default">True</td><td class="param-desc">Keyword recall: fraction of expected-answer keywords found in the generated answer.</td></tr>
+          <tr><td class="param-name">run_bm25</td><td class="param-default">True</td><td class="param-desc">BM25 lexical similarity between expected and generated answer.</td></tr>
+          <tr><td class="param-name">run_semantic_similarity</td><td class="param-default">True</td><td class="param-desc">Cosine similarity via a local sentence-transformers model.</td></tr>
+          <tr><td class="param-name">embedding_model</td><td class="param-default">"all-MiniLM-L6-v2"</td><td class="param-desc">Sentence-transformers model for semantic similarity. Downloaded on first use.</td></tr>
+          <tr><td class="param-name">extra_metrics</td><td class="param-default">None</td><td class="param-desc">Dict of <code>{name: fn(expected, generated) → float}</code> for custom scores.</td></tr>
+        </tbody>
+      </table>
+
+      <div class="sub"><div class="sub-title">Custom metrics example</div>
+      <pre><code><span class="kw">import</span> rouge
+
+ragevalkit.<span class="fn">serve</span>(
+    my_rag,
+    extra_metrics={
+        <span class="st">"rouge_1"</span>: <span class="kw">lambda</span> exp, gen: rouge.score(exp, gen)[<span class="st">"rouge1"</span>].fmeasure,
+        <span class="st">"length_ratio"</span>: <span class="kw">lambda</span> exp, gen: len(gen) / max(len(exp), <span class="kv">1</span>),
+    }
+)</code></pre>
+      </div>
+    </section>
+
+    <!-- Auth -->
+    <section class="section" id="auth">
+      <h2 class="section-title">Auth</h2>
+      <p class="section-intro">HMAC-signed session cookies. Disable locally for convenience; enable for shared or production environments.</p>
+
+      <table class="param-table">
+        <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="param-name">require_login</td><td class="param-default">True</td><td class="param-desc">Set to <code>False</code> to skip the login screen entirely.</td></tr>
+          <tr><td class="param-name">users</td><td class="param-default">"admin:admin123"</td><td class="param-desc">Comma-separated <code>"user:password"</code> pairs, e.g. <code>"alice:pw1,bob:pw2"</code>.</td></tr>
+          <tr><td class="param-name">secret</td><td class="param-default">auto</td><td class="param-desc">Cookie signing secret. Auto-generated randomly if omitted (sessions reset on server restart).</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Test cases & groups -->
+    <section class="section" id="test-cases">
+      <h2 class="section-title">Test cases & groups</h2>
+      <p class="section-intro">Manage test cases and groups from the dashboard UI. No code needed.</p>
+
+      <div class="step-flow">
+        <div class="step-row">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-title">Add test cases</div>
+            <div class="step-desc">Go to <strong>Test Cases</strong> in the dashboard. Add individual cases with question + expected answer, or upload a <code>.xlsx</code> / <code>.csv</code> file.</div>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-title">Organise into groups</div>
+            <div class="step-desc">Create groups (e.g. "billing", "technical", "greetings") and assign test cases to them. A test case can belong to multiple groups.</div>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">Select groups when running</div>
+            <div class="step-desc">The Execute modal lets you pick any combination of groups. Cases from multiple groups are merged and deduplicated automatically.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout callout-tip">
+        <div class="callout-icon">💡</div>
+        <p>xlsx columns: <code>question</code>, <code>expected_answer</code>, <code>chat_id</code> (groups multi-turn conversations), <code>turn_no</code>, <code>type</code> (set <code>"conversational"</code> to skip material scoring).</p>
+      </div>
+    </section>
+
+    <!-- Running evaluations -->
+    <section class="section" id="runs">
+      <h2 class="section-title">Running evaluations</h2>
+      <p class="section-intro">Start a run from the <strong>Execute</strong> button on the dashboard.</p>
+
+      <div class="step-flow">
+        <div class="step-row">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-title">Enter a version name</div>
+            <div class="step-desc">Type a version name like <code>v1</code>, <code>v2</code>, or a descriptive label. Each version is compared independently in the dashboard.</div>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-title">Select test case groups</div>
+            <div class="step-desc">Check one or more groups. All groups are pre-selected by default. The total case count is shown before you confirm.</div>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">Add a run note (optional)</div>
+            <div class="step-desc">Describe what changed — model, prompt, retrieval config. Shown on the dashboard for each version.</div>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <div class="step-title">Run & watch live progress</div>
+            <div class="step-desc">The dashboard streams progress via SSE. Completed rows show scores in real time. A running version appears as "In progress".</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub"><div class="sub-title">Dashboard features per version</div>
+      <table class="param-table">
+        <thead><tr><th>Feature</th><th>What you see</th></tr></thead>
+        <tbody>
+          <tr><td class="param-name">Quality score</td><td class="param-desc">Weighted average of answer + material marks, shown as a trend line across versions.</td></tr>
+          <tr><td class="param-name">Score distribution</td><td class="param-desc">Bar chart of answer marks 0–10 for all rows in the version.</td></tr>
+          <tr><td class="param-name">Recommendation</td><td class="param-desc">Best version badge: highest quality; ties broken by speed; optionally filtered by max response time.</td></tr>
+          <tr><td class="param-name">Node timings</td><td class="param-desc">Per-step timing from <code>@ragevalkit.step</code> decorators, shown as a bar per version.</td></tr>
+          <tr><td class="param-name">Tier filter</td><td class="param-desc">Filter rows by 🟢 High (≥8) / 🟡 Mid (5–7) / 🔴 Low (&lt;5) in the version detail view.</td></tr>
+          <tr><td class="param-name">Group tags</td><td class="param-desc">Shows which test case groups were used for each version run.</td></tr>
+          <tr><td class="param-name">Run notes</td><td class="param-desc">The note you entered at run time, shown under the version name.</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <!-- Excel export -->
+    <section class="section" id="export">
+      <h2 class="section-title">Excel export</h2>
+      <p class="section-intro">Download a full <code>.xlsx</code> report from any version's detail view. Two sheets.</p>
+
+      <table class="param-table">
+        <thead><tr><th>Sheet</th><th>Contents</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="param-name">Summary</td>
+            <td class="param-desc">Version name, date, notes, groups, total questions, average answer marks, average material marks, average scores per lexical metric, and the LLM run comment.</td>
+          </tr>
+          <tr>
+            <td class="param-name">Results</td>
+            <td class="param-desc">One row per question: ID, question, expected answer, generated answer, answer marks, answer remarks, material marks, material remarks, retrieved context, sources, all lexical metrics, per-node timings, and any extra metadata columns.</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="callout callout-info">
+        <div class="callout-icon">ℹ️</div>
+        <p>The Results sheet is styled: teal header row, text wrap on long columns, auto column widths. Ready to share with stakeholders.</p>
+      </div>
+    </section>
+
+    <!-- Hooks -->
+    <section class="section" id="hooks">
+      <h2 class="section-title">Hooks</h2>
+
+      <div class="sub"><div class="sub-title">on_complete — called after every run</div>
+      <pre><code><span class="kw">def</span> <span class="fn">notify</span>(summary: dict, rows: list[dict]) -> None:
+    print(
+        f<span class="st">"Run {summary['version']} done — "</span>
+        f<span class="st">"avg answer: {summary.get('avg_answer_marks')}"</span>
+    )
+    <span class="cm"># send Slack message, write to DB, trigger CI, etc.</span>
+
+ragevalkit.<span class="fn">serve</span>(my_rag, on_complete=notify)</code></pre>
+      </div>
+
+      <div class="sub"><div class="sub-title">session_id_fn — deterministic session IDs</div>
+      <p style="font-size:13.5px;color:var(--fg-muted)">By default each eval question gets a random UUID session. Supply a deterministic function to replay multi-turn conversations with the same session against a stateful backend.</p>
+      <pre><code>ragevalkit.<span class="fn">serve</span>(
+    my_rag,
+    session_id_fn=<span class="kw">lambda</span> chat_id: f<span class="st">"eval-{chat_id}"</span>,
+)</code></pre>
+      </div>
+    </section>
+
+    <!-- Versioning -->
+    <section class="section" id="versioning">
+      <h2 class="section-title">Library versioning</h2>
+      <p class="section-intro">Tag releases on GitHub to pin in requirements.txt.</p>
+
+      <div class="step-flow">
+        <div class="step-row">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-title">Bump version in pyproject.toml</div>
+            <pre><code>version = <span class="st">"0.2.0"</span></code></pre>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-title">Commit, tag, push</div>
+            <pre><code>git commit -m <span class="st">"chore: bump to v0.2.0"</span>
+git tag v0.2.0
+git push origin main --tags</code></pre>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">Create GitHub Release</div>
+            <div class="step-desc">Go to the repo → Releases → Draft from tag <code>v0.2.0</code>. Consumers pin to this tag.</div>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <div class="step-title">Update consumers</div>
+            <pre><code><span class="cm"># requirements.txt</span>
+git+https://github.com/devanshmakam-youngsoft/ragevalkit.git@v0.2.0</code></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+// Active nav link on scroll
+const links = document.querySelectorAll('.nav-link');
+const sections = document.querySelectorAll('.section');
+
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      links.forEach(l => l.classList.remove('active'));
+      const match = document.querySelector(`.nav-link[href="#${e.target.id}"]`);
+      if (match) match.classList.add('active');
+    }
+  });
+}, { rootMargin: '-20% 0px -70% 0px' });
+
+sections.forEach(s => observer.observe(s));
+</script>
