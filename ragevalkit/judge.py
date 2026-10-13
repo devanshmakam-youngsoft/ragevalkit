@@ -46,8 +46,9 @@ class Judge:
         kwargs: dict = dict(
             model=self.config.judge_model,
             messages=messages,
-            temperature=self.config.judge_temperature,
         )
+        if self.config.judge_temperature is not None:
+            kwargs["temperature"] = self.config.judge_temperature
         if self.config.judge_api_key:
             kwargs["api_key"] = self.config.judge_api_key
         if json_mode:

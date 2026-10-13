@@ -36,7 +36,7 @@ class Config(BaseSettings):
     judge_model: str = "groq/openai/gpt-oss-120b"
     judge_api_key: str = ""        # optional; LiteLLM also reads env vars automatically
     judge_prompt_override: str = ""  # replaces GRADER_PROMPT entirely when set
-    judge_temperature: float = 0.0
+    judge_temperature: float | None = None
     judge_retries: int = 3
 
     # Scoring / recommendation
