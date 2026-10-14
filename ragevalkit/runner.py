@@ -169,17 +169,39 @@ def _build_history(turns: list[dict], fmt: str) -> list[dict]:
 
 
 def _source_check(expected_str: str, recorded: list) -> dict:
-    """Compare expected_sources (pipe-separated) against recorded sources list."""
-    expected = [s.strip() for s in (expected_str or "").split("|") if s.strip()]
-    if not expected:
+    """Compare expected_sources against recorded sources.
+
+    Format: groups separated by | (ALL must pass);
+            alternatives within a group separated by , (ANY ONE satisfies the group).
+
+    Example: "1.txt , 2.txt | 3.txt"
+      Group 1: 1.txt OR 2.txt must be retrieved (any one is enough)
+      Group 2: 3.txt must be retrieved
+      Both groups must pass for source_match = True.
+
+    Single-level usage (no commas) is identical to the old pipe-only format.
+    """
+    groups = [g.strip() for g in (expected_str or "").split("|") if g.strip()]
+    if not groups:
         return {"source_match": None, "matched_sources": [], "missing_sources": []}
     recorded_lower = [str(s).lower() for s in (recorded or [])]
-    matched = [e for e in expected if any(e.lower() in r or r in e.lower() for r in recorded_lower)]
-    missing = [e for e in expected if e not in matched]
+    matched_sources: list[str] = []
+    missing_sources: list[str] = []
+    for group in groups:
+        alternatives = [a.strip() for a in group.split(",") if a.strip()]
+        hit = next(
+            (alt for alt in alternatives
+             if any(alt.lower() in r or r in alt.lower() for r in recorded_lower)),
+            None,
+        )
+        if hit:
+            matched_sources.append(hit)
+        else:
+            missing_sources.append(group)
     return {
-        "source_match": bool(matched),
-        "matched_sources": matched,
-        "missing_sources": missing,
+        "source_match": len(missing_sources) == 0,
+        "matched_sources": matched_sources,
+        "missing_sources": missing_sources,
     }
 
 
