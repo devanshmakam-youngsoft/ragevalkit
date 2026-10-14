@@ -98,6 +98,40 @@ The dashboard shows all versions with average scores, quality trend, and node ti
 
 ---
 
+## Source Verification
+
+Add an `expected_sources` column to your dataset to track which documents the RAG should retrieve.
+
+### Format
+
+| Separator | Meaning | Example |
+|-----------|---------|---------|
+| `\|` | AND — every group must be retrieved | `doc_a.pdf \| doc_b.pdf` |
+| `,` | OR — any one alternative satisfies the group | `doc_a.pdf , doc_a_v2.pdf` |
+
+Combined: `doc_a.pdf , doc_a_v2.pdf | policy_2025.pdf`  
+→ (doc_a.pdf **or** doc_a_v2.pdf) **and** policy_2025.pdf must both be retrieved.
+
+Single-source rows (`doc_a.pdf`) work as before.
+
+### Modes
+
+Control the check with `source_check_mode` in `serve()`:
+
+| Mode | Behaviour |
+|------|-----------|
+| `"keyword"` | Fast substring match — case-insensitive, ignores path prefix and extension (default) |
+| `"llm"` | LLM judge call — understands capitalisation/extension differences; strict about year/version differences; adds `source_score` (0–10) and `source_comment` to results |
+| `"off"` | Skip source verification entirely |
+
+```python
+serve(..., source_check_mode="llm")
+```
+
+Results always include `matched_sources`, `missing_sources`, and `source_match` (True only when every required group was retrieved).
+
+---
+
 ## Versioning
 
 When you release a new version of your RAG app, run the evaluator against the same test cases and give it a new version name (e.g. `v2`). The dashboard tracks all versions so you can compare quality over time.
