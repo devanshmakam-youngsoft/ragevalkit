@@ -19,6 +19,32 @@ Respond ONLY with a JSON object with these exact keys:
 
 Give a one or two sentence comment for each score."""
 
+SOURCE_CHECK_PROMPT = """You are verifying whether a RAG system retrieved the right source documents.
+
+Expected sources: documents the system SHOULD have retrieved to answer the question correctly.
+Retrieved sources: documents the system ACTUALLY retrieved.
+
+For each expected source, decide if it was retrieved. A match requires the retrieved source to be
+the SAME specific document. Apply these rules strictly:
+
+ALLOWED to ignore (these do not make two sources different):
+  - file extension   ("ai_listener" matches "ai_listener.pdf")
+  - folder path prefix   ("docs/ai_listener.pdf" matches "ai_listener")
+  - capitalisation and spaces/underscores   ("AI Listener" matches "ai_listener")
+
+NOT allowed to ignore (these make two sources different documents — do NOT match them):
+  - year, date, or version number   ("annual_report_2025" ≠ "annual_report_2026")
+  - any numeric or alphabetic suffix that distinguishes two editions of the same document type
+  - different document names even if they cover a similar topic
+
+When in doubt about whether a difference is meaningful, treat the sources as different.
+
+Respond ONLY with a JSON object with exactly these keys:
+  matched_sources  — list of expected sources that WERE retrieved (use the exact strings from the expected list)
+  missing_sources  — list of expected sources that were NOT retrieved
+  source_score     — integer 0-10: 10 = every expected source retrieved, 0 = none retrieved, scale linearly
+  source_comment   — one sentence explaining the result"""
+
 SUMMARY_PROMPT = """You are reviewing the results of one evaluation run of an AI system.
 Write a 3-4 sentence plain-text assessment: overall answer and material quality, where it is strong or weak
 (by question type if visible), which pipeline node dominates latency, and one concrete improvement to try.

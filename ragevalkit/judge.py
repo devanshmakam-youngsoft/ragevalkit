@@ -35,6 +35,13 @@ class Grade(BaseModel):
     material_comment: str = ""
 
 
+class SourceCheckResult(BaseModel):
+    matched_sources: list[str] = []
+    missing_sources: list[str] = []
+    source_score: int = Field(ge=0, le=10)
+    source_comment: str = ""
+
+
 class Judge:
     def __init__(self, config):
         self.config = config
@@ -94,6 +101,22 @@ class Judge:
             grade.material_marks = None
             grade.material_comment = "Not applicable (no retrieval expected)."
         return grade
+
+    def check_sources(self, expected: list[str], recorded: list[str]) -> SourceCheckResult:
+        recorded_str = "\n".join(f"- {r}" for r in recorded) if recorded else "None retrieved."
+        expected_str = "\n".join(f"- {e}" for e in expected)
+        user = f"Expected sources:\n{expected_str}\n\nRetrieved sources:\n{recorded_str}"
+
+        def _invoke():
+            raw = self._call(
+                [{"role": "system", "content": _prompts.SOURCE_CHECK_PROMPT},
+                 {"role": "user", "content": user}],
+                json_mode=True,
+            )
+            data = json.loads(raw)
+            return SourceCheckResult(**data)
+
+        return self._with_retries(_invoke)
 
     def summarize_run(self, stats: str) -> str:
         try:

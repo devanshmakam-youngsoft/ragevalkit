@@ -39,6 +39,12 @@ class Config(BaseSettings):
     judge_temperature: float | None = None
     judge_retries: int = 3
 
+    # Source check mode
+    # "keyword" — fast substring match on pipe-separated expected_sources (default)
+    # "llm"     — LLM decides whether retrieved sources cover expected sources; adds source_score + source_comment
+    # "off"     — skip source verification entirely
+    source_check_mode: str = "keyword"
+
     # Scoring / recommendation
     answer_weight: float = 0.6
     material_weight: float = 0.4

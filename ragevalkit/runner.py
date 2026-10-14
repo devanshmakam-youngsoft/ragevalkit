@@ -437,7 +437,23 @@ class RunManager:
             # Source check — only if the dataset row has expected_sources
             expected_sources = str(getattr(row, "expected_sources", "") or "").strip()
             if expected_sources and expected_sources.lower() != "nan":
-                out.update(_source_check(expected_sources, sources))
+                mode = self.config.source_check_mode
+                if mode == "llm":
+                    try:
+                        expected_list = [s.strip() for s in expected_sources.split("|") if s.strip()]
+                        result = self.judge.check_sources(expected_list, sources)
+                        out.update(
+                            source_match=bool(result.matched_sources),
+                            matched_sources=result.matched_sources,
+                            missing_sources=result.missing_sources,
+                            source_score=result.source_score,
+                            source_comment=result.source_comment,
+                        )
+                    except Exception as e:
+                        logger.warning("LLM source check failed, falling back to keyword: %s", e)
+                        out.update(_source_check(expected_sources, sources))
+                elif mode != "off":
+                    out.update(_source_check(expected_sources, sources))
 
         except Exception as e:
             logger.error("Generation failed for chat %s turn %s: %s", row.chat_id, row.turn_no, e)
