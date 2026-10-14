@@ -436,7 +436,7 @@ class RunManager:
 
             # Source check — only if the dataset row has expected_sources
             expected_sources = str(getattr(row, "expected_sources", "") or "").strip()
-            if expected_sources:
+            if expected_sources and expected_sources.lower() != "nan":
                 out.update(_source_check(expected_sources, sources))
 
         except Exception as e:

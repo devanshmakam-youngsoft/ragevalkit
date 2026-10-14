@@ -39,6 +39,14 @@ import pandas as pd
 from tinydb import Query, TinyDB
 
 VERSION_RE = re.compile(r"^[A-Za-z0-9._-]{1,20}$")
+
+
+def _clean_es(val) -> str:
+    """Convert a potential NaN/None expected_sources value to clean empty string."""
+    if val is None or (isinstance(val, float) and math.isnan(val)):
+        return ""
+    s = str(val).strip()
+    return "" if s.lower() == "nan" else s
 COLUMNS_BEFORE_NODES = [
     "chat_id", "session_id", "turn_no", "type", "question", "expected_answer",
     "generated_answer", "material", "sources", "status", "total_time_taken",
@@ -514,8 +522,9 @@ class EvalStore:
                 "question": tc["question"],
                 "expected_answer": tc["expected_answer"],
             }
-            if tc.get("expected_sources"):
-                row["expected_sources"] = tc["expected_sources"]
+            es = _clean_es(tc.get("expected_sources", ""))
+            if es:
+                row["expected_sources"] = es
             rows.append(row)
         return pd.DataFrame(rows)
 
@@ -593,7 +602,7 @@ class EvalStore:
                     "type": str(getattr(row, "type", "rag")),
                     "question": str(row.question),
                     "expected_answer": str(row.expected_answer),
-                    "expected_sources": str(getattr(row, "expected_sources", "")),
+                    "expected_sources": _clean_es(getattr(row, "expected_sources", "")),
                     "status": "active",
                     "created_at": now,
                     "updated_at": now,
