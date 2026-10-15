@@ -50,6 +50,7 @@ from ragevalkit.config import Config
 from ragevalkit.server import create_app
 from ragevalkit.exceptions import (
     RagevalError,
+    ConfigError,
     DatasetError,
     StoreError,
     VersionNotFound,
@@ -63,6 +64,7 @@ __all__ = [
     "serve", "step", "note", "__version__",
     # exceptions
     "RagevalError",
+    "ConfigError",
     "DatasetError",
     "StoreError", "VersionNotFound",
     "RunError", "RunBusy",
@@ -113,6 +115,8 @@ def serve(
     history_format: str = "dict",
     # --- type / conversational detection ---
     conversational_types: list[str] | None = None,
+    # --- source verification ---
+    source_check_mode: str = "keyword",
     # --- hooks ---
     on_complete: Callable | None = None,
     session_id_fn: Callable | None = None,
@@ -205,6 +209,24 @@ def serve(
         summary_prompt: Override the system prompt used by the LLM to write the run
             commentary shown in the dashboard.
     """
+    # --- input validation (fail fast with a clear message) ---
+    _VALID_SOURCE_MODES = {"keyword", "llm", "off"}
+    if not callable(fn):
+        raise ConfigError(f"fn must be callable, got {type(fn).__name__!r}")
+    if source_check_mode not in _VALID_SOURCE_MODES:
+        raise ConfigError(
+            f"source_check_mode={source_check_mode!r} is not valid. "
+            f"Choose one of: {sorted(_VALID_SOURCE_MODES)}"
+        )
+    if judge_retries < 1:
+        raise ConfigError(f"judge_retries must be >= 1, got {judge_retries}")
+    if answer_weight < 0 or material_weight < 0:
+        raise ConfigError("answer_weight and material_weight must be >= 0")
+    if history_format not in {"dict", "openai"}:
+        raise ConfigError(
+            f"history_format={history_format!r} is not valid. Choose 'dict' or 'openai'."
+        )
+
     import uvicorn
 
     _load_dotenv()  # populate os.environ so LiteLLM can find GROQ_API_KEY, GEMINI_API_KEY, etc.
@@ -227,6 +249,7 @@ def serve(
         cfg_extra["extra_columns"] = extra_columns
     if summary_prompt is not None:
         cfg_extra["summary_prompt"] = summary_prompt
+    cfg_extra["source_check_mode"] = source_check_mode
 
     config = Config(
         backend_port=port,

@@ -38,6 +38,8 @@ from pathlib import Path
 import pandas as pd
 from tinydb import Query, TinyDB
 
+from ragevalkit.exceptions import VersionNotFound
+
 VERSION_RE = re.compile(r"^[A-Za-z0-9._-]{1,20}$")
 
 
@@ -64,8 +66,6 @@ OPTIONAL_RECEIPT_COLUMNS = [
 METRIC_AVGS = {"answer_marks", "material_marks", "total_time", "keyword_recall", "bm25_score", "semantic_similarity"}
 EXCEL_CELL_LIMIT = 32000
 
-
-from ragevalkit.exceptions import VersionNotFound  # noqa: E402  (after module-level constants)
 
 
 def valid_version(version: str) -> bool:

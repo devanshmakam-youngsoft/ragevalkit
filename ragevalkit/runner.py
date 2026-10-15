@@ -61,6 +61,7 @@ import pandas as pd
 
 from ragevalkit import lexical, recording
 from ragevalkit.config import Config
+from ragevalkit.exceptions import RunBusy
 from ragevalkit.judge import Judge
 from ragevalkit.store import EvalStore, build_summary, stats_for_llm
 
@@ -72,8 +73,6 @@ _ANSWER_KEYS    = ("answer", "response", "output", "result", "text", "content",
 _HISTORY_ALIASES = {"history", "chat_history", "messages", "conversation", "turns", "context"}
 _SESSION_ALIASES = {"session_id", "session", "thread_id", "conversation_id", "user_id"}
 
-
-from ragevalkit.exceptions import RunBusy, JudgeError  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
