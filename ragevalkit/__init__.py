@@ -59,7 +59,7 @@ from ragevalkit.exceptions import (
     JudgeError,
 )
 
-__version__ = "0.1.0"
+__version__ = "0.1.3"
 __all__ = [
     "serve", "step", "note", "__version__",
     # exceptions
@@ -195,6 +195,12 @@ def serve(
             ``"openai"`` → ``[{"role": "user", …}, {"role": "assistant", …}]``.
         conversational_types: Row ``type`` values (case-insensitive) that skip material
             scoring and lexical metrics, e.g. ``["conversational", "greeting"]``.
+        source_check_mode: How to verify retrieved sources against ``expected_sources`` in
+            the dataset. ``"keyword"`` (default) uses substring matching — separate AND-groups
+            with ``|`` and OR-alternatives within a group with ``,`` (e.g.
+            ``"doc_a | doc_b.pdf,doc_c"`` requires doc_a AND either doc_b or doc_c).
+            ``"llm"`` uses the judge model for fuzzy / alias-tolerant matching.
+            ``"off"`` disables source verification entirely.
         on_complete: Called once after a run finishes (success or failure)::
 
                 def on_complete(summary: dict, rows: list[dict]) -> None:

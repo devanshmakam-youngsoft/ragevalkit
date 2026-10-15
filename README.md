@@ -52,25 +52,11 @@ serve(
 
 This starts the dashboard at `http://localhost:8002`.
 
-### 2. Record test cases
+### 2. Add test cases
 
-Use the `Recorder` to capture real conversations from your RAG app and save them as test cases:
+Populate your test case library through the dashboard — upload an Excel/CSV file in the **Library** tab, create individual cases manually, or import programmatically via the REST API (`POST /api/test-cases`).
 
-```python
-from ragevalkit import Recorder
-
-recorder = Recorder(store_path="eval_store.json")
-
-recorder.record(
-    chat_id="session_001",
-    turn_no=1,
-    question="What is the admission deadline?",
-    expected_answer="The admission deadline is March 31.",
-    generated_answer=your_rag_response,
-    retrieved_context=your_rag_context,
-    sources=["doc_1.pdf"],
-)
-```
+Each test case needs: `chat_id`, `turn_no`, `type`, `question`, `expected_answer`. Add an optional `expected_sources` column to enable source verification (see [Source Verification](#source-verification)).
 
 ### 3. Run an evaluation
 

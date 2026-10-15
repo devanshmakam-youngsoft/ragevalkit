@@ -145,6 +145,41 @@ def build_summary(
     return summary
 
 
+def build_group_stats(store: "EvalStore", group_names: list[str], rows: list[dict]) -> dict:
+    """Compute per-group score averages for a run that covered named test-case groups."""
+    if not group_names:
+        return {}
+    row_tc_ids = [
+        _tc_id(str(r.get("chat_id", "")), int(r.get("turn_no") or 1), str(r.get("question", "")))
+        for r in rows
+    ]
+    with store._lock:
+        all_groups = list(store.groups.all())
+        all_members = list(store.group_members.all())
+    name_to_gid = {g["name"]: g["group_id"] for g in all_groups}
+    gid_to_tcs: dict[str, set] = {}
+    for m in all_members:
+        gid_to_tcs.setdefault(m["group_id"], set()).add(m["tc_id"])
+    stats: dict = {}
+    for gname in group_names:
+        gid = name_to_gid.get(gname)
+        if not gid:
+            continue
+        member_tcs = gid_to_tcs.get(gid, set())
+        group_rows = [r for r, tc in zip(rows, row_tc_ids) if tc in member_tcs]
+        if group_rows:
+            stats[gname] = {
+                "avg_answer_marks": _mean(_col(group_rows, "answer_marks")),
+                "avg_material_marks": _mean(_col(group_rows, "material_marks")),
+                "avg_total_time": _mean(_col(group_rows, "total_time_taken"), 3),
+                "avg_keyword_recall": _mean(_col(group_rows, "keyword_recall"), 3),
+                "avg_bm25_score": _mean(_col(group_rows, "bm25_score"), 3),
+                "avg_semantic_similarity": _mean(_col(group_rows, "semantic_similarity"), 3),
+                "total_rows": len(group_rows),
+            }
+    return stats
+
+
 def stats_for_llm(summary: dict, rows: list[dict]) -> str:
     by_type: dict[str, list[float]] = {}
     for r in rows:

@@ -63,7 +63,7 @@ from ragevalkit import lexical, recording
 from ragevalkit.config import Config
 from ragevalkit.exceptions import RunBusy
 from ragevalkit.judge import Judge
-from ragevalkit.store import EvalStore, build_summary, stats_for_llm
+from ragevalkit.store import EvalStore, build_group_stats, build_summary, stats_for_llm
 
 logger = logging.getLogger(__name__)
 
@@ -600,6 +600,7 @@ class RunManager:
             summary["run_id"] = run.version  # stable identifier used by dashboard actions
             summary["notes"] = run.notes
             summary["group_names"] = run.group_names
+            summary["group_stats"] = build_group_stats(self.store, run.group_names, rows)
 
             self.store.write(run.version, summary, rows)
             run.summary, run.status, run.current_question = summary, "completed", ""
@@ -637,6 +638,7 @@ def _partial_write(manager: RunManager, run: Run, rows: list[dict], fingerprint:
         summary["run_id"] = run.version
         summary["notes"] = run.notes
         summary["group_names"] = run.group_names
+        summary["group_stats"] = build_group_stats(manager.store, run.group_names, rows)
         manager.store.write(run.version, summary, rows)
         run.summary = summary
     except Exception as e:
