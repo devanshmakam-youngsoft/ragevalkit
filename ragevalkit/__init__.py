@@ -48,9 +48,26 @@ def _load_dotenv(path: str = ".env") -> None:
 from ragevalkit.recording import step, note
 from ragevalkit.config import Config
 from ragevalkit.server import create_app
+from ragevalkit.exceptions import (
+    RagevalError,
+    DatasetError,
+    StoreError,
+    VersionNotFound,
+    RunError,
+    RunBusy,
+    JudgeError,
+)
 
 __version__ = "0.1.0"
-__all__ = ["serve", "step", "note", "__version__"]
+__all__ = [
+    "serve", "step", "note", "__version__",
+    # exceptions
+    "RagevalError",
+    "DatasetError",
+    "StoreError", "VersionNotFound",
+    "RunError", "RunBusy",
+    "JudgeError",
+]
 
 
 def serve(

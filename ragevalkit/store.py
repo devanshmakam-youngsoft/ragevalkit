@@ -65,8 +65,7 @@ METRIC_AVGS = {"answer_marks", "material_marks", "total_time", "keyword_recall",
 EXCEL_CELL_LIMIT = 32000
 
 
-class VersionNotFound(Exception):
-    pass
+from ragevalkit.exceptions import VersionNotFound  # noqa: E402  (after module-level constants)
 
 
 def valid_version(version: str) -> bool:

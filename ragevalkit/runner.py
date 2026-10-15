@@ -73,8 +73,7 @@ _HISTORY_ALIASES = {"history", "chat_history", "messages", "conversation", "turn
 _SESSION_ALIASES = {"session_id", "session", "thread_id", "conversation_id", "user_id"}
 
 
-class RunBusy(Exception):
-    pass
+from ragevalkit.exceptions import RunBusy, JudgeError  # noqa: E402
 
 
 # ---------------------------------------------------------------------------

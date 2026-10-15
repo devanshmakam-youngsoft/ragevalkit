@@ -24,6 +24,7 @@ import time
 from pydantic import BaseModel, Field
 
 from ragevalkit import prompts as _prompts
+from ragevalkit.exceptions import JudgeError
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +76,7 @@ class Judge:
                 last = e
                 logger.warning("Judge call failed (attempt %d): %s", attempt + 1, e)
                 time.sleep(2 * (attempt + 1))
-        raise last
+        raise JudgeError(f"Judge failed after {self.config.judge_retries} attempts: {last}") from last
 
     def grade(
         self, question: str, expected: str, generated: str | None, material: str, material_applicable: bool
