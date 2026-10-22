@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from ragevalkit.config import Config
-from ragevalkit.routes import auth, health, runs
+from ragevalkit.routes import auth, health, imports, runs
 from ragevalkit.runner import RunManager
 from ragevalkit.store import EvalStore
 
@@ -67,7 +67,7 @@ def create_app(
     if config.eval_env == "uat":
         logger.info("ragevalkit: eval_env='uat' — UAT recording mode active.")
 
-    for module in (health, auth, runs):
+    for module in (health, auth, imports, runs):
         app.include_router(module.router)
 
     # SPA fallback: on refresh, the browser requests /datasets, /groups, etc. directly.
