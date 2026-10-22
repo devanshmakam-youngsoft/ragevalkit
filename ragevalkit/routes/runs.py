@@ -377,7 +377,7 @@ class TestCaseUpdate(BaseModel):
 
 
 class TestCaseStatusUpdate(BaseModel):
-    status: str  # "active" | "inactive"
+    status: str  # "active" | "inactive" | "deleted"
 
 
 @router.get("/test-cases")
@@ -387,7 +387,7 @@ def list_test_cases(
     dataset_id: str | None = None,
     status: str | None = None,
 ) -> list[dict]:
-    """List test cases. Optionally filter by group_id/dataset_id or status (active/inactive)."""
+    """List test cases. Optionally filter by group_id/dataset_id or status (active/inactive/deleted)."""
     return request.app.state.store.list_test_cases(group_id=group_id, dataset_id=dataset_id, status=status)
 
 
@@ -424,14 +424,15 @@ def update_test_case(tc_id: str, body: TestCaseUpdate, request: Request) -> dict
 
 class BulkStatusUpdate(BaseModel):
     tc_ids: list[str]
-    status: str  # "active" | "inactive"
+    status: str  # "active" | "inactive" | "deleted"
 
 
 @router.post("/test-cases/status")
 def set_test_cases_status(body: BulkStatusUpdate, request: Request) -> dict:
-    """Activate or deactivate several test cases at once."""
-    if body.status not in ("active", "inactive"):
-        raise HTTPException(422, f"Invalid status '{body.status}' (use 'active' or 'inactive'; delete is separate)")
+    """Activate, deactivate or delete (hide, keeping the data) several test cases at once.
+    Setting a deleted case back to 'active' restores it."""
+    if body.status not in ("active", "inactive", "deleted"):
+        raise HTTPException(422, f"Invalid status '{body.status}'")
     updated = request.app.state.store.update_status_bulk(body.tc_ids, body.status)
     return {"updated": updated, "status": body.status}
 
@@ -440,18 +441,11 @@ class TcIdList(BaseModel):
     tc_ids: list[str]
 
 
-@router.post("/test-cases/delete")
-def delete_test_cases(body: TcIdList, request: Request) -> dict:
-    """Permanently delete test cases (all versions and group labels). Past run results are kept."""
-    return {"deleted": request.app.state.store.delete_test_cases(body.tc_ids)}
-
-
-@router.delete("/test-cases/{tc_id}")
-def delete_test_case(tc_id: str, request: Request) -> dict:
-    """Permanently delete one test case."""
-    if not request.app.state.store.delete_test_cases([tc_id]):
-        raise HTTPException(404, "Test case not found")
-    return {"tc_id": tc_id, "deleted": True}
+@router.post("/test-cases/purge")
+def purge_test_cases(body: TcIdList, request: Request) -> dict:
+    """Permanently remove test cases that are already deleted (all versions and group labels).
+    Past run results are kept. Cases that are not deleted are ignored."""
+    return {"purged": request.app.state.store.purge_deleted_test_cases(body.tc_ids)}
 
 
 class TestCaseGroups(BaseModel):
@@ -472,7 +466,7 @@ def set_test_case_groups(tc_id: str, body: TestCaseGroups, request: Request) -> 
 
 @router.patch("/test-cases/{tc_id}/status")
 def set_test_case_status(tc_id: str, body: TestCaseStatusUpdate, request: Request) -> dict:
-    """Activate or deactivate a test case."""
+    """Activate, deactivate or delete (hide) a test case."""
     ok = request.app.state.store.update_test_case_status(tc_id, body.status)
     if not ok:
         raise HTTPException(404, f"Test case not found or invalid status '{body.status}'")
@@ -488,12 +482,13 @@ class CreateGroup(BaseModel):
 
 
 @router.get("/groups")
-def list_groups(request: Request) -> list[dict]:
-    """List all groups, each with its test case count and how it has done: last run and best version so far."""
+def list_groups(request: Request, include_deleted: bool = False) -> list[dict]:
+    """List groups, each with its test case count and how it has done: last run and best version so far.
+    Deleted groups are only included on request (``include_deleted=true``) and carry ``deleted_at``."""
     cfg, store = request.app.state.config, request.app.state.store
     versions = store.list_versions()
     out = []
-    for g in store.list_groups():
+    for g in store.list_groups(include_deleted=include_deleted):
         overview = group_overview(versions, g["name"], **_reco_settings(cfg))
         out.append({
             **g,
@@ -603,11 +598,32 @@ def remove_from_group(group_id: str, tc_id: str, request: Request) -> dict:
 
 @router.delete("/groups/{group_id}", status_code=200)
 def delete_group(group_id: str, request: Request) -> dict:
-    """Delete a group and unlink all its members. Test cases themselves are not removed."""
+    """Delete a group. It is hidden but kept (with its labels), so past runs stay readable and it can be
+    restored. Test cases are not touched."""
     ok = request.app.state.store.delete_group(group_id)
     if not ok:
         raise HTTPException(404, "Group not found")
     return {"group_id": group_id, "deleted": True}
+
+
+@router.post("/groups/{group_id}/restore", status_code=200)
+def restore_group(group_id: str, request: Request) -> dict:
+    """Bring a deleted group back with its labels."""
+    try:
+        ok = request.app.state.store.restore_group(group_id)
+    except ConflictError as e:
+        raise HTTPException(409, str(e))
+    if not ok:
+        raise HTTPException(404, "Deleted group not found")
+    return {"group_id": group_id, "restored": True}
+
+
+@router.post("/groups/{group_id}/purge", status_code=200)
+def purge_group(group_id: str, request: Request) -> dict:
+    """Permanently remove a group that is already deleted. Past runs keep its name and scores."""
+    if not request.app.state.store.purge_group(group_id):
+        raise HTTPException(404, "Deleted group not found")
+    return {"group_id": group_id, "purged": True}
 
 
 @router.get("/datasets")

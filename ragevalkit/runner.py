@@ -455,6 +455,9 @@ class RunManager:
         tc_id = getattr(row, "tc_id", None)
         if tc_id:
             out["tc_id"] = tc_id  # lets per-group stats find this row even after chat/turn edits
+        groups = getattr(row, "groups", None)
+        if groups is not None:
+            out["groups"] = list(groups)  # the groups this case belonged to when it ran
 
         # Carry any extra columns from the row into the receipt
         for col in self.config.extra_columns:
@@ -603,26 +606,23 @@ class RunManager:
 
             run.current_question = "Summarising run…"
 
-            # Temporarily swap in a custom summary prompt if one was configured.
-            # Module-level mutation is acceptable here because _execute runs on a
-            # single thread (one eval at a time), so there's no concurrency risk.
-            if self.config.summary_prompt:
-                from ragevalkit import prompts as _prompts
-                orig = _prompts.SUMMARY_PROMPT
-                _prompts.SUMMARY_PROMPT = self.config.summary_prompt
             summary = build_summary(
                 run.version, rows, run.started, run.dataset_name,
                 judge_model=self.config.judge_model,
                 question_fingerprint=fingerprint,
                 dataset_id=dataset_id,
             )
-            summary["comment"] = self.judge.summarize_run(stats_for_llm(summary, rows))
-            if self.config.summary_prompt:
-                _prompts.SUMMARY_PROMPT = orig  # restore
             summary["run_id"] = run.version  # stable identifier used by dashboard actions
             summary["notes"] = run.notes
             summary["group_names"] = run.group_names
             summary["group_stats"] = build_group_stats(self.store, run.group_names, rows)
+            insights = self.judge.summarize_run(stats_for_llm(summary, rows))
+            if insights:
+                summary["insights"] = insights
+                # plain-text version for anything that only reads `comment` (xlsx, on_complete hooks)
+                summary["comment"] = "\n".join(f"• {t}" for t in insights["pitfalls"] + insights["suggestions"])
+            else:
+                summary["comment"] = "Summary could not be generated for this run."
 
             self.store.write(run.version, summary, rows)
             run.summary, run.status, run.current_question = summary, "completed", ""

@@ -45,6 +45,40 @@ class SourceCheckResult(BaseModel):
     source_comment: str = ""
 
 
+def _clean_items(value, limit: int = 6) -> list[str]:
+    if isinstance(value, str):
+        value = [value]
+    if not isinstance(value, list):
+        return []
+    items = [str(v).strip().lstrip("-•* ").strip() for v in value if str(v).strip()]
+    return [i[:400] for i in items][:limit]
+
+
+def parse_insights(raw: str | None) -> dict | None:
+    """Read the model's {"pitfalls": [...], "suggestions": [...]} reply, tolerating code fences and
+    surrounding prose. Returns None when it holds neither list."""
+    text = (raw or "").strip()
+    if text.startswith("```"):
+        text = text.strip("`")
+        text = text[text.find("{"):] if "{" in text else text
+    try:
+        data = json.loads(text)
+    except ValueError:
+        start, end = text.find("{"), text.rfind("}")
+        if start < 0 or end <= start:
+            return None
+        try:
+            data = json.loads(text[start:end + 1])
+        except ValueError:
+            return None
+    if not isinstance(data, dict):
+        return None
+    pitfalls, suggestions = _clean_items(data.get("pitfalls")), _clean_items(data.get("suggestions"))
+    if not pitfalls and not suggestions:
+        return None
+    return {"pitfalls": pitfalls, "suggestions": suggestions}
+
+
 class Judge:
     def __init__(self, config):
         self.config = config
@@ -144,13 +178,23 @@ class Judge:
             source_comment=str(data.get("source_comment") or ""),
         )
 
-    def summarize_run(self, stats: str) -> str:
+    def summarize_run(self, stats: str) -> dict | None:
+        """Pitfalls and suggestions for a finished run: ``{"pitfalls": [...], "suggestions": [...]}``,
+        or None if the summary could not be generated."""
+        system = (self.config.summary_prompt or _prompts.SUMMARY_PROMPT) + _prompts.SUMMARY_FORMAT
+
+        def _invoke():
+            raw = self._call(
+                [{"role": "system", "content": system}, {"role": "user", "content": stats}],
+                json_mode=True,
+            )
+            insights = parse_insights(raw)
+            if insights is None:
+                raise ValueError("summary was not valid JSON with pitfalls / suggestions")
+            return insights
+
         try:
-            return self._with_retries(
-                lambda: self._call(
-                    [{"role": "system", "content": _prompts.SUMMARY_PROMPT}, {"role": "user", "content": stats}]
-                )
-            ).strip()
+            return self._with_retries(_invoke)
         except Exception as e:
             logger.error("Run summary generation failed: %s", e)
-            return "Summary could not be generated for this run."
+            return None

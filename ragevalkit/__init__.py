@@ -212,8 +212,9 @@ def serve(
 
                 session_id_fn=lambda chat_id: f"eval-{chat_id}"
 
-        summary_prompt: Override the system prompt used by the LLM to write the run
-            commentary shown in the dashboard.
+        summary_prompt: Override the system prompt used by the LLM to write the run's
+            "pitfalls and suggestions" shown in the dashboard. The required JSON reply format is
+            appended automatically, so only describe what to look for and the tone.
     """
     # --- input validation (fail fast with a clear message) ---
     _VALID_SOURCE_MODES = {"keyword", "llm", "off"}

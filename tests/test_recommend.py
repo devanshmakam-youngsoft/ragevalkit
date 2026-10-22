@@ -127,7 +127,7 @@ def test_api_recommendation_uses_serve_weights_and_skips_archived(client):
     assert client.get("/api/recommendation", params={"tolerance": -1}).status_code == 422
 
 
-def test_api_groups_list_has_last_and_best_and_test_cases_delete_for_good(client):
+def test_api_groups_list_has_last_and_best_and_deleting_cases_is_soft(client):
     gid = client.post("/api/groups", json={"name": "G"}).json()["group_id"]
     tc = client.post("/api/test-cases", json={
         "chat_id": "c", "turn_no": 1, "question": "q", "expected_answer": "a", "group_id": gid,
@@ -138,7 +138,11 @@ def test_api_groups_list_has_last_and_best_and_test_cases_delete_for_good(client
     assert listed["last_run"]["version"] == "1" and listed["best_run"]["version"] == "1" and listed["run_count"] == 1
     history = client.get(f"/api/groups/{gid}/runs").json()
     assert history["best"]["version"] == "1" and len(history["runs"]) == 1
-    assert client.delete(f"/api/test-cases/{tc['tc_id']}").status_code == 200
-    assert client.delete(f"/api/test-cases/{tc['tc_id']}").status_code == 404
+    # deleting hides a case but keeps it; only a deleted case can be purged
+    assert client.post("/api/test-cases/purge", json={"tc_ids": [tc["tc_id"]]}).json() == {"purged": 0}
+    assert client.post("/api/test-cases/status", json={"tc_ids": [tc["tc_id"]], "status": "deleted"}).json()["updated"] == 1
+    assert client.get("/api/groups").json()[0]["member_count"] == 0
+    assert client.get("/api/test-cases").json()[0]["status"] == "deleted"
+    assert client.post("/api/test-cases/purge", json={"tc_ids": [tc["tc_id"]]}).json() == {"purged": 1}
     assert client.get("/api/test-cases").json() == []
-    assert client.post("/api/test-cases/status", json={"tc_ids": [], "status": "deleted"}).status_code == 422
+    assert client.post("/api/test-cases/status", json={"tc_ids": [], "status": "bogus"}).status_code == 422

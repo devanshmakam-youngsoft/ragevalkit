@@ -150,10 +150,10 @@ def recommend(
     if len(fits) == 1:
         reason = "Only version run on this question set."
     elif len(tied) == 1:
-        reason = f"Highest quality of {len(fits)} comparable versions."
+        reason = f"Highest overall score of {len(fits)} comparable versions."
     else:
         others = ", ".join(f"v{x['version']}" for x in tied if x is not best)
-        reason = f"Quality is within {tolerance:g} of the top (also {others}) and it is the fastest of those."
+        reason = f"Overall score is within {tolerance:g} of the top (also {others}) and it is the fastest of those."
 
     fastest = min(fits, key=speed)
     rest = [x for x in fits if x is not best]

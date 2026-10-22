@@ -47,7 +47,21 @@ Respond ONLY with a JSON object with exactly these keys:
   missing_sources  — list of expected sources that were NOT retrieved
   source_comment   — one sentence explaining the result"""
 
-SUMMARY_PROMPT = """You are reviewing the results of one evaluation run of an AI system.
-Write a 3-4 sentence plain-text assessment: overall answer and material quality, where it is strong or weak
-(by question type if visible), which pipeline node dominates latency, and one concrete improvement to try.
-Do not use bullet points or markdown. Be specific and use the numbers provided."""
+SUMMARY_PROMPT = """You are reviewing the results of one evaluation run of an AI assistant, for a business reader who is not technical.
+The reader already sees the headline averages (answer quality, context quality, speed) on screen, so do NOT restate
+them and do not open with an overall verdict. Point out what needs attention and what to do about it, using the numbers
+provided only as evidence.
+
+pitfalls: 2-5 short items. Concrete weaknesses: which question types or groups scored lowest, which questions failed or
+scored poorly and why, which step is slow, failed rows, expected documents that were not retrieved. If there is genuinely
+nothing wrong, return one item saying so.
+suggestions: 2-4 short items. One concrete next step each, tied to a pitfall.
+
+Use plain everyday language; avoid jargon such as BM25, embeddings or recall. No markdown."""
+
+# Appended to the summary prompt whether or not the developer replaced the wording above, so the
+# dashboard can always show the result as bullet lists.
+SUMMARY_FORMAT = """
+
+Respond ONLY with a JSON object of exactly this shape: {"pitfalls": ["..."], "suggestions": ["..."]}.
+Each item is a single sentence."""

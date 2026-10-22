@@ -1,7 +1,6 @@
 """Test-case library: groups as labels, editing, and resolving what a run would execute."""
 import pandas as pd
 import pytest
-from tinydb import Query
 from fastapi.testclient import TestClient
 
 from ragevalkit.config import Config
@@ -77,34 +76,53 @@ def test_status_filter_applies_to_groups_but_not_to_picked_cases(store):
     assert store.resolve_selection(tc_ids=[cases["q4"]]).total == 1
 
 
-def test_deleting_removes_cases_for_good_and_unknown_ids_are_reported(store):
+def test_deleted_cases_are_hidden_but_kept_and_never_run(store):
     billing, _, cases = _seed(store)
-    assert store.delete_test_cases([cases["q4"], "tc_nope"]) == 1
-    assert cases["q4"] not in {c["tc_id"] for c in store.list_test_cases()}
-    assert store.get_test_case_history(cases["q4"]) == []          # every version is gone
-    assert store.list_groups()[0]["member_count"] == 3              # and so is its group label
-    sel = store.resolve_selection(group_ids=[billing], status="all", tc_ids=[cases["q4"]])
-    assert sel.total == 3 and sel.missing == 1
+    assert store.update_status_bulk([cases["q4"]], "deleted") == 1
+    assert store.list_groups()[0]["member_count"] == 3              # deleted cases are not counted
+    assert len(store.get_test_case_history(cases["q4"])) == 1       # ...but their data is still there
+    sel = store.resolve_selection(group_ids=[billing], status="all", tc_ids=[cases["q4"], "tc_nope"])
+    assert sel.total == 3 and sel.missing == 2
+    store.update_status_bulk([cases["q4"]], "active")               # restore
+    assert store.list_groups()[0]["member_count"] == 4
 
 
-def test_soft_deleted_cases_from_older_stores_are_purged_on_open(tmp_path):
-    path = tmp_path / "old.json"
-    first = EvalStore(path)
-    g = first.create_group("g")
-    first.import_into_group(g, _df([("c1", 1, "rag", "keep", "a"), ("c2", 1, "rag", "trash", "a")]))
-    trash = next(c["tc_id"] for c in first.list_test_cases() if c["question"] == "trash")
-    first.test_cases.update({"status": "deleted"}, Query().tc_id == trash)   # how old versions "deleted"
-    first.close()
-
-    reopened = EvalStore(path)
-    assert [c["question"] for c in reopened.list_test_cases()] == ["keep"]
-    assert reopened.list_groups()[0]["member_count"] == 1
-    reopened.close()
+def test_only_deleted_cases_can_be_purged_and_it_removes_everything(store):
+    billing, _, cases = _seed(store)
+    assert store.purge_deleted_test_cases([cases["q4"]]) == 0       # not deleted yet: refused
+    store.update_status_bulk([cases["q4"]], "deleted")
+    assert store.purge_deleted_test_cases([cases["q4"], "tc_nope"]) == 1
+    assert store.get_test_case_history(cases["q4"]) == []
+    assert cases["q4"] not in {m["tc_id"] for m in store.group_members.all()}
 
 
-def test_only_active_and_inactive_are_valid_statuses(store):
-    _, _, cases = _seed(store)
-    assert store.update_status_bulk([cases["q1"]], "deleted") == 0
+def test_deleted_groups_are_hidden_kept_restorable_and_purgeable(store):
+    billing, misc, cases = _seed(store)
+    assert store.delete_group(billing) is True and store.delete_group(billing) is False
+    assert [g["name"] for g in store.list_groups()] == ["misc"]
+    assert [g["name"] for g in store.list_groups(include_deleted=True)] == ["billing", "misc"]
+    with pytest.raises(GroupNotFound):
+        store.resolve_selection(group_ids=[billing])
+    case = next(c for c in store.list_test_cases() if c["tc_id"] == cases["q1"])
+    assert case["groups"] == []                                      # no longer labels anything
+    assert store.create_group("billing")                             # the name is free again...
+    with pytest.raises(ConflictError):
+        store.restore_group(billing)                                  # ...so restoring needs a rename first
+    store.rename_group(next(g["group_id"] for g in store.list_groups() if g["name"] == "billing"), "billing 2")
+    assert store.restore_group(billing) is True
+    assert store.resolve_selection(group_ids=[billing]).total == 4   # its labels survived the round trip
+    assert store.purge_group(billing) is False                       # only a deleted group can be purged
+    store.delete_group(billing)
+    assert store.purge_group(billing) is True
+    assert billing not in {g["group_id"] for g in store.list_groups(include_deleted=True)}
+
+
+def test_relabelling_a_case_keeps_a_deleted_groups_labels(store):
+    billing, misc, cases = _seed(store)
+    store.delete_group(billing)
+    store.set_test_case_groups(cases["q1"], [misc])
+    store.restore_group(billing)
+    assert store.resolve_selection(group_ids=[billing]).total == 4
 
 
 def test_two_cases_on_the_same_chat_and_turn_are_reported_as_a_collision(store):
