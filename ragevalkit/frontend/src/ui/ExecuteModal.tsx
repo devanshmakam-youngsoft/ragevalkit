@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { useRun } from "../RunContext";
 import type { DatasetInfo, Group, RunPreview, RunSelection, TestCase, VersionSummary } from "../types";
@@ -20,6 +21,7 @@ export interface ExecuteInitial {
 
 export function ExecuteModal({ onClose, initial }: { onClose: () => void; initial?: ExecuteInitial }) {
   const { start, startFromSelection, startRunAndSave } = useRun();
+  const navigate = useNavigate();
   const [versions, setVersions] = useState<VersionSummary[]>([]);
   const [version, setVersion] = useState("");
   const [overwrite, setOverwrite] = useState(false);
@@ -61,7 +63,7 @@ export function ExecuteModal({ onClose, initial }: { onClose: () => void; initia
       setVersions(vs);
       setVersion(nextVersion(vs));
       setGroups(gs);
-      setCases(tcs.filter((c) => c.status !== "deleted"));
+      setCases(tcs);
       if (initial) {
         setTab("library");
       } else if (gs.length > 0) {
@@ -151,6 +153,7 @@ export function ExecuteModal({ onClose, initial }: { onClose: () => void; initia
         await start(version.trim(), file, overwrite);
       }
       onClose();
+      navigate("/"); // the dashboard is where a running session shows its progress
     } catch (e) {
       setError((e as Error).message);
       setSubmitting(false);

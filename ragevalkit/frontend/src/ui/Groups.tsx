@@ -3,8 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { ExecuteModal } from "./ExecuteModal";
 import { TopBar } from "./TopBar";
-import { fmtDate } from "../lib";
-import type { Group } from "../types";
+import { fmt, fmtDate } from "../lib";
+import { Pager, usePaging } from "./Pager";
+import type { Group, GroupRunStat } from "../types";
 
 export default function Groups() {
   const [groups, setGroups] = useState<Group[] | null>(null);
@@ -20,6 +21,7 @@ export default function Groups() {
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
   const [runGroupId, setRunGroupId] = useState<string | null>(null);
   const navigate = useNavigate();
+  const paging = usePaging(groups ?? [], groups?.length ?? 0, 25);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const load = () => {
@@ -170,14 +172,14 @@ export default function Groups() {
               <thead className="bg-surface-2 text-[11px] uppercase tracking-[0.08em] text-muted">
                 <tr>
                   <th className="px-5 py-3 font-medium">Name</th>
-                  <th className="px-3 py-3 font-medium">Group ID</th>
                   <th className="px-3 py-3 font-medium">Test cases</th>
-                  <th className="px-3 py-3 font-medium">Created</th>
+                  <th className="px-3 py-3 font-medium">Last run</th>
+                  <th className="px-3 py-3 font-medium">Best version</th>
                   <th className="px-3 py-3 font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
-                {groups.map((g) => (
+                {paging.rows.map((g) => (
                   <tr key={g.group_id} tabIndex={0}
                     className="cursor-pointer align-middle outline-none hover:bg-surface-2 focus-visible:bg-surface-2"
                     onClick={() => navigate(`/test-cases?group_id=${encodeURIComponent(g.group_id)}`)}
@@ -196,15 +198,13 @@ export default function Groups() {
                         </span>
                       ) : g.name}
                     </td>
-                    <td className="px-3 py-4">
-                      <span className="mono rounded bg-surface-2 px-2 py-0.5 text-xs text-muted">{g.group_id}</span>
-                    </td>
                     <td className="mono px-3 py-4">
                       {g.member_count === 0
                         ? <span className="text-xs text-muted">0 cases</span>
                         : g.member_count}
                     </td>
-                    <td className="px-3 py-4 text-xs text-muted">{fmtDate(g.created_at)}</td>
+                    <td className="px-3 py-4"><RunCell run={g.last_run ?? null} when /></td>
+                    <td className="px-3 py-4"><RunCell run={g.best_run ?? null} /></td>
                     <td className="px-3 py-4" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-3">
                         <button
@@ -255,6 +255,7 @@ export default function Groups() {
               </tbody>
             </table>
           )}
+          <Pager p={paging} sizes={[25, 50, 100]} />
         </div>
       </div>
 
@@ -266,6 +267,19 @@ export default function Groups() {
         />
       )}
     </>
+  );
+}
+
+/** A group's run for the list: the version, and either when it ran or how well it did. */
+function RunCell({ run, when = false }: { run: GroupRunStat | null; when?: boolean }) {
+  if (!run) return <span className="text-xs text-muted">Not run yet</span>;
+  return (
+    <div>
+      <span className="mono font-medium text-brand">v{run.version}</span>
+      <div className="mt-0.5 text-xs text-muted">
+        {when ? fmtDate(run.date) : `quality ${run.quality == null ? "—" : run.quality.toFixed(1)} · answer ${fmt(run.avg_answer_marks)}`}
+      </div>
+    </div>
   );
 }
 

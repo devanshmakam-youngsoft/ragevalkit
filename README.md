@@ -95,6 +95,14 @@ You can run:
 
 Follow-up questions need the turns before them, so by default a run also includes the earlier turns of each selected case's conversation; the Execute dialog shows exactly how many cases will run and lets you turn this off. Chat ID and turn number can be edited on any test case.
 
+**Deleting a test case is permanent** (all its versions and group labels are removed; results of past runs keep their own copy of the question). To take a case out of runs without losing it, mark it *inactive*.
+
+## Which version should ship?
+
+The dashboard's recommendation is computed by the server (`GET /api/recommendation`) every time from the saved scores of every run that is **not archived** — archive or delete a version and the recommendation, trend charts, deltas and group history update straight away. Quality is `answer_weight` / `material_weight` from `serve()` (default 60/40); speed only breaks near-ties. Runs are only compared when they covered the same number of questions, had no failed rows and were not stopped early. If material marks were not graded for every compared version, all versions are compared on answer marks alone and the dashboard says so.
+
+Each run also saves a detailed `scores` block (score tiers, per-question-type averages, response-time spread, source-check results) on its summary.
+
 ---
 
 ## Source Verification

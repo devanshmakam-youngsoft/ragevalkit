@@ -7,17 +7,23 @@ import { Recommendation } from "./Recommendation";
 import { TopBar } from "./TopBar";
 import { fmt, fmtDate, fmtSeconds, nodeMeta, scoreTone, unionNodes } from "../lib";
 import { useRun } from "../RunContext";
-import { DEFAULT_TOLERANCE, recommend, type RecoSettings } from "../recommend";
-import { type VersionSummary } from "../types";
+import { Pager, usePaging } from "./Pager";
+import { type RecoResult, type VersionSummary } from "../types";
 
 type SortKey = "version" | "date" | "questions" | "answer" | "material" | "time";
 
-function loadSettings(): RecoSettings {
+/** Tolerance / time-ceiling the user typed in. null = use the server's defaults from serve(). */
+interface RecoOverrides { tolerance: number | null; maxTime: number | null }
+
+function loadOverrides(): RecoOverrides {
   try {
-    const raw = JSON.parse(localStorage.getItem("recoSettings") ?? "null");
-    if (raw && typeof raw.tolerance === "number") return { tolerance: raw.tolerance, maxTime: typeof raw.maxTime === "number" ? raw.maxTime : null };
+    const raw = JSON.parse(localStorage.getItem("recoOverrides") ?? "null");
+    if (raw) return {
+      tolerance: typeof raw.tolerance === "number" ? raw.tolerance : null,
+      maxTime: typeof raw.maxTime === "number" ? raw.maxTime : null,
+    };
   } catch { /* storage unavailable or corrupt */ }
-  return { tolerance: DEFAULT_TOLERANCE, maxTime: null };
+  return { tolerance: null, maxTime: null };
 }
 
 const tooltipStyle = {
@@ -29,10 +35,10 @@ export default function Dashboard() {
   const { run, versionsKey, dismiss, requestStop } = useRun();
   const [versions, setVersions] = useState<VersionSummary[] | null>(null);
   const [error, setError] = useState("");
-  const [settings, setSettings] = useState<RecoSettings>(loadSettings);
-  const updateSettings = (s: RecoSettings) => {
-    setSettings(s);
-    try { localStorage.setItem("recoSettings", JSON.stringify(s)); } catch { /* ignore */ }
+  const [overrides, setOverrides] = useState<RecoOverrides>(loadOverrides);
+  const updateOverrides = (o: RecoOverrides) => {
+    setOverrides(o);
+    try { localStorage.setItem("recoOverrides", JSON.stringify(o)); } catch { /* ignore */ }
   };
   const [refreshKey, setRefreshKey] = useState(0);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -42,61 +48,68 @@ export default function Dashboard() {
   useEffect(() => { if (!compareMode) setCompareSelected(new Set()); }, [compareMode]);
   const toggleCompareRow = (runId: string) =>
     setCompareSelected((prev) => { const n = new Set(prev); n.has(runId) ? n.delete(runId) : n.add(runId); return n; });
-  const compareRuns = useMemo(
-    () => [...compareSelected].map((id) => versions?.find((v) => v.run_id === id)).filter(Boolean) as import("../types").VersionSummary[],
-    [compareSelected, versions]
-  );
-
-  const [groupFilter, setGroupFilter] = useState<string | null>(null);
-  const availableGroups = useMemo(() => {
-    const s = new Set<string>();
-    for (const v of (versions ?? [])) for (const g of Object.keys(v.group_stats ?? {})) s.add(g);
-    return [...s].sort();
-  }, [versions]);
-  const scoreOf = (v: VersionSummary, key: "avg_answer_marks" | "avg_material_marks" | "avg_total_time"): number | null => {
-    if (!groupFilter) return (v[key] as number | null | undefined) ?? null;
-    return (v.group_stats?.[groupFilter] as Record<string, number | null> | undefined)?.[key] ?? null;
-  };
 
   useEffect(() => {
     api.versions().then((v) => setVersions([...v].sort((a, b) => Date.parse(a.date) - Date.parse(b.date))))
       .catch((e) => setError(e.message));
   }, [versionsKey, refreshKey]);
 
+  // Archived runs are out of the picture everywhere below: recommendation, trend, deltas, comparison.
   const activeVersions = useMemo(() => (versions ?? []).filter((v) => !v.archived), [versions]);
   const archivedVersions = useMemo(() => (versions ?? []).filter((v) => v.archived), [versions]);
 
-  // When a group filter is active, synthesise versions with group-specific scores so
-  // versions with different total question counts (different fingerprints) become comparable
-  // within the selected group.
-  const recoVersions = useMemo(() => {
-    if (!groupFilter) return versions ?? [];
-    return (versions ?? []).map((v) => {
-      const gs = v.group_stats?.[groupFilter];
-      if (!gs) return { ...v, total_rows: -1 };
-      return { ...v, avg_answer_marks: gs.avg_answer_marks, avg_material_marks: gs.avg_material_marks, avg_total_time: gs.avg_total_time ?? v.avg_total_time, total_rows: 1 };
-    });
-  }, [versions, groupFilter]);
-  const reco = useMemo(() => recommend(recoVersions, settings), [recoVersions, settings]);
+  const compareRuns = useMemo(
+    () => [...compareSelected].map((id) => activeVersions.find((v) => v.run_id === id)).filter(Boolean) as VersionSummary[],
+    [compareSelected, activeVersions]
+  );
+
+  const [groupFilter, setGroupFilter] = useState<string | null>(null);
+  const availableGroups = useMemo(() => {
+    const s = new Set<string>();
+    for (const v of activeVersions) for (const g of Object.keys(v.group_stats ?? {})) s.add(g);
+    return [...s].sort();
+  }, [activeVersions]);
+  useEffect(() => {
+    if (groupFilter && versions && !availableGroups.includes(groupFilter)) setGroupFilter(null);
+  }, [availableGroups, groupFilter, versions]);
+
+  const scoreOf = (v: VersionSummary, key: "avg_answer_marks" | "avg_material_marks" | "avg_total_time"): number | null => {
+    if (!groupFilter) return (v[key] as number | null | undefined) ?? null;
+    return (v.group_stats?.[groupFilter] as Record<string, number | null> | undefined)?.[key] ?? null;
+  };
+
+  // The recommendation is computed by the server from every non-archived run's saved scores each time
+  // anything here changes, so archiving, deleting or re-running a version is reflected immediately.
+  const [reco, setReco] = useState<RecoResult | null>(null);
+  useEffect(() => {
+    if (!versions) return;
+    let stale = false;
+    const t = window.setTimeout(() => {
+      api.recommendation({ group: groupFilter, tolerance: overrides.tolerance, maxTime: overrides.maxTime })
+        .then((r) => { if (!stale) setReco(r); })
+        .catch(() => { if (!stale) setReco(null); });
+    }, 250);
+    return () => { stale = true; window.clearTimeout(t); };
+  }, [versions, groupFilter, overrides]);
+  const bestId = reco?.best ?? null;
+  const isBest = (v: VersionSummary) => bestId !== null && String(v.version) === bestId;
 
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 } | null>(null);
   // each header cycles: ascending, descending, back to default order
   const toggleSort = (key: SortKey) => setSort((s) => (s?.key !== key ? { key, dir: 1 } : s.dir === 1 ? { key, dir: -1 } : null));
   const prevOf = useMemo(() => {
     const m = new Map<VersionSummary, VersionSummary | undefined>();
-    // deltas compare against the chronological predecessor (versions is date-ascending)
-    (versions ?? []).forEach((v, i, all) => m.set(v, i > 0 ? all[i - 1] : undefined));
+    // deltas compare against the chronological predecessor among non-archived runs
+    activeVersions.forEach((v, i, all) => m.set(v, i > 0 ? all[i - 1] : undefined));
     return m;
-  }, [versions]);
+  }, [activeVersions]);
   const rows = useMemo(() => {
     if (!versions) return [];
     if (!sort) {
       // Default: newest first, with recommended pinned to top
       const byDate = [...activeVersions].sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
-      if (reco.best) {
-        const idx = byDate.findIndex((v) => v === reco.best);
-        if (idx > 0) { byDate.unshift(...byDate.splice(idx, 1)); }
-      }
+      const idx = bestId === null ? -1 : byDate.findIndex((v) => String(v.version) === bestId);
+      if (idx > 0) byDate.unshift(...byDate.splice(idx, 1));
       return byDate;
     }
     const val = (v: VersionSummary): number | null => {
@@ -116,36 +129,33 @@ export default function Dashboard() {
       if (y == null) return -1;
       return (x - y) * sort.dir;
     });
-  }, [activeVersions, sort, reco.best]);
+  }, [activeVersions, sort, bestId, versions]);
 
-  const PAGE_SIZE = 10;
-  const [page, setPage] = useState(1);
-  useEffect(() => setPage(1), [sort, versionsKey]);
-  const pageRows = useMemo(() => rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [rows, page]);
-  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const paging = usePaging(rows, `${sort?.key}${sort?.dir}${versionsKey}${groupFilter}`, 10);
+  const archivedPaging = usePaging(archivedVersions, archivedVersions.length, 10);
 
   // best value per column, shown as a small "best" marker so the table can be scanned
   const bests = useMemo(() => {
-    const ok = (versions ?? []).filter((v) => v.failed_rows === 0);
+    const ok = activeVersions.filter((v) => v.failed_rows === 0 && !v.stopped);
     const pick = (key: "avg_answer_marks" | "avg_material_marks" | "avg_total_time", fn: (...n: number[]) => number) => {
       const vals = ok.map((v) => scoreOf(v, key)).filter((x): x is number => x != null);
       return vals.length > 1 ? fn(...vals) : null;
     };
     return { answer: pick("avg_answer_marks", Math.max), material: pick("avg_material_marks", Math.max), time: pick("avg_total_time", Math.min) };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [versions, groupFilter]);
-  const latest = versions?.[versions.length - 1];
-  const prev = versions && versions.length > 1 ? versions[versions.length - 2] : undefined;
+  }, [activeVersions, groupFilter]);
+  const latest = activeVersions[activeVersions.length - 1];
+  const prev = activeVersions.length > 1 ? activeVersions[activeVersions.length - 2] : undefined;
 
-  const trend = useMemo(() => (versions ?? []).map((v) => ({
+  const trend = useMemo(() => activeVersions.map((v) => ({
     name: `v${v.version}`, "Answer marks": v.avg_answer_marks, "Material marks": v.avg_material_marks,
-  })), [versions]);
-  const allNodes = useMemo(() => unionNodes(versions ?? []), [versions]);
-  const timing = useMemo(() => (versions ?? []).map((v) => ({
+  })), [activeVersions]);
+  const allNodes = useMemo(() => unionNodes(activeVersions), [activeVersions]);
+  const timing = useMemo(() => activeVersions.map((v) => ({
     name: `v${v.version}`,
     // nodes a version did not run stay null so no bar is drawn for them
     ...Object.fromEntries(allNodes.map((n) => [nodeMeta(n).label, v.nodes.find((x) => x.name === n)?.avg ?? null])),
-  })), [versions, allNodes]);
+  })), [activeVersions, allNodes]);
 
   return (
     <>
@@ -159,7 +169,12 @@ export default function Dashboard() {
         </div>
       )}
 
-      {versions && versions.length > 0 && <Recommendation reco={reco} settings={settings} onChange={updateSettings} />}
+      {versions && versions.length > 0 && (
+        <Recommendation
+          reco={reco} versions={activeVersions} archivedCount={archivedVersions.length}
+          overrides={overrides} onChange={updateOverrides} groupName={groupFilter}
+        />
+      )}
 
       {availableGroups.length > 0 && (
         <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -187,12 +202,12 @@ export default function Dashboard() {
           <Stat label="Avg response time" accent="var(--coral)"
             value={<><Mark color="var(--hl-bad)">{fmtSeconds(scoreOf(latest, "avg_total_time"))}</Mark><Delta current={scoreOf(latest, "avg_total_time")} previous={prev ? scoreOf(prev, "avg_total_time") : undefined} invert digits={2} unit="s" /></>}
             sub="end-to-end per question" />
-          <Stat label="Versions evaluated" accent="var(--plum)" value={<Mark>{versions!.length}</Mark>}
+          <Stat label="Versions evaluated" accent="var(--plum)" value={<Mark>{activeVersions.length}</Mark>}
             sub={`${latest.total_rows} questions in latest run`} />
         </section>
       )}
 
-      {versions && versions.length > 0 && (
+      {activeVersions.length > 0 && (
         <section className="mt-3 grid gap-3 lg:grid-cols-2">
           <div className="card p-5">
             <h3 className="label">Quality trend</h3>
@@ -270,13 +285,15 @@ export default function Dashboard() {
             <tbody className="divide-y divide-line">
               {!versions && !error && <tr><td colSpan={10} className="px-5 py-12 text-center text-muted">Loading…</td></tr>}
               {error && <tr><td colSpan={10} className="px-5 py-12 text-center text-bad">Could not reach the evaluator backend: {error}</td></tr>}
-              {versions?.length === 0 && !run && (
+              {versions && activeVersions.length === 0 && !run && (
                 <tr><td colSpan={10} className="px-5 py-16 text-center">
-                  <div className="font-serif text-lg">No runs yet</div>
-                  <div className="mt-1 text-sm text-muted">Execute a session to record the first baseline.</div>
+                  <div className="font-serif text-lg">{versions.length === 0 ? "No runs yet" : "All versions are archived"}</div>
+                  <div className="mt-1 text-sm text-muted">
+                    {versions.length === 0 ? "Execute a session to record the first baseline." : "Unarchive one below, or execute a new session."}
+                  </div>
                 </td></tr>
               )}
-              {pageRows.map((v) => {
+              {paging.rows.map((v) => {
                 const p = prevOf.get(v);
                 const isSelected = compareSelected.has(v.run_id);
                 return (
@@ -288,9 +305,10 @@ export default function Dashboard() {
                         <input type="checkbox" className="accent-brand" checked={isSelected} onChange={() => toggleCompareRow(v.run_id)} />
                       </td>
                     )}
-                    <td className="px-5 py-4" style={reco.best === v ? { boxShadow: "inset 5px 0 0 var(--brand)" } : undefined}>
+                    <td className="px-5 py-4" style={isBest(v) ? { boxShadow: "inset 5px 0 0 var(--brand)" } : undefined}>
                       <span className="mono text-[15px] font-medium text-brand">v{v.version}</span>
-                      {reco.best === v && <div className="mono mt-1.5 text-[10px] uppercase tracking-wider text-brand">recommended</div>}
+                      {isBest(v) && <div className="mono mt-1.5 text-[10px] uppercase tracking-wider text-brand">recommended</div>}
+                      {v.stopped && <div className="mono mt-1.5 text-[11px] text-warn">stopped early</div>}
                       {v.failed_rows > 0 && <div className="mono mt-1.5 text-[11px] text-bad">{v.failed_rows} failed</div>}
                       {v.notes && <div className="mt-1 text-[12px] italic text-muted leading-snug max-w-[160px] line-clamp-2">{v.notes}</div>}
                     </td>
@@ -357,15 +375,7 @@ export default function Dashboard() {
             </tbody>
           </table>
         </div>
-        {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-4 border-t border-line px-5 py-3 text-sm">
-            <button disabled={page === 1} onClick={() => setPage((p) => p - 1)}
-              className="text-muted hover:text-fg disabled:cursor-not-allowed disabled:opacity-30">← Prev</button>
-            <span className="mono text-xs text-muted">{page} / {totalPages}</span>
-            <button disabled={page === totalPages} onClick={() => setPage((p) => p + 1)}
-              className="text-muted hover:text-fg disabled:cursor-not-allowed disabled:opacity-30">Next →</button>
-          </div>
-        )}
+        <Pager p={paging} sizes={[10, 25, 50]} />
       </section>
 
       {archivedVersions.length > 0 && (
@@ -395,7 +405,7 @@ export default function Dashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-line">
-                    {archivedVersions.map((v) => (
+                    {archivedPaging.rows.map((v) => (
                       <tr key={String(v.version)} onClick={() => nav(`/v/${v.version}`)} className="group cursor-pointer align-top transition hover:bg-surface-2">
                         <td className="px-5 py-4">
                           <span className="mono text-[15px] font-medium text-brand">v{v.version}</span>
@@ -421,6 +431,7 @@ export default function Dashboard() {
                   </tbody>
                 </table>
               </div>
+              <Pager p={archivedPaging} sizes={[10, 25, 50]} />
             </div>
           )}
         </section>

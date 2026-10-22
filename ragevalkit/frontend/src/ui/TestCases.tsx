@@ -5,12 +5,14 @@ import { AddToGroupModal } from "./AddToGroupModal";
 import type { Crumb } from "./Breadcrumbs";
 import { ExecuteModal } from "./ExecuteModal";
 import { ChatTurn, GroupChips } from "./GroupChips";
+import { GroupHistory } from "./GroupHistory";
+import { Pager, usePaging } from "./Pager";
 import { TopBar } from "./TopBar";
 import { fmtDate } from "../lib";
 import type { Group, TestCase } from "../types";
 
-type StatusFilter = "active" | "inactive" | "deleted" | "all";
-type Status = "active" | "inactive" | "deleted";
+type StatusFilter = "active" | "inactive" | "all";
+type Status = "active" | "inactive";
 
 /** Filter value for "cases that carry no group label". */
 const NO_GROUP = "__none__";
@@ -18,7 +20,6 @@ const NO_GROUP = "__none__";
 const STATUS_COLORS: Record<string, string> = {
   active: "text-good",
   inactive: "text-muted",
-  deleted: "text-bad",
 };
 
 export default function TestCases() {
@@ -36,6 +37,8 @@ export default function TestCases() {
   const [showNew, setShowNew] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [showRun, setShowRun] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [showGroupRun, setShowGroupRun] = useState(false);
   const headerBox = useRef<HTMLInputElement>(null);
 
   const realGroupId = groupId && groupId !== NO_GROUP ? groupId : "";
@@ -74,9 +77,10 @@ export default function TestCases() {
       c.groups.some((g) => g.name.toLowerCase().includes(q)));
   }, [cases, query, groupId]);
 
+  const paging = usePaging(filtered, `${groupId}|${statusFilter}|${query}`, 50);
   const open = cases?.find((c) => c.tc_id === openId) ?? null;
-  const allShownChecked = filtered.length > 0 && filtered.every((c) => checked.has(c.tc_id));
-  const someShownChecked = filtered.some((c) => checked.has(c.tc_id));
+  const allShownChecked = paging.rows.length > 0 && paging.rows.every((c) => checked.has(c.tc_id));
+  const someShownChecked = paging.rows.some((c) => checked.has(c.tc_id));
   const hiddenChecked = [...checked].filter((id) => !filtered.some((c) => c.tc_id === id)).length;
 
   useEffect(() => {
@@ -92,9 +96,10 @@ export default function TestCases() {
   const toggleAllShown = () =>
     setChecked((prev) => {
       const next = new Set(prev);
-      filtered.forEach((c) => (allShownChecked ? next.delete(c.tc_id) : next.add(c.tc_id)));
+      paging.rows.forEach((c) => (allShownChecked ? next.delete(c.tc_id) : next.add(c.tc_id)));
       return next;
     });
+  const selectAllMatching = () => setChecked(new Set(filtered.map((c) => c.tc_id)));
 
   const ids = [...checked];
 
@@ -105,6 +110,16 @@ export default function TestCases() {
       setChecked(new Set());
       load();
     } catch (e) { setError((e as Error).message); }
+  }
+
+  async function bulkDelete() {
+    try {
+      const { deleted } = await api.deleteTestCases(ids);
+      setNotice(`${deleted} test case${deleted !== 1 ? "s" : ""} permanently deleted`);
+      setChecked(new Set());
+      setConfirmDelete(false);
+      load(); loadGroups();
+    } catch (e) { setError((e as Error).message); setConfirmDelete(false); }
   }
 
   async function bulkRemoveFromGroup() {
@@ -142,6 +157,8 @@ export default function TestCases() {
           </div>
         </div>
 
+        {realGroupId && <GroupHistory groupId={realGroupId} onRun={() => setShowGroupRun(true)} />}
+
         {/* Filters */}
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <select
@@ -165,7 +182,6 @@ export default function TestCases() {
           >
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
-            <option value="deleted">Deleted</option>
             <option value="all">All statuses</option>
           </select>
 
@@ -201,13 +217,22 @@ export default function TestCases() {
             {statusFilter !== "active" && (
               <button onClick={() => bulkStatus("active")} className="rounded border border-line bg-surface px-3 py-1 text-xs font-medium hover:border-good hover:text-good">Activate</button>
             )}
-            {statusFilter !== "inactive" && statusFilter !== "deleted" && (
+            {statusFilter !== "inactive" && (
               <button onClick={() => bulkStatus("inactive")} className="rounded border border-line bg-surface px-3 py-1 text-xs font-medium hover:bg-surface-2">Deactivate</button>
             )}
-            {statusFilter !== "deleted" && (
-              <button onClick={() => bulkStatus("deleted")} className="rounded border border-line bg-surface px-3 py-1 text-xs font-medium hover:border-bad hover:text-bad">Delete</button>
+            {confirmDelete ? (
+              <span className="flex items-center gap-2 text-xs">
+                <span className="text-bad">Permanently delete {checked.size}? This can't be undone.</span>
+                <button onClick={bulkDelete} className="rounded bg-bad px-3 py-1 font-semibold text-white hover:brightness-110">Delete</button>
+                <button onClick={() => setConfirmDelete(false)} className="text-muted hover:text-fg">Cancel</button>
+              </span>
+            ) : (
+              <button onClick={() => setConfirmDelete(true)} className="rounded border border-line bg-surface px-3 py-1 text-xs font-medium hover:border-bad hover:text-bad">Delete</button>
             )}
-            <button onClick={() => setChecked(new Set())} className="ml-auto text-xs text-muted hover:text-fg">Clear</button>
+            {allShownChecked && filtered.length > paging.rows.length && checked.size < filtered.length && (
+              <button onClick={selectAllMatching} className="text-xs text-brand hover:underline">Select all {filtered.length} matching</button>
+            )}
+            <button onClick={() => { setChecked(new Set()); setConfirmDelete(false); }} className="ml-auto text-xs text-muted hover:text-fg">Clear</button>
           </div>
         )}
         {notice && <p className="mb-3 text-sm text-good" role="status">{notice}</p>}
@@ -244,7 +269,7 @@ export default function TestCases() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
-                  {filtered.map((tc) => (
+                  {paging.rows.map((tc) => (
                     <tr key={tc.tc_id} tabIndex={0}
                       className={`cursor-pointer align-top outline-none hover:bg-surface-2 focus-visible:bg-surface-2 ${checked.has(tc.tc_id) ? "bg-brand-soft" : ""}`}
                       onClick={() => setOpenId(tc.tc_id)}
@@ -275,6 +300,7 @@ export default function TestCases() {
               </table>
             </div>
           )}
+          <Pager p={paging} sizes={[25, 50, 100, 200]} />
         </div>
 
         {open && (
@@ -283,6 +309,7 @@ export default function TestCases() {
             groups={groups}
             onClose={() => setOpenId(null)}
             onChanged={(message) => { if (message) setNotice(message); load(); loadGroups(); }}
+            onDeleted={() => { setOpenId(null); setNotice("Test case permanently deleted"); load(); loadGroups(); }}
           />
         )}
         {showNew && (
@@ -302,17 +329,20 @@ export default function TestCases() {
           />
         )}
         {showRun && <ExecuteModal initial={{ mode: "cases", tcIds: ids }} onClose={() => setShowRun(false)} />}
+        {showGroupRun && <ExecuteModal initial={{ mode: "groups", groupIds: [realGroupId] }} onClose={() => setShowGroupRun(false)} />}
       </div>
     </>
   );
 }
 
-function TestCaseDrawer({ tc, groups, onClose, onChanged }: {
+function TestCaseDrawer({ tc, groups, onClose, onChanged, onDeleted }: {
   tc: TestCase;
   groups: Group[];
   onClose: () => void;
   onChanged: (message?: string) => void;
+  onDeleted: () => void;
 }) {
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const initialForm = () => ({
     chat_id: tc.chat_id,
     turn_no: String(tc.turn_no),
@@ -371,6 +401,16 @@ function TestCaseDrawer({ tc, groups, onClose, onChanged }: {
       onChanged(`Test case marked ${status}`);
     } catch (e: unknown) {
       setErr((e as Error).message);
+    }
+  };
+
+  const remove = async () => {
+    try {
+      await api.deleteTestCases([tc.tc_id]);
+      onDeleted();
+    } catch (e: unknown) {
+      setErr((e as Error).message);
+      setConfirmDelete(false);
     }
   };
 
@@ -465,8 +505,14 @@ function TestCaseDrawer({ tc, groups, onClose, onChanged }: {
               {tc.status === "active" && (
                 <button onClick={() => setStatus("inactive")} className="rounded border border-line px-4 py-2 text-sm hover:bg-surface-2">Deactivate</button>
               )}
-              {tc.status !== "deleted" && (
-                <button onClick={() => setStatus("deleted")} className="rounded border border-line px-4 py-2 text-sm hover:border-bad hover:text-bad">Delete</button>
+              {confirmDelete ? (
+                <span className="flex items-center gap-2 text-sm">
+                  <span className="text-bad">Delete permanently? This can't be undone.</span>
+                  <button onClick={remove} className="rounded bg-bad px-3 py-2 text-sm font-semibold text-white hover:brightness-110">Delete</button>
+                  <button onClick={() => setConfirmDelete(false)} className="text-muted hover:text-fg">Cancel</button>
+                </span>
+              ) : (
+                <button onClick={() => setConfirmDelete(true)} className="rounded border border-line px-4 py-2 text-sm hover:border-bad hover:text-bad">Delete</button>
               )}
             </div>
             {err && <p className="text-xs text-bad">{err}</p>}

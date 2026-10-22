@@ -22,6 +22,8 @@ export interface VersionSummary {
   /** Average seconds per node, in pipeline order (only nodes that ran in that version). */
   nodes: NodeAvg[];
   archived?: boolean;
+  /** The run was stopped early; it is never recommended or compared as a finished run. */
+  stopped?: boolean;
   /** Short "what changed?" note entered when the run was started. */
   notes?: string;
   /** Names of the test case groups used in this run. */
@@ -35,7 +37,51 @@ export interface VersionSummary {
     avg_bm25_score: number | null;
     avg_semantic_similarity: number | null;
     total_rows: number;
+    failed_rows?: number;
   }>;
+}
+
+/** The server's answer to "which version should ship?" (version ids are strings). */
+export interface RecoResult {
+  best: string | null;
+  reason: string;
+  fastest: string | null;
+  runner_up: string | null;
+  latest_gap: { version: string; gap: number } | null;
+  not_comparable: string[];
+  excluded: string[];
+  budget_miss: boolean;
+  /** "weighted" = answer + material; "answer_only" = material was not graded for every version. */
+  basis: "weighted" | "answer_only";
+  basis_note: string;
+  weights: { answer: number; material: number };
+  tolerance: number;
+  max_time: number | null;
+  qualities: Record<string, number | null>;
+  considered: number;
+}
+
+/** One group's scores in one run. */
+export interface GroupRunStat {
+  version: string;
+  date: string;
+  total_rows: number;
+  failed_rows: number;
+  avg_answer_marks: number | null;
+  avg_material_marks: number | null;
+  avg_total_time: number | null;
+  quality: number | null;
+  stopped: boolean;
+}
+
+export interface GroupHistory {
+  group: Group;
+  run_count: number;
+  last: GroupRunStat | null;
+  best: GroupRunStat | null;
+  reason: string;
+  basis_note: string;
+  runs: GroupRunStat[];
 }
 
 export interface ResultRow {
@@ -97,6 +143,10 @@ export interface Group {
   name: string;
   created_at: string;
   member_count: number;
+  /** Present on the groups list: how the group has done across non-archived runs. */
+  run_count?: number;
+  last_run?: GroupRunStat | null;
+  best_run?: GroupRunStat | null;
 }
 
 /** Backward-compat alias — prefer Group in new code. */
@@ -116,7 +166,7 @@ export interface TestCase {
   expected_answer: string;
   expected_sources?: string;
   type: string;
-  status: "active" | "inactive" | "deleted";
+  status: "active" | "inactive";
   version: number;
   created_at: string;
   updated_at?: string;

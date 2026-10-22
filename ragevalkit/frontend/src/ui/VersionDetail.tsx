@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { api } from "../api";
 import { Mark, NodeTimings, ScorePill, Stat } from "./parts";
 import { ChatTurn } from "./GroupChips";
+import { Pager, usePaging } from "./Pager";
 import { TopBar } from "./TopBar";
 import { fmt, fmtDate, fmtSeconds, nodeMeta } from "../lib";
 import { type ResultRow, type VersionDetail as Detail } from "../types";
@@ -47,6 +48,7 @@ export default function VersionDetail() {
     }
     return filtered;
   }, [data, type, scoreTier, query, sort]);
+  const paging = usePaging(rows, `${type}|${scoreTier}|${query}|${sort.key}${sort.dir}`, 25);
 
   if (error) return <Shell version={version}><p className="text-bad">{error}</p></Shell>;
   if (!data) return <Shell version={version}><p className="text-muted">Loading…</p></Shell>;
@@ -142,7 +144,7 @@ export default function VersionDetail() {
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
-              {rows.map(({ r, i }) => (
+              {paging.rows.map(({ r, i }) => (
                 <tr key={i} onClick={() => setOpen(r)} className="cursor-pointer align-top hover:bg-surface-2">
                   <td className="mono max-w-[120px] truncate px-3 py-3.5 text-xs" title={r.chat_id}>{r.chat_id}</td>
                   <td className="mono px-3 py-3.5 text-xs text-muted">{r.turn_no}</td>
@@ -183,6 +185,7 @@ export default function VersionDetail() {
             </tbody>
           </table>
         </div>
+        <Pager p={paging} sizes={[25, 50, 100]} />
       </section>
 
       {open && <RowDrawer row={open} onClose={() => setOpen(null)} />}

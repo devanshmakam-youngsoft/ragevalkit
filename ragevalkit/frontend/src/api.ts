@@ -1,5 +1,5 @@
 import { apiPath } from "./base";
-import type { DatasetInfo, Group, RunPreview, RunSelection, RunState, TestCase, VersionDetail, VersionSummary } from "./types";
+import type { DatasetInfo, Group, GroupHistory, RecoResult, RunPreview, RunSelection, RunState, TestCase, VersionDetail, VersionSummary } from "./types";
 
 /** Fired when any call comes back 401 so the app can return to the login page. */
 export const authEvents = new EventTarget();
@@ -50,7 +50,17 @@ export const api = {
     fetch(apiPath(`runs/${runId}/unarchive`), { method: "PATCH" }).then((r) => json(r)),
   deleteRun: (runId: string) =>
     fetch(apiPath(`runs/${runId}`), { method: "DELETE" }).then((r) => json(r)),
+  /** Which version to ship, computed by the server from non-archived runs. Omit overrides to use serve() defaults. */
+  recommendation: (o: { group?: string | null; tolerance?: number | null; maxTime?: number | null } = {}) => {
+    const params = new URLSearchParams();
+    if (o.group) params.set("group", o.group);
+    if (o.tolerance != null) params.set("tolerance", String(o.tolerance));
+    if (o.maxTime != null) params.set("max_time", String(o.maxTime));
+    const qs = params.toString();
+    return fetch(apiPath(`recommendation${qs ? `?${qs}` : ""}`)).then((r) => json<RecoResult>(r));
+  },
   // Groups
+  groupHistory: (groupId: string) => fetch(apiPath(`groups/${groupId}/runs`)).then((r) => json<GroupHistory>(r)),
   groups: () => fetch(apiPath("groups")).then((r) => json<Group[]>(r)),
   createGroup: (name: string) =>
     fetch(apiPath("groups"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name }) })
@@ -130,7 +140,12 @@ export const api = {
     fetch(apiPath(`test-cases/${tcId}`), {
       method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(updates),
     }).then((r) => json<TestCase>(r)),
-  updateTestCaseStatus: (tcIds: string[], status: "active" | "inactive" | "deleted") =>
+  /** Permanently deletes test cases (all versions, group labels). Past run results are kept. */
+  deleteTestCases: (tcIds: string[]) =>
+    fetch(apiPath("test-cases/delete"), {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tc_ids: tcIds }),
+    }).then((r) => json<{ deleted: number }>(r)),
+  updateTestCaseStatus: (tcIds: string[], status: "active" | "inactive") =>
     fetch(apiPath("test-cases/status"), {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tc_ids: tcIds, status }),
     }).then((r) => json<{ updated: number; status: string }>(r)),
