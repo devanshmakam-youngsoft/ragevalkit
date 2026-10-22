@@ -69,7 +69,7 @@ export function Mark({ children, color = "var(--hl)" }: { children: ReactNode; c
 }
 
 export function Stat({ label, value, sub, accent = "var(--brand)" }: {
-  label: string; value: ReactNode; sub?: ReactNode; accent?: string;
+  label: ReactNode; value: ReactNode; sub?: ReactNode; accent?: string;
 }) {
   return (
     <div className="card px-4 pb-3.5 pt-3" style={{ borderTop: `4px solid ${accent}` }}>

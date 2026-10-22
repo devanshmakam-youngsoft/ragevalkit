@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { fmt, fmtSeconds } from "../lib";
 import type { RecoResult, VersionSummary } from "../types";
+import { GLOSSARY, Term } from "./Hint";
 import { Mark } from "./parts";
 
 /** Tolerance / time ceiling the user typed in; null means "use the server default from serve()". */
@@ -9,7 +10,7 @@ export interface RecoOverrides {
   maxTime: number | null;
 }
 
-const figure = (label: string, value: string, unit: string, color: string) => (
+const figure = (label: React.ReactNode, value: string, unit: string, color: string) => (
   <div>
     <div className="label">{label}</div>
     <div className="num mt-1.5 text-[34px] leading-none">
@@ -31,7 +32,7 @@ function scoresOf(v: VersionSummary, group: string | null) {
 
 const describe = (v: VersionSummary, group: string | null) => {
   const s = scoresOf(v, group);
-  return `answer ${fmt(s.answer)}, material ${fmt(s.material)}, ${fmtSeconds(s.time)}`;
+  return `answer ${fmt(s.answer)}, context ${fmt(s.material)}, ${fmtSeconds(s.time)}`;
 };
 
 function Side({ title, v, group }: { title: string; v: VersionSummary; group: string | null }) {
@@ -65,8 +66,8 @@ export function Recommendation({ reco, versions, archivedCount, overrides, onCha
   const list = (ids: string[]) => ids.map((id) => `v${id}`).join(", ");
 
   const weightsText = !reco ? "" : reco.basis === "answer_only"
-    ? "Quality = answer marks only."
-    : `Quality = ${pct(reco.weights.answer)}% answer + ${pct(reco.weights.material)}% material.`;
+    ? "Overall score = answer quality only."
+    : `Overall score = ${pct(reco.weights.answer)}% ${GLOSSARY.answer.label.toLowerCase()} + ${pct(reco.weights.material)}% ${GLOSSARY.context.label.toLowerCase()}.`;
 
   return (
     <section className="card mt-4 overflow-hidden" style={{ borderLeft: "5px solid var(--brand)" }}>
@@ -86,12 +87,12 @@ export function Recommendation({ reco, versions, archivedCount, overrides, onCha
         {best && bestScores && reco ? (
           <div>
             <div className="flex flex-wrap gap-x-8 gap-y-3">
-              {figure("Answer", fmt(bestScores.answer), "/10", "var(--hl-good)")}
-              {reco.basis === "weighted" && figure("Material", fmt(bestScores.material), "/10", "var(--hl)")}
-              {figure("Time", fmtSeconds(bestScores.time), "", "var(--hl-bad)")}
+              {figure(<Term k="answer" />, fmt(bestScores.answer), "/10", "var(--hl-good)")}
+              {reco.basis === "weighted" && figure(<Term k="context" />, fmt(bestScores.material), "/10", "var(--hl)")}
+              {figure(<Term k="time" />, fmtSeconds(bestScores.time), "", "var(--hl-bad)")}
             </div>
             <p className="mt-3 text-[13px] text-muted">
-              {reco.reason} <span className="mono">quality {quality?.toFixed(2)}</span>
+              {reco.reason} <span className="mono">overall score {quality?.toFixed(2)}</span>
             </p>
             {reco.basis_note && <p className="mt-1 text-xs text-warn">{reco.basis_note}</p>}
           </div>
@@ -108,7 +109,7 @@ export function Recommendation({ reco, versions, archivedCount, overrides, onCha
           {runnerUp && <Side title="Runner-up" v={runnerUp} group={groupName} />}
           {reco?.latest_gap && (
             <div className="text-[13px]" style={{ color: "var(--bad)" }}>
-              Latest v{reco.latest_gap.version} is {reco.latest_gap.gap.toFixed(1)} below on quality.
+              Latest v{reco.latest_gap.version} scores {reco.latest_gap.gap.toFixed(1)} lower overall.
             </div>
           )}
           {reco && reco.not_comparable.length > 0 && (
@@ -126,7 +127,7 @@ export function Recommendation({ reco, versions, archivedCount, overrides, onCha
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-line bg-surface-2 px-5 py-2.5 text-xs text-muted">
         <span>{weightsText} Speed only breaks ties.</span>
         <label className="ml-auto flex items-center gap-2">
-          Tie tolerance
+          <span><Term k="tolerance" /></span>
           <input type="number" min={0} max={3} step={0.05} value={overrides.tolerance ?? ""}
             placeholder={reco ? String(reco.tolerance) : ""}
             onChange={(e) => onChange({
@@ -136,7 +137,7 @@ export function Recommendation({ reco, versions, archivedCount, overrides, onCha
             className="mono w-16 rounded border border-line bg-surface px-2 py-1 text-fg outline-none focus:border-brand" />
         </label>
         <label className="flex items-center gap-2">
-          Max response time
+          <span><Term k="maxTime" /></span>
           <input type="number" min={0} step={0.1} placeholder={reco?.max_time != null ? String(reco.max_time) : "none"}
             value={overrides.maxTime ?? ""}
             onChange={(e) => onChange({

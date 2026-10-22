@@ -8,11 +8,11 @@ import { ChatTurn, GroupChips } from "./GroupChips";
 import { GroupHistory } from "./GroupHistory";
 import { Pager, usePaging } from "./Pager";
 import { TopBar } from "./TopBar";
-import { fmtDate } from "../lib";
+import { fmtDate, plural } from "../lib";
 import type { Group, TestCase } from "../types";
 
-type StatusFilter = "active" | "inactive" | "all";
-type Status = "active" | "inactive";
+type StatusFilter = "active" | "inactive" | "deleted" | "all";
+type Status = "active" | "inactive" | "deleted";
 
 /** Filter value for "cases that carry no group label". */
 const NO_GROUP = "__none__";
@@ -20,6 +20,7 @@ const NO_GROUP = "__none__";
 const STATUS_COLORS: Record<string, string> = {
   active: "text-good",
   inactive: "text-muted",
+  deleted: "text-bad",
 };
 
 export default function TestCases() {
@@ -46,7 +47,7 @@ export default function TestCases() {
   const loadGroups = () => { api.groups().then(setGroups).catch(() => undefined); };
   const load = () => {
     api.testCases(realGroupId || undefined, statusFilter === "all" ? undefined : statusFilter)
-      .then((rows) => { setCases(rows); setError(""); })
+      .then((rows) => { setCases(statusFilter === "all" ? rows.filter((r) => r.status !== "deleted") : rows); setError(""); })
       .catch((e) => setError(e.message));
   };
 
@@ -78,6 +79,10 @@ export default function TestCases() {
   }, [cases, query, groupId]);
 
   const paging = usePaging(filtered, `${groupId}|${statusFilter}|${query}`, 50);
+  const countText = statusFilter === "all"
+    ? `Active ${filtered.filter((c) => c.status === "active").length} · Inactive ${filtered.filter((c) => c.status === "inactive").length}`
+    : `${statusFilter[0].toUpperCase()}${statusFilter.slice(1)} · ${plural(filtered.length, "case")}`;
+  const inTrash = statusFilter === "deleted";
   const open = cases?.find((c) => c.tc_id === openId) ?? null;
   const allShownChecked = paging.rows.length > 0 && paging.rows.every((c) => checked.has(c.tc_id));
   const someShownChecked = paging.rows.some((c) => checked.has(c.tc_id));
@@ -106,16 +111,20 @@ export default function TestCases() {
   async function bulkStatus(status: Status) {
     try {
       const { updated } = await api.updateTestCaseStatus(ids, status);
-      setNotice(`${updated} test case${updated !== 1 ? "s" : ""} marked ${status}`);
+      const what = plural(updated, "test case");
+      setNotice(
+        status === "deleted" ? `${what} deleted — find ${updated === 1 ? "it" : "them"} under the Deleted filter`
+          : statusFilter === "deleted" ? `${what} restored` : `${what} marked ${status}`
+      );
       setChecked(new Set());
       load();
     } catch (e) { setError((e as Error).message); }
   }
 
-  async function bulkDelete() {
+  async function bulkPurge() {
     try {
-      const { deleted } = await api.deleteTestCases(ids);
-      setNotice(`${deleted} test case${deleted !== 1 ? "s" : ""} permanently deleted`);
+      const { purged } = await api.purgeTestCases(ids);
+      setNotice(`${plural(purged, "test case")} permanently deleted`);
       setChecked(new Set());
       setConfirmDelete(false);
       load(); loadGroups();
@@ -182,7 +191,8 @@ export default function TestCases() {
           >
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
-            <option value="all">All statuses</option>
+            <option value="deleted">Deleted</option>
+            <option value="all">Active + inactive</option>
           </select>
 
           <input
@@ -192,7 +202,7 @@ export default function TestCases() {
             className="w-72 rounded border border-line bg-surface-2 px-3 py-2 text-sm outline-none focus:border-brand"
           />
 
-          <span className="mono text-xs text-muted">{filtered.length} case{filtered.length !== 1 ? "s" : ""}</span>
+          <span className="mono text-xs text-muted">{countText}</span>
         </div>
 
         {/* Bulk actions — appear once something is ticked */}
@@ -202,6 +212,7 @@ export default function TestCases() {
               {checked.size} selected{hiddenChecked > 0 && <span className="font-normal text-muted"> ({hiddenChecked} hidden by search)</span>}
             </span>
             <span className="mx-1 h-4 w-px bg-line" />
+            {!inTrash && <>
             <button onClick={() => setShowRun(true)}
               className="rounded bg-brand px-3 py-1 text-xs font-semibold text-white hover:brightness-110">
               Run {checked.size}…
@@ -214,20 +225,23 @@ export default function TestCases() {
                 Remove from "{groupName}"
               </button>
             )}
+            </>}
             {statusFilter !== "active" && (
-              <button onClick={() => bulkStatus("active")} className="rounded border border-line bg-surface px-3 py-1 text-xs font-medium hover:border-good hover:text-good">Activate</button>
+              <button onClick={() => bulkStatus("active")} className="rounded border border-line bg-surface px-3 py-1 text-xs font-medium hover:border-good hover:text-good">{inTrash ? "Restore" : "Activate"}</button>
             )}
-            {statusFilter !== "inactive" && (
+            {statusFilter !== "inactive" && !inTrash && (
               <button onClick={() => bulkStatus("inactive")} className="rounded border border-line bg-surface px-3 py-1 text-xs font-medium hover:bg-surface-2">Deactivate</button>
             )}
-            {confirmDelete ? (
+            {!inTrash ? (
+              <button onClick={() => bulkStatus("deleted")} className="rounded border border-line bg-surface px-3 py-1 text-xs font-medium hover:border-bad hover:text-bad">Delete</button>
+            ) : confirmDelete ? (
               <span className="flex items-center gap-2 text-xs">
-                <span className="text-bad">Permanently delete {checked.size}? This can't be undone.</span>
-                <button onClick={bulkDelete} className="rounded bg-bad px-3 py-1 font-semibold text-white hover:brightness-110">Delete</button>
+                <span className="text-bad">Delete {checked.size} forever? This can't be undone.</span>
+                <button onClick={bulkPurge} className="rounded bg-bad px-3 py-1 font-semibold text-white hover:brightness-110">Delete forever</button>
                 <button onClick={() => setConfirmDelete(false)} className="text-muted hover:text-fg">Cancel</button>
               </span>
             ) : (
-              <button onClick={() => setConfirmDelete(true)} className="rounded border border-line bg-surface px-3 py-1 text-xs font-medium hover:border-bad hover:text-bad">Delete</button>
+              <button onClick={() => setConfirmDelete(true)} className="rounded border border-line bg-surface px-3 py-1 text-xs font-medium hover:border-bad hover:text-bad">Delete forever…</button>
             )}
             {allShownChecked && filtered.length > paging.rows.length && checked.size < filtered.length && (
               <button onClick={selectAllMatching} className="text-xs text-brand hover:underline">Select all {filtered.length} matching</button>
@@ -398,7 +412,10 @@ function TestCaseDrawer({ tc, groups, onClose, onChanged, onDeleted }: {
   const setStatus = async (status: Status) => {
     try {
       await api.updateTestCaseStatus([tc.tc_id], status);
-      onChanged(`Test case marked ${status}`);
+      onChanged(
+        status === "deleted" ? "Test case deleted — find it under the Deleted filter"
+          : tc.status === "deleted" ? "Test case restored" : `Test case marked ${status}`
+      );
     } catch (e: unknown) {
       setErr((e as Error).message);
     }
@@ -406,7 +423,7 @@ function TestCaseDrawer({ tc, groups, onClose, onChanged, onDeleted }: {
 
   const remove = async () => {
     try {
-      await api.deleteTestCases([tc.tc_id]);
+      await api.purgeTestCases([tc.tc_id]);
       onDeleted();
     } catch (e: unknown) {
       setErr((e as Error).message);
@@ -500,19 +517,21 @@ function TestCaseDrawer({ tc, groups, onClose, onChanged, onDeleted }: {
                 Edit
               </button>
               {tc.status !== "active" && (
-                <button onClick={() => setStatus("active")} className="rounded border border-line px-4 py-2 text-sm hover:border-good hover:text-good">Activate</button>
+                <button onClick={() => setStatus("active")} className="rounded border border-line px-4 py-2 text-sm hover:border-good hover:text-good">{tc.status === "deleted" ? "Restore" : "Activate"}</button>
               )}
               {tc.status === "active" && (
                 <button onClick={() => setStatus("inactive")} className="rounded border border-line px-4 py-2 text-sm hover:bg-surface-2">Deactivate</button>
               )}
-              {confirmDelete ? (
+              {tc.status !== "deleted" ? (
+                <button onClick={() => setStatus("deleted")} className="rounded border border-line px-4 py-2 text-sm hover:border-bad hover:text-bad">Delete</button>
+              ) : confirmDelete ? (
                 <span className="flex items-center gap-2 text-sm">
-                  <span className="text-bad">Delete permanently? This can't be undone.</span>
-                  <button onClick={remove} className="rounded bg-bad px-3 py-2 text-sm font-semibold text-white hover:brightness-110">Delete</button>
+                  <span className="text-bad">Delete forever? This can't be undone.</span>
+                  <button onClick={remove} className="rounded bg-bad px-3 py-2 text-sm font-semibold text-white hover:brightness-110">Delete forever</button>
                   <button onClick={() => setConfirmDelete(false)} className="text-muted hover:text-fg">Cancel</button>
                 </span>
               ) : (
-                <button onClick={() => setConfirmDelete(true)} className="rounded border border-line px-4 py-2 text-sm hover:border-bad hover:text-bad">Delete</button>
+                <button onClick={() => setConfirmDelete(true)} className="rounded border border-line px-4 py-2 text-sm hover:border-bad hover:text-bad">Delete forever…</button>
               )}
             </div>
             {err && <p className="text-xs text-bad">{err}</p>}

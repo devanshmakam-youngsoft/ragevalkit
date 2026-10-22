@@ -63,7 +63,7 @@ export function ExecuteModal({ onClose, initial }: { onClose: () => void; initia
       setVersions(vs);
       setVersion(nextVersion(vs));
       setGroups(gs);
-      setCases(tcs);
+      setCases(tcs.filter((c) => c.status !== "deleted"));
       if (initial) {
         setTab("library");
       } else if (gs.length > 0) {

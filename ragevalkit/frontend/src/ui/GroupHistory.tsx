@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { api } from "../api";
 import { fmt, fmtDate, fmtSeconds } from "../lib";
 import { useRun } from "../RunContext";
+import { GLOSSARY, Term } from "./Hint";
 import type { GroupHistory as History, GroupRunStat } from "../types";
 
 const SHOWN = 5;
@@ -18,7 +19,7 @@ function Figure({ label, run, children }: { label: string; run: GroupRunStat | n
             <span className="text-xs text-muted">{fmtDate(run.date)}</span>
           </div>
           <div className="mono mt-1.5 text-xs text-muted">
-            answer {fmt(run.avg_answer_marks)} · material {fmt(run.avg_material_marks)} · {fmtSeconds(run.avg_total_time)}
+            answer {fmt(run.avg_answer_marks)} · context {fmt(run.avg_material_marks)} · {fmtSeconds(run.avg_total_time)}
           </div>
           {children}
         </>
@@ -62,7 +63,7 @@ export function GroupHistory({ groupId, onRun }: { groupId: string; onRun: () =>
           <>
             <Figure label="Last run" run={last} />
             <Figure label="Best version so far" run={best}>
-              {best && <div className="mono mt-1 text-[11px] text-brand">quality {best.quality?.toFixed(2)}{best === last ? " · also the latest" : ""}</div>}
+              {best && <div className="mono mt-1 text-[11px] text-brand">overall score {best.quality?.toFixed(2)}{best === last ? " · also the latest" : ""}</div>}
             </Figure>
             <div className="min-w-[120px]">
               <div className="label">Runs</div>
@@ -85,10 +86,10 @@ export function GroupHistory({ groupId, onRun }: { groupId: string; onRun: () =>
                 <th className="px-5 py-2.5 font-medium">Version</th>
                 <th className="px-3 py-2.5 font-medium">Executed</th>
                 <th className="px-3 py-2.5 font-medium">Cases</th>
-                <th className="px-3 py-2.5 font-medium">Answer</th>
-                <th className="px-3 py-2.5 font-medium">Material</th>
-                <th className="px-3 py-2.5 font-medium">Avg time</th>
-                <th className="px-3 py-2.5 font-medium">Quality</th>
+                <th className="px-3 py-2.5 font-medium"><Term k="answer" /></th>
+                <th className="px-3 py-2.5 font-medium"><Term k="context" /></th>
+                <th className="px-3 py-2.5 font-medium"><Term k="time" /></th>
+                <th className="px-3 py-2.5 font-medium"><Term k="overall" /></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">

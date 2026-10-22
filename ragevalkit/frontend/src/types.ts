@@ -24,6 +24,8 @@ export interface VersionSummary {
   archived?: boolean;
   /** The run was stopped early; it is never recommended or compared as a finished run. */
   stopped?: boolean;
+  /** What needs attention and what to try next, written for a non-technical reader. */
+  insights?: { pitfalls: string[]; suggestions: string[] };
   /** Short "what changed?" note entered when the run was started. */
   notes?: string;
   /** Names of the test case groups used in this run. */
@@ -106,6 +108,8 @@ export interface ResultRow {
   keyword_recall: number | null;
   bm25_score: number | null;
   semantic_similarity: number | null;
+  /** Groups this test case belonged to when it ran. */
+  groups?: string[];
   /** Free-form notes attached via ragevalkit.note() during the pipeline run. */
   flags?: Record<string, string>;
   /** Whether recorded sources matched expected_sources from the dataset. */
@@ -143,6 +147,8 @@ export interface Group {
   name: string;
   created_at: string;
   member_count: number;
+  /** Set when the group has been deleted (hidden but kept; can be restored). */
+  deleted_at?: string | null;
   /** Present on the groups list: how the group has done across non-archived runs. */
   run_count?: number;
   last_run?: GroupRunStat | null;
@@ -166,7 +172,7 @@ export interface TestCase {
   expected_answer: string;
   expected_sources?: string;
   type: string;
-  status: "active" | "inactive";
+  status: "active" | "inactive" | "deleted";
   version: number;
   created_at: string;
   updated_at?: string;

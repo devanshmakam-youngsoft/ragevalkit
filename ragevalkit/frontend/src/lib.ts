@@ -44,6 +44,19 @@ export function fmtDate(iso: string) {
     " · " + d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 }
 
+/** "22 Oct 2026" — the day alone, for places where the date should stand out. */
+export function fmtDay(iso: string) {
+  return new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+}
+
+/** "05:03 PM" */
+export function fmtTime(iso: string) {
+  return new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+}
+
+/** "1 case" / "2 cases" */
+export const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+
 export function scoreTone(score: number | null | undefined): "good" | "warn" | "bad" | "none" {
   if (score === null || score === undefined) return "none";
   return score >= 8 ? "good" : score >= 5 ? "warn" : "bad";

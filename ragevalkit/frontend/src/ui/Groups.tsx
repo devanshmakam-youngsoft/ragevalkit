@@ -18,6 +18,9 @@ export default function Groups() {
   const [dropFile, setDropFile] = useState<File | null>(null);
   const [creating, setCreating] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+  const [deletedGroups, setDeletedGroups] = useState<Group[]>([]);
+  const [showDeleted, setShowDeleted] = useState(false);
+  const [pendingPurge, setPendingPurge] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
   const [runGroupId, setRunGroupId] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -26,6 +29,7 @@ export default function Groups() {
 
   const load = () => {
     api.groups().then(setGroups).catch((e) => setError(e.message));
+    api.groups(true).then((all) => setDeletedGroups(all.filter((g) => g.deleted_at))).catch(() => undefined);
   };
 
   useEffect(() => { load(); }, []);
@@ -48,6 +52,26 @@ export default function Groups() {
       await api.renameGroup(renaming.id, renaming.name);
       setRenaming(null);
       setImportErr("");
+      load();
+    } catch (e) {
+      setImportErr((e as Error).message);
+    }
+  }
+
+  async function handleRestore(groupId: string) {
+    try {
+      await api.restoreGroup(groupId);
+      setImportErr("");
+      load();
+    } catch (e) {
+      setImportErr((e as Error).message);
+    }
+  }
+
+  async function handlePurge(groupId: string) {
+    try {
+      await api.purgeGroup(groupId);
+      setPendingPurge(null);
       load();
     } catch (e) {
       setImportErr((e as Error).message);
@@ -259,6 +283,40 @@ export default function Groups() {
         </div>
       </div>
 
+      {deletedGroups.length > 0 && (
+        <section className="mx-auto max-w-[1280px] px-6 pb-16">
+          <button onClick={() => setShowDeleted((s) => !s)} className="mb-2 flex items-center gap-2 text-sm text-muted hover:text-fg">
+            <span>{showDeleted ? "▼" : "▶"}</span>
+            <span>Deleted groups ({deletedGroups.length})</span>
+          </button>
+          {showDeleted && (
+            <div className="card divide-y divide-line overflow-hidden">
+              <p className="px-5 py-3 text-xs text-muted">
+                Deleted groups are hidden but kept, so past versions that used them still read correctly. Restore one to use it again.
+              </p>
+              {deletedGroups.map((g) => (
+                <div key={g.group_id} className="flex flex-wrap items-center gap-4 px-5 py-3.5">
+                  <span className="font-medium">{g.name}</span>
+                  <span className="mono text-xs text-muted">{g.member_count} {g.member_count === 1 ? "case" : "cases"}</span>
+                  <span className="ml-auto flex items-center gap-4 text-xs">
+                    <button onClick={() => handleRestore(g.group_id)} className="font-medium text-brand hover:underline">Restore</button>
+                    {pendingPurge === g.group_id ? (
+                      <span className="flex items-center gap-2">
+                        <span className="text-bad">Delete forever?</span>
+                        <button onClick={() => handlePurge(g.group_id)} className="text-bad hover:underline">Yes</button>
+                        <button onClick={() => setPendingPurge(null)} className="text-muted hover:underline">No</button>
+                      </span>
+                    ) : (
+                      <button onClick={() => setPendingPurge(g.group_id)} className="text-bad hover:underline">Delete forever…</button>
+                    )}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
       {runGroupId && <ExecuteModal initial={{ mode: "groups", groupIds: [runGroupId] }} onClose={() => setRunGroupId(null)} />}
       {showNew && (
         <NewGroupModal
@@ -277,7 +335,7 @@ function RunCell({ run, when = false }: { run: GroupRunStat | null; when?: boole
     <div>
       <span className="mono font-medium text-brand">v{run.version}</span>
       <div className="mt-0.5 text-xs text-muted">
-        {when ? fmtDate(run.date) : `quality ${run.quality == null ? "—" : run.quality.toFixed(1)} · answer ${fmt(run.avg_answer_marks)}`}
+        {when ? fmtDate(run.date) : `overall ${run.quality == null ? "—" : run.quality.toFixed(1)} · answer ${fmt(run.avg_answer_marks)}`}
       </div>
     </div>
   );

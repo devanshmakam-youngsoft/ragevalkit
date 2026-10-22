@@ -61,7 +61,12 @@ export const api = {
   },
   // Groups
   groupHistory: (groupId: string) => fetch(apiPath(`groups/${groupId}/runs`)).then((r) => json<GroupHistory>(r)),
-  groups: () => fetch(apiPath("groups")).then((r) => json<Group[]>(r)),
+  groups: (includeDeleted = false) =>
+    fetch(apiPath(`groups${includeDeleted ? "?include_deleted=true" : ""}`)).then((r) => json<Group[]>(r)),
+  restoreGroup: (groupId: string) =>
+    fetch(apiPath(`groups/${groupId}/restore`), { method: "POST" }).then((r) => json<object>(r)),
+  purgeGroup: (groupId: string) =>
+    fetch(apiPath(`groups/${groupId}/purge`), { method: "POST" }).then((r) => json<object>(r)),
   createGroup: (name: string) =>
     fetch(apiPath("groups"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name }) })
       .then((r) => json<Group>(r)),
@@ -140,12 +145,12 @@ export const api = {
     fetch(apiPath(`test-cases/${tcId}`), {
       method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(updates),
     }).then((r) => json<TestCase>(r)),
-  /** Permanently deletes test cases (all versions, group labels). Past run results are kept. */
-  deleteTestCases: (tcIds: string[]) =>
-    fetch(apiPath("test-cases/delete"), {
+  /** Permanently removes test cases that are already deleted. Past run results are kept. */
+  purgeTestCases: (tcIds: string[]) =>
+    fetch(apiPath("test-cases/purge"), {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tc_ids: tcIds }),
-    }).then((r) => json<{ deleted: number }>(r)),
-  updateTestCaseStatus: (tcIds: string[], status: "active" | "inactive") =>
+    }).then((r) => json<{ purged: number }>(r)),
+  updateTestCaseStatus: (tcIds: string[], status: "active" | "inactive" | "deleted") =>
     fetch(apiPath("test-cases/status"), {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tc_ids: tcIds, status }),
     }).then((r) => json<{ updated: number; status: string }>(r)),

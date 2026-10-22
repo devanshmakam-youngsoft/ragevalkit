@@ -7,6 +7,7 @@ import { Recommendation } from "./Recommendation";
 import { TopBar } from "./TopBar";
 import { fmt, fmtDate, fmtSeconds, nodeMeta, scoreTone, unionNodes } from "../lib";
 import { useRun } from "../RunContext";
+import { GLOSSARY, Hint, Term } from "./Hint";
 import { Pager, usePaging } from "./Pager";
 import { type RecoResult, type VersionSummary } from "../types";
 
@@ -148,7 +149,7 @@ export default function Dashboard() {
   const prev = activeVersions.length > 1 ? activeVersions[activeVersions.length - 2] : undefined;
 
   const trend = useMemo(() => activeVersions.map((v) => ({
-    name: `v${v.version}`, "Answer marks": v.avg_answer_marks, "Material marks": v.avg_material_marks,
+    name: `v${v.version}`, "Answer quality": v.avg_answer_marks, "Context quality": v.avg_material_marks,
   })), [activeVersions]);
   const allNodes = useMemo(() => unionNodes(activeVersions), [activeVersions]);
   const timing = useMemo(() => activeVersions.map((v) => ({
@@ -193,15 +194,15 @@ export default function Dashboard() {
 
       {latest && (
         <section className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Stat label={`Answer marks · v${latest.version}${groupFilter ? ` · ${groupFilter}` : ""}`} accent="var(--brand)"
+          <Stat label={<>{GLOSSARY.answer.label} · v{latest.version}{groupFilter ? ` · ${groupFilter}` : ""}<Hint text={GLOSSARY.answer.hint} /></>} accent="var(--brand)"
             value={<><Mark color="var(--hl-good)">{fmt(scoreOf(latest, "avg_answer_marks"))}</Mark><span className="mono text-xs text-muted">/10</span><Delta current={scoreOf(latest, "avg_answer_marks")} previous={prev ? scoreOf(prev, "avg_answer_marks") : undefined} /></>}
-            sub="avg judge score vs expected answer" />
-          <Stat label="Material marks" accent="var(--sun)"
+            sub="average score out of 10, against the expected answers" />
+          <Stat label={<Term k="context" />} accent="var(--sun)"
             value={<><Mark color="var(--hl)">{fmt(scoreOf(latest, "avg_material_marks"))}</Mark><span className="mono text-xs text-muted">/10</span><Delta current={scoreOf(latest, "avg_material_marks")} previous={prev ? scoreOf(prev, "avg_material_marks") : undefined} /></>}
-            sub="is the retrieved context enough?" />
-          <Stat label="Avg response time" accent="var(--coral)"
+            sub="did it find the information it needed?" />
+          <Stat label={<>Avg response time<Hint text={GLOSSARY.time.hint} /></>} accent="var(--coral)"
             value={<><Mark color="var(--hl-bad)">{fmtSeconds(scoreOf(latest, "avg_total_time"))}</Mark><Delta current={scoreOf(latest, "avg_total_time")} previous={prev ? scoreOf(prev, "avg_total_time") : undefined} invert digits={2} unit="s" /></>}
-            sub="end-to-end per question" />
+            sub="from question to final answer" />
           <Stat label="Versions evaluated" accent="var(--plum)" value={<Mark>{activeVersions.length}</Mark>}
             sub={`${latest.total_rows} questions in latest run`} />
         </section>
@@ -211,7 +212,7 @@ export default function Dashboard() {
         <section className="mt-3 grid gap-3 lg:grid-cols-2">
           <div className="card p-5">
             <h3 className="label">Quality trend</h3>
-            <p className="mb-3 mt-1 text-xs text-muted">Average judge marks per version</p>
+            <p className="mb-3 mt-1 text-xs text-muted">Average score out of 10 for each version</p>
             <div className="h-56">
               <ResponsiveContainer>
                 <LineChart data={trend} margin={{ left: -20, right: 8, top: 8 }}>
@@ -220,15 +221,15 @@ export default function Dashboard() {
                   <YAxis domain={[0, 10]} tick={{ fill: "var(--muted)", fontSize: 12 }} axisLine={false} tickLine={false} />
                   <Tooltip contentStyle={tooltipStyle} />
                   <Legend iconType="square" iconSize={9} wrapperStyle={{ fontSize: 12 }} />
-                  <Line type="linear" dataKey="Answer marks" stroke="var(--coral)" strokeWidth={2.5} dot={{ r: 4, fill: "var(--coral)" }} />
-                  <Line type="linear" dataKey="Material marks" stroke="var(--brand)" strokeWidth={2.5} dot={{ r: 4, fill: "var(--brand)" }} />
+                  <Line type="linear" dataKey="Answer quality" stroke="var(--coral)" strokeWidth={2.5} dot={{ r: 4, fill: "var(--coral)" }} />
+                  <Line type="linear" dataKey="Context quality" stroke="var(--brand)" strokeWidth={2.5} dot={{ r: 4, fill: "var(--brand)" }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           </div>
           <div className="card p-5">
             <h3 className="label">Where the time goes</h3>
-            <p className="mb-3 mt-1 text-xs text-muted">Average seconds per pipeline node</p>
+            <p className="mb-3 mt-1 text-xs text-muted">Average seconds each step of the assistant takes</p>
             <div className="h-56">
               <ResponsiveContainer>
                 <BarChart data={timing} margin={{ left: -20, right: 8, top: 8 }}>
@@ -273,11 +274,11 @@ export default function Dashboard() {
                 <SortTh k="version" cur={sort} onSort={toggleSort} className="px-5">Version</SortTh>
                 <SortTh k="date" cur={sort} onSort={toggleSort}>Executed</SortTh>
                 <SortTh k="questions" cur={sort} onSort={toggleSort}>Questions</SortTh>
-                <SortTh k="answer" cur={sort} onSort={toggleSort}>Answer</SortTh>
-                <SortTh k="material" cur={sort} onSort={toggleSort}>Material</SortTh>
-                <SortTh k="time" cur={sort} onSort={toggleSort}>Avg time</SortTh>
-                <th className="px-3 py-3 font-medium">Node timings</th>
-                <th className="px-3 py-3 font-medium">How it behaved</th>
+                <SortTh k="answer" cur={sort} onSort={toggleSort}><Term k="answer" /></SortTh>
+                <SortTh k="material" cur={sort} onSort={toggleSort}><Term k="context" /></SortTh>
+                <SortTh k="time" cur={sort} onSort={toggleSort}><Term k="time" /></SortTh>
+                <th className="px-3 py-3 font-medium"><Term k="steps" /></th>
+                <th className="px-3 py-3 font-medium">Watch-outs</th>
                 <th className="px-3 py-3 font-medium">Actions</th>
                 <th className="w-8" />
               </tr>
@@ -327,7 +328,7 @@ export default function Dashboard() {
                     <td className="px-3 py-4"><div className="flex flex-col items-start gap-1"><ScorePill value={scoreOf(v, "avg_material_marks")} /><Delta current={scoreOf(v, "avg_material_marks")} previous={p ? scoreOf(p, "avg_material_marks") : undefined} />{v.failed_rows === 0 && bests.material != null && scoreOf(v, "avg_material_marks") === bests.material && <BestTag />}</div></td>
                     <td className="px-3 py-4"><div className="mono">{fmtSeconds(scoreOf(v, "avg_total_time"))}</div><Delta current={scoreOf(v, "avg_total_time")} previous={p ? scoreOf(p, "avg_total_time") : undefined} invert digits={2} unit="s" />{v.failed_rows === 0 && bests.time != null && scoreOf(v, "avg_total_time") === bests.time && <div><BestTag /></div>}</td>
                     <td className="px-3 py-4"><NodeTimings v={v} compact /></td>
-                    <td className="max-w-[340px] px-3 py-4 text-[13px] leading-relaxed text-muted"><p className="clamp-4">{v.comment}</p></td>
+                    <td className="max-w-[340px] px-3 py-4 text-[13px] leading-relaxed text-muted"><WatchOuts v={v} /></td>
                     <td className="px-3 py-4 align-middle" onClick={(e) => e.stopPropagation()}>
                       {confirmDelete === v.run_id ? (
                         <span className="inline-flex items-center gap-1 text-xs">
@@ -396,11 +397,11 @@ export default function Dashboard() {
                       <th className="px-5 py-3 font-medium">Version</th>
                       <th className="px-3 py-3 font-medium">Executed</th>
                       <th className="px-3 py-3 font-medium">Questions</th>
-                      <th className="px-3 py-3 font-medium">Answer</th>
-                      <th className="px-3 py-3 font-medium">Material</th>
-                      <th className="px-3 py-3 font-medium">Avg time</th>
-                      <th className="px-3 py-3 font-medium">Node timings</th>
-                      <th className="px-3 py-3 font-medium">How it behaved</th>
+                      <th className="px-3 py-3 font-medium"><Term k="answer" /></th>
+                      <th className="px-3 py-3 font-medium"><Term k="context" /></th>
+                      <th className="px-3 py-3 font-medium"><Term k="time" /></th>
+                      <th className="px-3 py-3 font-medium"><Term k="steps" /></th>
+                      <th className="px-3 py-3 font-medium">Watch-outs</th>
                       <th className="px-3 py-3 font-medium">Actions</th>
                     </tr>
                   </thead>
@@ -416,7 +417,7 @@ export default function Dashboard() {
                         <td className="px-3 py-4"><ScorePill value={v.avg_material_marks} /></td>
                         <td className="px-3 py-4"><div className="mono">{fmtSeconds(v.avg_total_time)}</div></td>
                         <td className="px-3 py-4"><NodeTimings v={v} compact /></td>
-                        <td className="max-w-[340px] px-3 py-4 text-[13px] leading-relaxed text-muted"><p className="clamp-4">{v.comment}</p></td>
+                        <td className="max-w-[340px] px-3 py-4 text-[13px] leading-relaxed text-muted"><WatchOuts v={v} /></td>
                         <td className="px-3 py-4 align-middle" onClick={(e) => e.stopPropagation()}>
                           <button
                             title="Restore to dashboard"
@@ -439,6 +440,17 @@ export default function Dashboard() {
 
     </div>
     </>
+  );
+}
+
+/** The first couple of watch-outs for a version, so the table says what needs attention rather than repeating the scores. */
+function WatchOuts({ v }: { v: VersionSummary }) {
+  const items = v.insights?.pitfalls?.slice(0, 2) ?? [];
+  if (items.length === 0) return <p className="clamp-4">{v.comment}</p>;
+  return (
+    <ul className="list-disc space-y-1 pl-4">
+      {items.map((t, i) => <li key={i} className="line-clamp-3">{t}</li>)}
+    </ul>
   );
 }
 
@@ -502,7 +514,7 @@ function ComparePanel({ runs }: { runs: import("../types").VersionSummary[] }) {
       <div className="border-b border-line px-5 py-4">
         <h2 className="font-serif text-xl font-medium">Group Comparison</h2>
         <p className="mt-0.5 text-xs text-muted">
-          Answer marks out of 10 · ★ = best in row
+          Answer quality, out of 10 · ★ = best in row
           {commonGroups.length < allGroups.length && allGroups.length > 0 && " · Overall averages common groups only"}
         </p>
       </div>
