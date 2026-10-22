@@ -32,13 +32,15 @@ import math
 import re
 import statistics
 import threading
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
 from tinydb import Query, TinyDB
 
-from ragevalkit.exceptions import VersionNotFound
+from ragevalkit.dataset import compute_fingerprint
+from ragevalkit.exceptions import ConflictError, GroupNotFound, VersionNotFound
 
 VERSION_RE = re.compile(r"^[A-Za-z0-9._-]{1,20}$")
 
@@ -150,7 +152,8 @@ def build_group_stats(store: "EvalStore", group_names: list[str], rows: list[dic
     if not group_names:
         return {}
     row_tc_ids = [
-        _tc_id(str(r.get("chat_id", "")), int(r.get("turn_no") or 1), str(r.get("question", "")))
+        r.get("tc_id")
+        or _tc_id(str(r.get("chat_id", "")), int(r.get("turn_no") or 1), str(r.get("question", "")))
         for r in rows
     ]
     with store._lock:
@@ -220,6 +223,63 @@ def _tc_id(chat_id: str, turn_no: int, question: str) -> str:
     """Stable test case ID — keyed by content so the same question always gets the same ID."""
     key = f"{chat_id}|{turn_no}|{question.strip()}"
     return "tc_" + hashlib.sha256(key.encode()).hexdigest()[:12]
+
+
+def _natural(text) -> list:
+    """Sort key that orders 'c2' before 'c10'."""
+    return [int(t) if t.isdigit() else t.lower() for t in re.split(r"(\d+)", str(text))]
+
+
+def _case_order(tc: dict):
+    return (_natural(tc.get("chat_id", "")), tc.get("turn_no", 0))
+
+
+def _latest_versions(records: list[dict]) -> dict[str, dict]:
+    """Collapse versioned test-case records to the newest one per tc_id."""
+    by_id: dict[str, dict] = {}
+    for rec in records:
+        cur = by_id.get(rec["tc_id"])
+        if cur is None or rec["version"] > cur["version"]:
+            by_id[rec["tc_id"]] = rec
+    return by_id
+
+
+@dataclass
+class RunSelection:
+    """The test cases a run would execute, as resolved by EvalStore.resolve_selection()."""
+    df: "pd.DataFrame"
+    selected: int          # distinct cases the caller asked for (via groups and/or ids)
+    context: int           # earlier turns added so multi-turn chats keep their history
+    missing: int           # requested tc_ids that were unknown or deleted
+    group_names: list[str] = field(default_factory=list)
+    collisions: list[dict] = field(default_factory=list)  # distinct cases sharing a chat + turn
+
+    @property
+    def total(self) -> int:
+        return len(self.df)
+
+
+def _cases_to_df(cases: list[dict]) -> "pd.DataFrame":
+    """Test cases as the DataFrame the runner consumes (tc_id rides along into every receipt)."""
+    if not cases:
+        return pd.DataFrame()
+    rows = []
+    for tc in cases:
+        row: dict = {
+            "chat_id": str(tc["chat_id"]),
+            "turn_no": int(tc["turn_no"]),
+            "type": tc.get("type", ""),
+            "question": tc["question"],
+            "expected_answer": tc["expected_answer"],
+            "tc_id": tc["tc_id"],
+        }
+        es = _clean_es(tc.get("expected_sources", ""))
+        if es:
+            row["expected_sources"] = es
+        rows.append(row)
+    df = pd.DataFrame(rows)
+    df.attrs["fingerprint"] = compute_fingerprint(df)
+    return df
 
 
 def _group_id() -> str:
@@ -343,7 +403,7 @@ class EvalStore:
         # Anything else logged that isn't already covered
         _covered = set(ID_COLS + QA_COLS + JUDGE_COLS + ["material"] + CTX_COLS +
                        METRIC_COLS + ["total_time_taken"] + OPT_PRESENT +
-                       ["session_id", "step_inputs", "step_outputs", "node_timings", "version"])
+                       ["session_id", "tc_id", "step_inputs", "step_outputs", "node_timings", "version"])
         extra: list[str] = []
         for r in rows:
             for k in r:
@@ -440,7 +500,11 @@ class EvalStore:
         return buf.getvalue()
 
     # ------------------------------------------------------------------
-    # Dataset + test case management
+    # Test cases
+    #
+    # A test case is the unit of the library; a group is just a label that can be put on any
+    # number of cases (and one case can carry any number of labels). Runs are resolved from
+    # groups and/or individual test cases — see resolve_selection().
     # ------------------------------------------------------------------
 
     def import_dataset(self, name: str, df: "pd.DataFrame", fingerprint: str) -> str:
@@ -458,6 +522,21 @@ class EvalStore:
         self.import_into_group(group_id, df)
         return group_id
 
+    def _with_groups(self, cases: list[dict]) -> list[dict]:
+        """Copy each case and attach ``groups``: the labels it carries, as [{group_id, name}]."""
+        with self._lock:
+            names = {g["group_id"]: g["name"] for g in self.groups.all()}
+            members = list(self.group_members.all())
+        by_tc: dict[str, list[dict]] = {}
+        for m in members:
+            name = names.get(m["group_id"])
+            if name is not None:
+                by_tc.setdefault(m["tc_id"], []).append({"group_id": m["group_id"], "name": name})
+        return [
+            {**c, "groups": sorted(by_tc.get(c["tc_id"], []), key=lambda g: g["name"].lower())}
+            for c in cases
+        ]
+
     def list_test_cases(
         self,
         group_id: str | None = None,
@@ -465,7 +544,7 @@ class EvalStore:
         # backward-compat alias — ignored but accepted so old callers don't break
         dataset_id: str | None = None,
     ) -> list[dict]:
-        """Return the latest version of each test case, optionally filtered by group."""
+        """Return the latest version of each test case (with its group labels), optionally filtered."""
         effective_group = group_id or dataset_id  # dataset_id alias
         with self._lock:
             Q = Query()
@@ -477,16 +556,10 @@ class EvalStore:
             else:
                 all_tc = self.test_cases.all()
 
-        by_key: dict[str, dict] = {}
-        for tc in all_tc:
-            key = tc["tc_id"]
-            if key not in by_key or tc["version"] > by_key[key]["version"]:
-                by_key[key] = tc
-
-        result = list(by_key.values())
+        result = list(_latest_versions(all_tc).values())
         if status:
             result = [r for r in result if r.get("status") == status]
-        return sorted(result, key=lambda r: (r.get("chat_id", ""), r.get("turn_no", 0)))
+        return self._with_groups(sorted(result, key=_case_order))
 
     def get_test_case_history(self, tc_id: str, dataset_id: str | None = None) -> list[dict]:
         """Return all versions of a test case, oldest first."""
@@ -497,24 +570,45 @@ class EvalStore:
 
     def update_test_case_status(self, tc_id: str, status: str, dataset_id: str | None = None) -> bool:
         """Set status of all versions of a test case to active / inactive / deleted."""
+        return bool(self.update_status_bulk([tc_id], status))
+
+    def update_status_bulk(self, tc_ids: list[str], status: str) -> int:
+        """Set the status of several test cases at once. Returns how many were found."""
         if status not in ("active", "inactive", "deleted"):
-            return False
+            return 0
         now = datetime.now(timezone.utc).isoformat()
         with self._lock:
             Q = Query()
-            updated = self.test_cases.update({"status": status, "updated_at": now}, Q.tc_id == tc_id)
-        return bool(updated)
+            known = {r["tc_id"] for r in self.test_cases.search(Q.tc_id.one_of(list(tc_ids)))} if tc_ids else set()
+            if known:
+                self.test_cases.update({"status": status, "updated_at": now}, Q.tc_id.one_of(list(known)))
+        return len(known)
 
     def edit_test_case(self, tc_id: str, updates: dict, dataset_id: str | None = None) -> dict | None:
         """Create a new version of a test case with the given field updates.
 
-        Only question, expected_answer, expected_sources, and type can be changed.
-        Returns the new version record, or None if tc_id is not found.
+        Editable: question, expected_answer, expected_sources, type, chat_id, turn_no.
+        The tc_id never changes, so group labels and history follow the case when its
+        chat or turn is edited. Returns the new version record, or None if tc_id is unknown
+        or there is nothing to change. Raises ValueError for an invalid value.
         """
-        allowed = {"question", "expected_answer", "expected_sources", "type"}
+        allowed = {"question", "expected_answer", "expected_sources", "type", "chat_id", "turn_no"}
         updates = {k: v for k, v in updates.items() if k in allowed and v is not None}
         if not updates:
             return None
+        if "chat_id" in updates:
+            updates["chat_id"] = str(updates["chat_id"]).strip()
+            if not updates["chat_id"]:
+                raise ValueError("Chat ID cannot be empty")
+        if "turn_no" in updates:
+            try:
+                updates["turn_no"] = int(updates["turn_no"])
+            except (TypeError, ValueError):
+                raise ValueError("Turn number must be a whole number") from None
+            if updates["turn_no"] < 1:
+                raise ValueError("Turn number must be 1 or higher")
+        if "question" in updates and not str(updates["question"]).strip():
+            raise ValueError("Question cannot be empty")
 
         now = datetime.now(timezone.utc).isoformat()
         with self._lock:
@@ -530,37 +624,105 @@ class EvalStore:
             new_record.update(updates)
             self.test_cases.insert(new_record)
 
-        return new_record
+        return self._with_groups([new_record])[0]
 
     def list_datasets(self) -> list[dict]:
         """Backward-compat alias for list_groups()."""
         return self.list_groups()
 
-    def test_cases_as_df(self, group_id: str | None = None, status: str = "active",
-                         # backward-compat alias
-                         dataset_id: str | None = None) -> "pd.DataFrame":
-        """Export test cases as a DataFrame suitable for running an eval."""
-        effective_group = group_id or dataset_id
-        if effective_group:
-            cases = self.get_group_test_cases(effective_group, status=status if status != "all" else None)
-        else:
-            cases = self.list_test_cases(status=status if status != "all" else None)
-        if not cases:
-            return pd.DataFrame()
-        rows = []
+    def resolve_selection(
+        self,
+        group_ids: list[str] | tuple = (),
+        tc_ids: list[str] | tuple = (),
+        status: str = "active",
+        include_context: bool = True,
+    ) -> "RunSelection":
+        """Work out exactly which test cases a run would execute.
+
+        ``group_ids`` pulls in every case carrying one of those labels, filtered by ``status``
+        (``active`` | ``inactive`` | ``all`` — deleted cases never run). ``tc_ids`` adds
+        individual cases regardless of their active/inactive state. A case in several of the
+        chosen groups runs once.
+
+        Conversations are replayed turn by turn, so a case at turn 3 needs turns 1-2 for context.
+        With ``include_context`` those earlier active turns of the same chat (limited to a shared
+        group when the case has one) are added; they are counted separately in the result.
+
+        Raises GroupNotFound for an unknown group, ValueError for a bad ``status``.
+        """
+        if status not in ("active", "inactive", "all"):
+            raise ValueError(f"status must be 'active', 'inactive' or 'all', got {status!r}")
+        group_ids = list(dict.fromkeys(group_ids))
+        tc_ids = list(dict.fromkeys(tc_ids))
+
+        with self._lock:
+            latest = _latest_versions(list(self.test_cases.all()))
+            group_names = {g["group_id"]: g["name"] for g in self.groups.all()}
+            members = list(self.group_members.all())
+        for gid in group_ids:
+            if gid not in group_names:
+                raise GroupNotFound(gid)
+
+        tcs_of_group: dict[str, set[str]] = {}
+        groups_of_tc: dict[str, set[str]] = {}
+        for m in members:
+            tcs_of_group.setdefault(m["group_id"], set()).add(m["tc_id"])
+            groups_of_tc.setdefault(m["tc_id"], set()).add(m["group_id"])
+
+        chosen: dict[str, dict] = {}
+        for gid in group_ids:
+            for tid in tcs_of_group.get(gid, ()):
+                tc = latest.get(tid)
+                if tc is None or tc.get("status") == "deleted":
+                    continue
+                if status != "all" and tc.get("status") != status:
+                    continue
+                chosen[tid] = tc
+        missing = 0
+        for tid in tc_ids:
+            tc = latest.get(tid)
+            if tc is None or tc.get("status") == "deleted":
+                missing += 1
+            else:
+                chosen[tid] = tc
+
+        context: dict[str, dict] = {}
+        if include_context:
+            active_by_chat: dict[str, list[dict]] = {}
+            for tc in latest.values():
+                if tc.get("status") == "active":
+                    active_by_chat.setdefault(str(tc["chat_id"]), []).append(tc)
+            for tc in chosen.values():
+                if tc["turn_no"] <= 1:
+                    continue
+                mine = groups_of_tc.get(tc["tc_id"], set())
+                for prev in active_by_chat.get(str(tc["chat_id"]), []):
+                    if prev["turn_no"] >= tc["turn_no"] or prev["tc_id"] in chosen:
+                        continue
+                    if mine and not (mine & groups_of_tc.get(prev["tc_id"], set())):
+                        continue
+                    context[prev["tc_id"]] = prev
+
+        cases = sorted({**context, **chosen}.values(), key=_case_order)
+
+        # Two different cases in one run on the same chat + turn would share a conversation
+        # slot and silently overwrite each other's history — surface that instead.
+        slots: dict[tuple[str, int], list[str]] = {}
         for tc in cases:
-            row: dict = {
-                "chat_id": tc["chat_id"],
-                "turn_no": tc["turn_no"],
-                "type": tc.get("type", ""),
-                "question": tc["question"],
-                "expected_answer": tc["expected_answer"],
-            }
-            es = _clean_es(tc.get("expected_sources", ""))
-            if es:
-                row["expected_sources"] = es
-            rows.append(row)
-        return pd.DataFrame(rows)
+            slots.setdefault((str(tc["chat_id"]), int(tc["turn_no"])), []).append(tc["tc_id"])
+        collisions = [
+            {"chat_id": chat, "turn_no": turn, "tc_ids": ids}
+            for (chat, turn), ids in slots.items() if len(ids) > 1
+        ]
+
+        return RunSelection(
+            df=_cases_to_df(cases),
+            selected=len(chosen),
+            context=len(context),
+            missing=missing,
+            group_names=[group_names[g] for g in group_ids],
+            collisions=collisions,
+        )
 
     def create_test_case(self, chat_id: str, turn_no: int,
                          question: str, expected_answer: str,
@@ -594,19 +756,45 @@ class EvalStore:
             self.test_cases.insert(record)
         if group_id:
             self.add_tc_to_group(group_id, tc_id)
-        return record
+        return self._with_groups([record])[0]
 
     # ------------------------------------------------------------------
-    # Group management
+    # Group management (groups are labels on test cases)
     # ------------------------------------------------------------------
+
+    def _group_name_taken(self, name: str, ignore_id: str | None = None) -> bool:
+        wanted = name.strip().lower()
+        return any(
+            g["name"].strip().lower() == wanted and g["group_id"] != ignore_id
+            for g in self.groups.all()
+        )
 
     def create_group(self, name: str) -> str:
-        """Create a named test-case group. Returns group_id."""
+        """Create a named group. Returns group_id. Raises ConflictError if the name is in use."""
+        name = name.strip()
+        if not name:
+            raise ValueError("Group name cannot be empty")
         gid = _group_id()
         now = datetime.now(timezone.utc).isoformat()
         with self._lock:
+            if self._group_name_taken(name):
+                raise ConflictError(f"A group named {name!r} already exists")
             self.groups.insert({"group_id": gid, "name": name, "created_at": now})
         return gid
+
+    def rename_group(self, group_id: str, name: str) -> bool:
+        """Rename a group. Raises ConflictError if another group already has that name."""
+        name = name.strip()
+        if not name:
+            raise ValueError("Group name cannot be empty")
+        with self._lock:
+            Q = Query()
+            if not self.groups.search(Q.group_id == group_id):
+                return False
+            if self._group_name_taken(name, ignore_id=group_id):
+                raise ConflictError(f"A group named {name!r} already exists")
+            self.groups.update({"name": name}, Q.group_id == group_id)
+        return True
 
     def list_groups(self) -> list[dict]:
         """Return all groups with member_count."""
@@ -651,6 +839,9 @@ class EvalStore:
                             latest.get("expected_sources", "") != new_record["expected_sources"]):
                         new_record["version"] = latest["version"] + 1
                         new_record["created_at"] = latest["created_at"]
+                        # a chat/turn edited in the dashboard must survive a re-import
+                        new_record["chat_id"] = latest["chat_id"]
+                        new_record["turn_no"] = latest["turn_no"]
                         self.test_cases.insert(new_record)
                 # Link to group (idempotent)
                 already = self.group_members.search(
@@ -663,37 +854,58 @@ class EvalStore:
 
     def get_group_test_cases(self, group_id: str, status: str | None = None) -> list[dict]:
         """Return test cases in a group (latest version each)."""
-        with self._lock:
-            Q = Query()
-            member_tcs = {m["tc_id"] for m in self.group_members.search(Q.group_id == group_id)}
-            if not member_tcs:
-                return []
-            all_tc = self.test_cases.search(Q.tc_id.one_of(list(member_tcs)))
-        by_key: dict[str, dict] = {}
-        for tc in all_tc:
-            tid = tc["tc_id"]
-            if tid not in by_key or tc["version"] > by_key[tid]["version"]:
-                by_key[tid] = tc
-        result = list(by_key.values())
-        if status:
-            result = [r for r in result if r.get("status") == status]
-        return sorted(result, key=lambda r: (r.get("chat_id", ""), r.get("turn_no", 0)))
+        return self.list_test_cases(group_id=group_id, status=status)
 
     def add_tc_to_group(self, group_id: str, tc_id: str) -> bool:
+        return bool(self.add_tcs_to_group(group_id, [tc_id]))
+
+    def add_tcs_to_group(self, group_id: str, tc_ids: list[str]) -> int:
+        """Label test cases with a group. Returns how many were newly added (already-labelled
+        and unknown tc_ids are skipped). Raises GroupNotFound for an unknown group."""
         now = datetime.now(timezone.utc).isoformat()
+        added = 0
         with self._lock:
             Q = Query()
-            already = self.group_members.search((Q.group_id == group_id) & (Q.tc_id == tc_id))
-            if already:
-                return False
-            self.group_members.insert({"group_id": group_id, "tc_id": tc_id, "added_at": now})
-        return True
+            if not self.groups.search(Q.group_id == group_id):
+                raise GroupNotFound(group_id)
+            for tc_id in dict.fromkeys(tc_ids):
+                if not self.test_cases.search(Q.tc_id == tc_id):
+                    continue
+                if self.group_members.search((Q.group_id == group_id) & (Q.tc_id == tc_id)):
+                    continue
+                self.group_members.insert({"group_id": group_id, "tc_id": tc_id, "added_at": now})
+                added += 1
+        return added
 
     def remove_tc_from_group(self, group_id: str, tc_id: str) -> bool:
+        return bool(self.remove_tcs_from_group(group_id, [tc_id]))
+
+    def remove_tcs_from_group(self, group_id: str, tc_ids: list[str]) -> int:
+        """Remove a group label from test cases. Returns how many labels were removed."""
+        if not tc_ids:
+            return 0
         with self._lock:
             Q = Query()
-            removed = self.group_members.remove((Q.group_id == group_id) & (Q.tc_id == tc_id))
-        return bool(removed)
+            removed = self.group_members.remove((Q.group_id == group_id) & Q.tc_id.one_of(list(tc_ids)))
+        return len(removed)
+
+    def set_test_case_groups(self, tc_id: str, group_ids: list[str]) -> bool:
+        """Replace the full set of group labels on one test case. Returns False if it is unknown.
+        Raises GroupNotFound for an unknown group."""
+        now = datetime.now(timezone.utc).isoformat()
+        wanted = list(dict.fromkeys(group_ids))
+        with self._lock:
+            Q = Query()
+            if not self.test_cases.search(Q.tc_id == tc_id):
+                return False
+            known = {g["group_id"] for g in self.groups.all()}
+            for gid in wanted:
+                if gid not in known:
+                    raise GroupNotFound(gid)
+            self.group_members.remove(Q.tc_id == tc_id)
+            for gid in wanted:
+                self.group_members.insert({"group_id": gid, "tc_id": tc_id, "added_at": now})
+        return True
 
     def delete_group(self, group_id: str) -> bool:
         """Delete a group and all its membership records. Test cases themselves are not removed."""

@@ -12,8 +12,9 @@ from pydantic import BaseModel
 
 from ragevalkit.dataset import REQUIRED_COLUMNS, DatasetError, load_dataset
 from ragevalkit.routes.deps import require_user
+from ragevalkit.exceptions import ConflictError, GroupNotFound
 from ragevalkit.runner import RunBusy
-from ragevalkit.store import VersionNotFound, valid_version
+from ragevalkit.store import RunSelection, VersionNotFound, valid_version
 
 
 
@@ -75,6 +76,59 @@ async def validate_dataset(request: Request, file: UploadFile = File(...)) -> di
 # Eval run endpoints
 # ---------------------------------------------------------------------------
 
+def _json_list(raw: str | None) -> list[str]:
+    """A list of ids sent as a JSON array (or, leniently, comma-separated) in a form field."""
+    if not raw:
+        return []
+    try:
+        val = json.loads(raw)
+        if isinstance(val, list):
+            return [str(v) for v in val]
+    except ValueError:
+        pass
+    return [part.strip() for part in raw.split(",") if part.strip()]
+
+
+def _resolve(store, group_ids: list[str], tc_ids: list[str], status: str, include_context: bool) -> RunSelection:
+    """Resolve a selection or raise the matching HTTP error."""
+    try:
+        return store.resolve_selection(group_ids, tc_ids, status=status, include_context=include_context)
+    except GroupNotFound as e:
+        raise HTTPException(404, str(e))
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+
+
+def _collision_message(collisions: list[dict]) -> str:
+    first = collisions[0]
+    more = f" (and {len(collisions) - 1} more)" if len(collisions) > 1 else ""
+    return (
+        f"Chat {first['chat_id']!r} turn {first['turn_no']} is used by {len(first['tc_ids'])} different "
+        f"test cases in this selection{more}. Deselect one or change its chat / turn number."
+    )
+
+
+class SelectionBody(BaseModel):
+    group_ids: list[str] = []
+    tc_ids: list[str] = []
+    status_filter: str = "active"
+    include_context: bool = True
+
+
+@router.post("/runs/preview")
+def preview_run(body: SelectionBody, request: Request) -> dict:
+    """Dry run: what would a run with this selection execute? Powers the live count in the Execute dialog."""
+    sel = _resolve(request.app.state.store, body.group_ids, body.tc_ids, body.status_filter, body.include_context)
+    return {
+        "selected": sel.selected,
+        "context": sel.context,
+        "total": sel.total,
+        "missing": sel.missing,
+        "group_names": sel.group_names,
+        "collisions": sel.collisions,
+    }
+
+
 @router.post("/runs", status_code=202)
 async def start_run(
     request: Request,
@@ -82,7 +136,9 @@ async def start_run(
     overwrite: bool = Form(False),
     file: UploadFile | None = File(None),
     group_id: str | None = Form(None),
-    group_ids: str | None = Form(None),  # JSON array of group IDs for multi-group runs
+    group_ids: str | None = Form(None),  # JSON array of group IDs
+    tc_ids: str | None = Form(None),     # JSON array of individual test case IDs
+    include_context: bool = Form(True),  # add earlier turns of each selected chat
     dataset_id: str | None = Form(None),  # backward-compat alias for group_id
     status_filter: str = Form("active"),
     save_as_group: bool = Form(False),
@@ -94,43 +150,29 @@ async def start_run(
     if store.exists(version) and not overwrite:
         raise HTTPException(409, f"Version {version} already exists")
 
-    # Parse multi-group IDs (JSON string from frontend)
-    parsed_group_ids: list[str] = []
-    if group_ids:
-        try:
-            parsed_group_ids = json.loads(group_ids)
-        except Exception:
-            parsed_group_ids = [g.strip() for g in group_ids.split(",") if g.strip()]
-
-    # Resolve effective groups: multi-group > single group_id > dataset_id alias
-    effective_groups = parsed_group_ids or ([group_id] if group_id else []) or ([dataset_id] if dataset_id else [])
-    effective_group = effective_groups[0] if len(effective_groups) == 1 else None
+    # Library selection: groups and/or individually picked test cases (union).
+    selected_groups = _json_list(group_ids) or ([group_id] if group_id else []) or ([dataset_id] if dataset_id else [])
+    picked = _json_list(tc_ids)
 
     run_group_names: list[str] = []
+    from_library = False
+    source_dataset_id = ""
 
-    if len(effective_groups) > 1:
-        # Multi-group run: merge test cases from all selected groups
-        all_groups = store.list_groups()
-        dfs = []
-        for gid in effective_groups:
-            df_part = store.test_cases_as_df(group_id=gid, status=status_filter)
-            if not df_part.empty:
-                dfs.append(df_part)
-            grp_meta = next((g for g in all_groups if g["group_id"] == gid), None)
-            run_group_names.append(grp_meta["name"] if grp_meta else gid)
-        if not dfs:
-            raise HTTPException(404, f"No {status_filter} test cases found in selected groups")
-        df = _pd.concat(dfs, ignore_index=True).drop_duplicates(subset=["chat_id", "turn_no"])
-        dataset_name = " + ".join(run_group_names)
-    elif effective_group:
-        # Run from a single saved group of test cases
-        df = store.test_cases_as_df(group_id=effective_group, status=status_filter)
-        if df.empty:
-            raise HTTPException(404, f"No {status_filter} test cases found for group {effective_group!r}")
-        groups = store.list_groups()
-        grp_meta = next((g for g in groups if g["group_id"] == effective_group), None)
-        dataset_name = grp_meta["name"] if grp_meta else effective_group
-        run_group_names = [dataset_name]
+    if selected_groups or picked:
+        sel = _resolve(store, selected_groups, picked, status_filter, include_context)
+        if sel.collisions:
+            raise HTTPException(409, _collision_message(sel.collisions))
+        if sel.df.empty:
+            raise HTTPException(404, "No runnable test cases in the selection")
+        df, from_library = sel.df, True
+        run_group_names = sel.group_names
+        label = list(sel.group_names)
+        if picked:
+            n = len(picked)
+            label.append(f"{n} picked test case{'s' if n != 1 else ''}")
+        dataset_name = " + ".join(label)
+        if len(selected_groups) == 1 and not picked:
+            source_dataset_id = selected_groups[0]
     elif file is not None and file.filename and save_as_group and group_name:
         run_group_names = [group_name]
         # Upload file, save as group, then run from it
@@ -145,9 +187,13 @@ async def start_run(
                 )
             except DatasetError as e:
                 raise HTTPException(422, str(e))
-        new_group_id = store.create_group(group_name)
+        try:
+            new_group_id = store.create_group(group_name)
+        except ConflictError as e:
+            raise HTTPException(409, str(e))
         store.import_into_group(new_group_id, df)
-        df = store.test_cases_as_df(group_id=new_group_id, status=status_filter)
+        sel = _resolve(store, [new_group_id], [], status_filter, False)
+        df, from_library, source_dataset_id = sel.df, True, new_group_id
         dataset_name = group_name
     elif file is not None and file.filename:
         cfg.inputs_dir.mkdir(parents=True, exist_ok=True)
@@ -181,7 +227,10 @@ async def start_run(
         raise HTTPException(400, "No dataset provided and no default_dataset configured")
 
     try:
-        run = manager.start(version, df, dataset_name, notes=notes, group_names=run_group_names)
+        run = manager.start(
+            version, df, dataset_name, notes=notes, group_names=run_group_names,
+            from_library=from_library, dataset_id=source_dataset_id,
+        )
     except RunBusy as e:
         raise HTTPException(409, str(e))
     return run.snapshot()
@@ -290,6 +339,8 @@ def download_version(version: str, request: Request):
 # ---------------------------------------------------------------------------
 
 class TestCaseUpdate(BaseModel):
+    chat_id: str | None = None
+    turn_no: int | None = None
     question: str | None = None
     expected_answer: str | None = None
     expected_sources: str | None = None
@@ -333,10 +384,43 @@ def get_test_case_history(tc_id: str, request: Request) -> list[dict]:
 @router.patch("/test-cases/{tc_id}")
 def update_test_case(tc_id: str, body: TestCaseUpdate, request: Request) -> dict:
     """Edit a test case — creates a new version record. Old versions are preserved."""
-    result = request.app.state.store.edit_test_case(tc_id, body.model_dump(exclude_none=True))
+    try:
+        result = request.app.state.store.edit_test_case(tc_id, body.model_dump(exclude_none=True))
+    except ValueError as e:
+        raise HTTPException(422, str(e))
     if result is None:
         raise HTTPException(404, "Test case not found or no valid fields provided")
     return result
+
+
+class BulkStatusUpdate(BaseModel):
+    tc_ids: list[str]
+    status: str  # "active" | "inactive" | "deleted"
+
+
+@router.post("/test-cases/status")
+def set_test_cases_status(body: BulkStatusUpdate, request: Request) -> dict:
+    """Activate, deactivate, or soft-delete several test cases at once."""
+    if body.status not in ("active", "inactive", "deleted"):
+        raise HTTPException(422, f"Invalid status '{body.status}'")
+    updated = request.app.state.store.update_status_bulk(body.tc_ids, body.status)
+    return {"updated": updated, "status": body.status}
+
+
+class TestCaseGroups(BaseModel):
+    group_ids: list[str]
+
+
+@router.put("/test-cases/{tc_id}/groups")
+def set_test_case_groups(tc_id: str, body: TestCaseGroups, request: Request) -> dict:
+    """Replace the group labels on one test case."""
+    try:
+        ok = request.app.state.store.set_test_case_groups(tc_id, body.group_ids)
+    except GroupNotFound as e:
+        raise HTTPException(404, str(e))
+    if not ok:
+        raise HTTPException(404, "Test case not found")
+    return {"tc_id": tc_id, "group_ids": body.group_ids}
 
 
 @router.patch("/test-cases/{tc_id}/status")
@@ -365,9 +449,49 @@ def list_groups(request: Request) -> list[dict]:
 @router.post("/groups", status_code=201)
 def create_group(body: CreateGroup, request: Request) -> dict:
     store = request.app.state.store
-    gid = store.create_group(body.name)
+    try:
+        gid = store.create_group(body.name)
+    except ConflictError as e:
+        raise HTTPException(409, str(e))
+    except ValueError as e:
+        raise HTTPException(422, str(e))
     groups = store.list_groups()
     return next(g for g in groups if g["group_id"] == gid)
+
+
+@router.patch("/groups/{group_id}")
+def rename_group(group_id: str, body: CreateGroup, request: Request) -> dict:
+    store = request.app.state.store
+    try:
+        ok = store.rename_group(group_id, body.name)
+    except ConflictError as e:
+        raise HTTPException(409, str(e))
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    if not ok:
+        raise HTTPException(404, "Group not found")
+    return next(g for g in store.list_groups() if g["group_id"] == group_id)
+
+
+class TcIds(BaseModel):
+    tc_ids: list[str]
+
+
+@router.post("/groups/{group_id}/members", status_code=200)
+def add_many_to_group(group_id: str, body: TcIds, request: Request) -> dict:
+    """Label several test cases with this group."""
+    try:
+        added = request.app.state.store.add_tcs_to_group(group_id, body.tc_ids)
+    except GroupNotFound as e:
+        raise HTTPException(404, str(e))
+    return {"group_id": group_id, "added": added}
+
+
+@router.post("/groups/{group_id}/members/remove", status_code=200)
+def remove_many_from_group(group_id: str, body: TcIds, request: Request) -> dict:
+    """Remove this group's label from several test cases."""
+    removed = request.app.state.store.remove_tcs_from_group(group_id, body.tc_ids)
+    return {"group_id": group_id, "removed": removed}
 
 
 @router.post("/groups/{group_id}/import", status_code=201)
@@ -394,7 +518,10 @@ def group_test_cases(group_id: str, request: Request, status: str | None = None)
 
 @router.post("/groups/{group_id}/members/{tc_id}", status_code=201)
 def add_to_group(group_id: str, tc_id: str, request: Request) -> dict:
-    ok = request.app.state.store.add_tc_to_group(group_id, tc_id)
+    try:
+        ok = request.app.state.store.add_tc_to_group(group_id, tc_id)
+    except GroupNotFound as e:
+        raise HTTPException(404, str(e))
     return {"group_id": group_id, "tc_id": tc_id, "added": ok}
 
 

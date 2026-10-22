@@ -223,6 +223,8 @@ class Run:
         self.stop_requested: bool = False  # set True via POST /api/runs/{run_id}/stop
         self.notes: str = ""
         self.group_names: list[str] = []
+        self.from_library: bool = False   # df came from stored test cases (no re-import needed)
+        self.dataset_id: str = ""         # source group id for single-group library runs
 
     def snapshot(self) -> dict:
         return {
@@ -325,13 +327,31 @@ class RunManager:
     def active(self) -> Run | None:
         return next((r for r in self.runs.values() if r.status == "running"), None)
 
-    def start(self, version: str, df: pd.DataFrame, dataset_name: str, *, notes: str = "", group_names: list[str] | None = None) -> Run:
+    def start(
+        self,
+        version: str,
+        df: pd.DataFrame,
+        dataset_name: str,
+        *,
+        notes: str = "",
+        group_names: list[str] | None = None,
+        from_library: bool = False,
+        dataset_id: str = "",
+    ) -> Run:
+        """Start a run in a background thread.
+
+        ``from_library=True`` means ``df`` was resolved from test cases already in the store
+        (groups and/or picked cases), so it is not imported again; ``dataset_id`` is then the
+        source group's id when the run came from exactly one group.
+        """
         with self._lock:
             if self.active():
                 raise RunBusy("Another evaluation is already running")
             run = Run(version, len(df), dataset_name)
             run.notes = notes
             run.group_names = group_names or []
+            run.from_library = from_library
+            run.dataset_id = dataset_id
             self.runs[run.run_id] = run
         threading.Thread(
             target=self._execute, args=(run, df), daemon=True, name=f"eval-{version}"
@@ -432,6 +452,9 @@ class RunManager:
             "session_id":      session_id,
             "status":          "ok",
         }
+        tc_id = getattr(row, "tc_id", None)
+        if tc_id:
+            out["tc_id"] = tc_id  # lets per-group stats find this row even after chat/turn edits
 
         # Carry any extra columns from the row into the receipt
         for col in self.config.extra_columns:
@@ -538,11 +561,11 @@ class RunManager:
         rows: list[dict] = []
 
         # Import this dataset's questions into the test_cases table for traceability.
-        # Skip for multi-group runs — test cases already live in their individual groups
-        # and import_dataset would create a spurious combined group in the store.
+        # Skip for library runs (the cases already live in the store) and for multi-group runs
+        # (import_dataset would create a spurious combined group).
         fingerprint = df.attrs.get("fingerprint", "")
-        dataset_id = ""
-        if len(run.group_names) <= 1:
+        dataset_id = run.dataset_id
+        if not run.from_library and len(run.group_names) <= 1:
             try:
                 dataset_id = self.store.import_dataset(run.dataset_name, df, fingerprint)
             except Exception as e:
