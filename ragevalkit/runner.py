@@ -657,6 +657,7 @@ def _partial_write(manager: RunManager, run: Run, rows: list[dict], fingerprint:
             dataset_id=dataset_id,
         )
         summary["comment"] = f"Run stopped after {run.done}/{run.total} rows."
+        summary["stopped"] = True  # incomplete: never recommended or compared as a finished run
         summary["run_id"] = run.version
         summary["notes"] = run.notes
         summary["group_names"] = run.group_names

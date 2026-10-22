@@ -1,6 +1,7 @@
 """Test-case library: groups as labels, editing, and resolving what a run would execute."""
 import pandas as pd
 import pytest
+from tinydb import Query
 from fastapi.testclient import TestClient
 
 from ragevalkit.config import Config
@@ -76,11 +77,34 @@ def test_status_filter_applies_to_groups_but_not_to_picked_cases(store):
     assert store.resolve_selection(tc_ids=[cases["q4"]]).total == 1
 
 
-def test_deleted_and_unknown_cases_never_run(store):
+def test_deleting_removes_cases_for_good_and_unknown_ids_are_reported(store):
     billing, _, cases = _seed(store)
-    store.update_status_bulk([cases["q4"]], "deleted")
-    sel = store.resolve_selection(group_ids=[billing], status="all", tc_ids=[cases["q4"], "tc_nope"])
-    assert sel.total == 3 and sel.missing == 2
+    assert store.delete_test_cases([cases["q4"], "tc_nope"]) == 1
+    assert cases["q4"] not in {c["tc_id"] for c in store.list_test_cases()}
+    assert store.get_test_case_history(cases["q4"]) == []          # every version is gone
+    assert store.list_groups()[0]["member_count"] == 3              # and so is its group label
+    sel = store.resolve_selection(group_ids=[billing], status="all", tc_ids=[cases["q4"]])
+    assert sel.total == 3 and sel.missing == 1
+
+
+def test_soft_deleted_cases_from_older_stores_are_purged_on_open(tmp_path):
+    path = tmp_path / "old.json"
+    first = EvalStore(path)
+    g = first.create_group("g")
+    first.import_into_group(g, _df([("c1", 1, "rag", "keep", "a"), ("c2", 1, "rag", "trash", "a")]))
+    trash = next(c["tc_id"] for c in first.list_test_cases() if c["question"] == "trash")
+    first.test_cases.update({"status": "deleted"}, Query().tc_id == trash)   # how old versions "deleted"
+    first.close()
+
+    reopened = EvalStore(path)
+    assert [c["question"] for c in reopened.list_test_cases()] == ["keep"]
+    assert reopened.list_groups()[0]["member_count"] == 1
+    reopened.close()
+
+
+def test_only_active_and_inactive_are_valid_statuses(store):
+    _, _, cases = _seed(store)
+    assert store.update_status_bulk([cases["q1"]], "deleted") == 0
 
 
 def test_two_cases_on_the_same_chat_and_turn_are_reported_as_a_collision(store):

@@ -13,6 +13,7 @@ from pydantic import BaseModel
 from ragevalkit.dataset import REQUIRED_COLUMNS, DatasetError, load_dataset
 from ragevalkit.routes.deps import require_user
 from ragevalkit.exceptions import ConflictError, GroupNotFound
+from ragevalkit.recommend import group_overview, recommend
 from ragevalkit.runner import RunBusy
 from ragevalkit.store import RunSelection, VersionNotFound, valid_version
 
@@ -334,6 +335,34 @@ def download_version(version: str, request: Request):
     )
 
 
+def _reco_settings(cfg, tolerance: float | None = None, max_time: float | None = None) -> dict:
+    """Weights, tolerance and time ceiling from serve(), overridable per request."""
+    return {
+        "answer_weight": cfg.answer_weight,
+        "material_weight": cfg.material_weight,
+        "tolerance": cfg.recommendation_tolerance if tolerance is None else tolerance,
+        "max_time": cfg.max_response_time if max_time is None else (max_time if max_time > 0 else None),
+    }
+
+
+@router.get("/recommendation")
+def get_recommendation(
+    request: Request,
+    group: str | None = None,
+    tolerance: float | None = None,
+    max_time: float | None = None,
+) -> dict:
+    """Which version to ship, computed now from the saved scores of every non-archived run.
+
+    ``group`` limits the comparison to one group's scores. ``tolerance`` and ``max_time`` override
+    the ``serve()`` defaults for this request only.
+    """
+    if tolerance is not None and tolerance < 0:
+        raise HTTPException(422, "tolerance must be 0 or higher")
+    cfg, store = request.app.state.config, request.app.state.store
+    return recommend(store.list_versions(), group=group, **_reco_settings(cfg, tolerance, max_time))
+
+
 # ---------------------------------------------------------------------------
 # Test case management endpoints
 # ---------------------------------------------------------------------------
@@ -348,7 +377,7 @@ class TestCaseUpdate(BaseModel):
 
 
 class TestCaseStatusUpdate(BaseModel):
-    status: str  # "active" | "inactive" | "deleted"
+    status: str  # "active" | "inactive"
 
 
 @router.get("/test-cases")
@@ -358,7 +387,7 @@ def list_test_cases(
     dataset_id: str | None = None,
     status: str | None = None,
 ) -> list[dict]:
-    """List test cases. Optionally filter by group_id/dataset_id or status (active/inactive/deleted)."""
+    """List test cases. Optionally filter by group_id/dataset_id or status (active/inactive)."""
     return request.app.state.store.list_test_cases(group_id=group_id, dataset_id=dataset_id, status=status)
 
 
@@ -395,16 +424,34 @@ def update_test_case(tc_id: str, body: TestCaseUpdate, request: Request) -> dict
 
 class BulkStatusUpdate(BaseModel):
     tc_ids: list[str]
-    status: str  # "active" | "inactive" | "deleted"
+    status: str  # "active" | "inactive"
 
 
 @router.post("/test-cases/status")
 def set_test_cases_status(body: BulkStatusUpdate, request: Request) -> dict:
-    """Activate, deactivate, or soft-delete several test cases at once."""
-    if body.status not in ("active", "inactive", "deleted"):
-        raise HTTPException(422, f"Invalid status '{body.status}'")
+    """Activate or deactivate several test cases at once."""
+    if body.status not in ("active", "inactive"):
+        raise HTTPException(422, f"Invalid status '{body.status}' (use 'active' or 'inactive'; delete is separate)")
     updated = request.app.state.store.update_status_bulk(body.tc_ids, body.status)
     return {"updated": updated, "status": body.status}
+
+
+class TcIdList(BaseModel):
+    tc_ids: list[str]
+
+
+@router.post("/test-cases/delete")
+def delete_test_cases(body: TcIdList, request: Request) -> dict:
+    """Permanently delete test cases (all versions and group labels). Past run results are kept."""
+    return {"deleted": request.app.state.store.delete_test_cases(body.tc_ids)}
+
+
+@router.delete("/test-cases/{tc_id}")
+def delete_test_case(tc_id: str, request: Request) -> dict:
+    """Permanently delete one test case."""
+    if not request.app.state.store.delete_test_cases([tc_id]):
+        raise HTTPException(404, "Test case not found")
+    return {"tc_id": tc_id, "deleted": True}
 
 
 class TestCaseGroups(BaseModel):
@@ -425,7 +472,7 @@ def set_test_case_groups(tc_id: str, body: TestCaseGroups, request: Request) -> 
 
 @router.patch("/test-cases/{tc_id}/status")
 def set_test_case_status(tc_id: str, body: TestCaseStatusUpdate, request: Request) -> dict:
-    """Activate, deactivate, or soft-delete a test case."""
+    """Activate or deactivate a test case."""
     ok = request.app.state.store.update_test_case_status(tc_id, body.status)
     if not ok:
         raise HTTPException(404, f"Test case not found or invalid status '{body.status}'")
@@ -442,8 +489,29 @@ class CreateGroup(BaseModel):
 
 @router.get("/groups")
 def list_groups(request: Request) -> list[dict]:
-    """List all test case groups."""
-    return request.app.state.store.list_groups()
+    """List all groups, each with its test case count and how it has done: last run and best version so far."""
+    cfg, store = request.app.state.config, request.app.state.store
+    versions = store.list_versions()
+    out = []
+    for g in store.list_groups():
+        overview = group_overview(versions, g["name"], **_reco_settings(cfg))
+        out.append({
+            **g,
+            "run_count": overview["run_count"],
+            "last_run": overview["last"],
+            "best_run": overview["best"],
+        })
+    return out
+
+
+@router.get("/groups/{group_id}/runs")
+def group_runs(group_id: str, request: Request) -> dict:
+    """One group's history across non-archived runs (newest first), its last run and its best version."""
+    cfg, store = request.app.state.config, request.app.state.store
+    group = next((g for g in store.list_groups() if g["group_id"] == group_id), None)
+    if group is None:
+        raise HTTPException(404, "Group not found")
+    return {"group": group, **group_overview(store.list_versions(), group["name"], **_reco_settings(cfg))}
 
 
 @router.post("/groups", status_code=201)
@@ -545,7 +613,7 @@ def delete_group(group_id: str, request: Request) -> dict:
 @router.get("/datasets")
 def list_datasets(request: Request) -> list[dict]:
     """Alias for /api/groups — backward compat."""
-    return request.app.state.store.list_groups()
+    return list_groups(request)
 
 
 @router.post("/datasets/upload", status_code=201)

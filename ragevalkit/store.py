@@ -28,6 +28,7 @@ WHY TinyDB (not SQLite)?
 import hashlib
 import io
 import json
+import logging
 import math
 import re
 import statistics
@@ -41,6 +42,8 @@ from tinydb import Query, TinyDB
 
 from ragevalkit.dataset import compute_fingerprint
 from ragevalkit.exceptions import ConflictError, GroupNotFound, VersionNotFound
+
+logger = logging.getLogger(__name__)
 
 VERSION_RE = re.compile(r"^[A-Za-z0-9._-]{1,20}$")
 
@@ -112,6 +115,47 @@ def _col(rows: list[dict], key: str) -> list:
     return [r.get(key) for r in rows]
 
 
+def build_scores(rows: list[dict]) -> dict:
+    """The detailed scores of one run, saved on its summary so every later comparison reads them
+    instead of recomputing from receipts: overall averages, score tiers, per-question-type
+    averages, response-time spread and source-check results."""
+    graded = [r for r in rows if r.get("answer_marks") is not None]
+    marks = [r["answer_marks"] for r in graded]
+    times = sorted(t for t in _col(rows, "total_time_taken") if t is not None and not _isnan(t))
+    by_type: dict[str, list[dict]] = {}
+    for r in graded:
+        by_type.setdefault(str(r.get("type") or "unknown"), []).append(r)
+    checked = [r for r in rows if r.get("source_match") is not None]
+    return {
+        "graded_rows": len(graded),
+        "answer_marks": _mean(marks),
+        "material_marks": _mean(_col(rows, "material_marks")),
+        "lexical": {
+            "keyword_recall": _mean(_col(rows, "keyword_recall"), 3),
+            "bm25_score": _mean(_col(rows, "bm25_score"), 3),
+            "semantic_similarity": _mean(_col(rows, "semantic_similarity"), 3),
+        },
+        "tiers": {
+            "high": sum(1 for m in marks if m >= 8),
+            "mid": sum(1 for m in marks if 5 <= m < 8),
+            "low": sum(1 for m in marks if m < 5),
+        },
+        "by_type": {
+            t: {
+                "rows": len(rs),
+                "answer_marks": _mean(_col(rs, "answer_marks")),
+                "material_marks": _mean(_col(rs, "material_marks")),
+            }
+            for t, rs in by_type.items()
+        },
+        "time": {
+            "avg": _mean(times, 3),
+            "p95": round(times[max(0, math.ceil(0.95 * len(times)) - 1)], 3) if times else None,
+        },
+        "sources": {"checked": len(checked), "matched": sum(1 for r in checked if r["source_match"])},
+    }
+
+
 def build_summary(
     version: str,
     rows: list[dict],
@@ -141,6 +185,7 @@ def build_summary(
         "judge_model": judge_model,
         "question_fingerprint": question_fingerprint,
         "comment": "",
+        "scores": build_scores(rows),
     }
     for n in node_order(rows):
         summary[f"avg_{n}"] = _mean([(r.get("node_timings") or {}).get(n) for r in rows], 3)
@@ -179,6 +224,7 @@ def build_group_stats(store: "EvalStore", group_names: list[str], rows: list[dic
                 "avg_bm25_score": _mean(_col(group_rows, "bm25_score"), 3),
                 "avg_semantic_similarity": _mean(_col(group_rows, "semantic_similarity"), 3),
                 "total_rows": len(group_rows),
+                "failed_rows": sum(1 for r in group_rows if r.get("status") != "ok"),
             }
     return stats
 
@@ -250,7 +296,7 @@ class RunSelection:
     df: "pd.DataFrame"
     selected: int          # distinct cases the caller asked for (via groups and/or ids)
     context: int           # earlier turns added so multi-turn chats keep their history
-    missing: int           # requested tc_ids that were unknown or deleted
+    missing: int           # requested tc_ids that no longer exist
     group_names: list[str] = field(default_factory=list)
     collisions: list[dict] = field(default_factory=list)  # distinct cases sharing a chat + turn
 
@@ -307,6 +353,18 @@ class EvalStore:
         self.groups = self.db.table("groups")
         self.group_members = self.db.table("group_members")
         self._lock = threading.Lock()
+        self._purge_soft_deleted()
+
+    def _purge_soft_deleted(self) -> None:
+        """Test cases are now deleted for real. Remove any that older versions only marked deleted."""
+        with self._lock:
+            Q = Query()
+            ids = {r["tc_id"] for r in self.test_cases.search(Q.status == "deleted")}
+            if not ids:
+                return
+            self.test_cases.remove(Q.tc_id.one_of(list(ids)))
+            self.group_members.remove(Q.tc_id.one_of(list(ids)))
+        logger.info("Removed %d test case(s) that were previously soft-deleted", len(ids))
 
     # ------------------------------------------------------------------
     # Eval runs
@@ -569,12 +627,13 @@ class EvalStore:
         return sorted(versions, key=lambda r: r.get("version", 1))
 
     def update_test_case_status(self, tc_id: str, status: str, dataset_id: str | None = None) -> bool:
-        """Set status of all versions of a test case to active / inactive / deleted."""
+        """Set status of all versions of a test case to active / inactive."""
         return bool(self.update_status_bulk([tc_id], status))
 
     def update_status_bulk(self, tc_ids: list[str], status: str) -> int:
-        """Set the status of several test cases at once. Returns how many were found."""
-        if status not in ("active", "inactive", "deleted"):
+        """Activate or deactivate several test cases at once. Returns how many were found.
+        (Deleting is separate and permanent: see delete_test_cases.)"""
+        if status not in ("active", "inactive"):
             return 0
         now = datetime.now(timezone.utc).isoformat()
         with self._lock:
@@ -583,6 +642,19 @@ class EvalStore:
             if known:
                 self.test_cases.update({"status": status, "updated_at": now}, Q.tc_id.one_of(list(known)))
         return len(known)
+
+    def delete_test_cases(self, tc_ids: list[str]) -> int:
+        """Permanently delete test cases: every version, and their group labels. Returns how many
+        existed. Results of past runs are untouched (each receipt keeps its own copy of the question)."""
+        if not tc_ids:
+            return 0
+        with self._lock:
+            Q = Query()
+            found = {r["tc_id"] for r in self.test_cases.search(Q.tc_id.one_of(list(tc_ids)))}
+            if found:
+                self.test_cases.remove(Q.tc_id.one_of(list(found)))
+                self.group_members.remove(Q.tc_id.one_of(list(found)))
+        return len(found)
 
     def edit_test_case(self, tc_id: str, updates: dict, dataset_id: str | None = None) -> dict | None:
         """Create a new version of a test case with the given field updates.
@@ -640,7 +712,7 @@ class EvalStore:
         """Work out exactly which test cases a run would execute.
 
         ``group_ids`` pulls in every case carrying one of those labels, filtered by ``status``
-        (``active`` | ``inactive`` | ``all`` — deleted cases never run). ``tc_ids`` adds
+        (``active`` | ``inactive`` | ``all``). ``tc_ids`` adds
         individual cases regardless of their active/inactive state. A case in several of the
         chosen groups runs once.
 
@@ -673,7 +745,7 @@ class EvalStore:
         for gid in group_ids:
             for tid in tcs_of_group.get(gid, ()):
                 tc = latest.get(tid)
-                if tc is None or tc.get("status") == "deleted":
+                if tc is None:
                     continue
                 if status != "all" and tc.get("status") != status:
                     continue
@@ -681,7 +753,7 @@ class EvalStore:
         missing = 0
         for tid in tc_ids:
             tc = latest.get(tid)
-            if tc is None or tc.get("status") == "deleted":
+            if tc is None:
                 missing += 1
             else:
                 chosen[tid] = tc
@@ -793,8 +865,27 @@ class EvalStore:
                 return False
             if self._group_name_taken(name, ignore_id=group_id):
                 raise ConflictError(f"A group named {name!r} already exists")
+            old = self.groups.search(Q.group_id == group_id)[0]["name"]
             self.groups.update({"name": name}, Q.group_id == group_id)
+            if old != name:
+                self._rename_in_runs(old, name)
         return True
+
+    def _rename_in_runs(self, old: str, new: str) -> None:
+        """Past runs record group names; follow a rename so group history and dashboard filters keep working.
+        Caller holds the lock."""
+        for run in self.runs.all():
+            names = run.get("group_names") or []
+            stats = run.get("group_stats") or {}
+            if old not in names and old not in stats:
+                continue
+            changes: dict = {
+                "group_names": [new if n == old else n for n in names],
+                "group_stats": {(new if k == old else k): v for k, v in stats.items()},
+            }
+            if old in str(run.get("dataset", "")).split(" + "):
+                changes["dataset"] = " + ".join(new if p == old else p for p in str(run["dataset"]).split(" + "))
+            self.runs.update(changes, doc_ids=[run.doc_id])
 
     def list_groups(self) -> list[dict]:
         """Return all groups with member_count."""
