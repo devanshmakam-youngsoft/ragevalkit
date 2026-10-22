@@ -22,9 +22,12 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/v/:version" element={<VersionDetail />} />
-            <Route path="/groups" element={<Groups />} />
-            <Route path="/datasets" element={<Navigate to="/groups" replace />} />
             <Route path="/test-cases" element={<TestCases />} />
+            <Route path="/test-cases/groups" element={<Groups />} />
+            <Route path="/test-cases/groups/:groupId" element={<TestCases />} />
+            {/* older links */}
+            <Route path="/groups" element={<Navigate to="/test-cases/groups" replace />} />
+            <Route path="/datasets" element={<Navigate to="/test-cases/groups" replace />} />
           </Routes>
         </RunProvider>
       )}

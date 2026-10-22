@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../AuthContext";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { Breadcrumbs, type Crumb } from "./Breadcrumbs";
@@ -8,16 +8,19 @@ import { useRun } from "../RunContext";
 
 /**
  * Frozen header: title on the left; Execute button, theme switch and sign-out on the right.
- * Pass `crumbs` (everything after "Home") on any page below the dashboard to show the location trail.
+ * Two sections: Dashboard (runs and versions) and Test Cases (cases, groups and import).
+ * Pass `crumbs` (everything after "Dashboard") on any page below the dashboard to show the location trail.
  */
 export function TopBar({ action, crumbs }: { action?: ReactNode; crumbs?: Crumb[] }) {
   const { user, logout } = useAuth();
   const { run } = useRun();
   const [modal, setModal] = useState(false);
+  const { pathname } = useLocation();
+  const inTestCases = pathname.startsWith("/test-cases");
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-bg pt-[5px]">
-      <div className="mx-auto flex max-w-[1280px] items-center justify-between gap-4 px-6 py-3">
+      <div className="mx-auto flex max-w-[1280px] flex-wrap items-center justify-between gap-x-4 gap-y-2 px-6 py-3">
         <div className="flex items-center gap-6">
           <Link to="/" className="block no-underline">
             <h1 className="font-serif text-[26px] font-medium leading-none tracking-tight text-fg">
@@ -25,9 +28,13 @@ export function TopBar({ action, crumbs }: { action?: ReactNode; crumbs?: Crumb[
             </h1>
             <p className="mt-1.5 text-xs text-muted">Evaluation runs, scored version by version</p>
           </Link>
-          <nav className="hidden items-center gap-4 md:flex">
-            <Link to="/groups" className="text-sm text-muted transition hover:text-fg">Groups</Link>
-            <Link to="/test-cases" className="text-sm text-muted transition hover:text-fg">Test Cases</Link>
+          <nav aria-label="Main" className="flex items-center gap-5">
+            {([["Dashboard", "/", !inTestCases], ["Test Cases", "/test-cases", inTestCases]] as const).map(([label, to, on]) => (
+              <Link key={to} to={to} aria-current={on ? "page" : undefined}
+                className={`border-b-2 py-1 text-sm font-medium transition ${on ? "border-brand text-fg" : "border-transparent text-muted hover:text-fg"}`}>
+                {label}
+              </Link>
+            ))}
           </nav>
         </div>
         <div className="flex items-center gap-3">

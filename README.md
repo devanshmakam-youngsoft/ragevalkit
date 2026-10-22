@@ -97,6 +97,16 @@ Follow-up questions need the turns before them, so by default a run also include
 
 **Deleting a test case or a group only hides it.** Nothing is removed, so past versions that used it still read correctly; filter by *Deleted* (test cases) or open *Deleted groups* (Groups page) to restore one. *Delete forever* is offered only for things that are already deleted. Deleting a **version** removes it and its results from the store for good. To take a test case out of runs without hiding it, mark it *inactive*.
 
+## Importing test cases in bulk
+
+**Test Cases → Import** takes an Excel or CSV file, or rows pasted from a spreadsheet, in three steps: pick the file, check what will happen, then choose where the cases go. Nothing is saved until the last step.
+
+- **Check first.** You see how many rows are new, will be updated, are already there, or can't be imported — with the row number and reason for each one that can't — before anything is saved. Nothing is silently corrected: a turn of "abc" is reported, not turned into 1.
+- **Only the question column is required.** Without a chat column every question becomes its own chat; without a turn column turns are numbered in file order within each chat. Common header names (`query`, `gold_answer`, `tags`…) are recognised, and the dialog lets you point any column at the right field.
+- **Groups are optional.** The default is *No group*. Pick existing groups or a new one for the whole file, and/or add a `groups` column (`Billing; Refunds`) to label rows individually — missing groups are created.
+- **Safe to repeat.** Importing the same file again changes nothing; an edited answer becomes a new version of the existing case; cases you deleted earlier are left alone. If a row has the same chat and turn as an existing case but a different question you can add it as a new case or update the existing one.
+- **Fix and re-import.** The rows that couldn't be imported can be downloaded with the reason next to each. A template (with a short guide) is available in the dialog.
+
 ## Which version should ship?
 
 The dashboard's recommendation is computed by the server (`GET /api/recommendation`) every time from the saved scores of every run that is **not archived** — archive or delete a version and the recommendation, trend charts, deltas and group history update straight away. Quality is `answer_weight` / `material_weight` from `serve()` (default 60/40); speed only breaks near-ties. Runs are only compared when they covered the same number of questions, had no failed rows and were not stopped early. If material marks were not graded for every compared version, all versions are compared on answer marks alone and the dashboard says so.

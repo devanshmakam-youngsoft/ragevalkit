@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { ExecuteModal } from "./ExecuteModal";
+import { ImportDialog } from "./ImportDialog";
+import { SectionTabs } from "./SectionTabs";
 import { TopBar } from "./TopBar";
 import { fmt, fmtDate } from "../lib";
 import { Pager, usePaging } from "./Pager";
@@ -11,12 +13,9 @@ export default function Groups() {
   const [groups, setGroups] = useState<Group[] | null>(null);
   const [error, setError] = useState("");
   const [showNew, setShowNew] = useState(false);
-  const [importing, setImporting] = useState<string | null>(null); // group_id being imported into
   const [importErr, setImportErr] = useState("");
-  const [drag, setDrag] = useState(false);
-  const [dropName, setDropName] = useState("");
-  const [dropFile, setDropFile] = useState<File | null>(null);
-  const [creating, setCreating] = useState(false);
+  const [notice, setNotice] = useState("");
+  const [importFor, setImportFor] = useState<{ groupId?: string } | null>(null);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const [deletedGroups, setDeletedGroups] = useState<Group[]>([]);
   const [showDeleted, setShowDeleted] = useState(false);
@@ -25,7 +24,6 @@ export default function Groups() {
   const [runGroupId, setRunGroupId] = useState<string | null>(null);
   const navigate = useNavigate();
   const paging = usePaging(groups ?? [], groups?.length ?? 0, 25);
-  const fileInput = useRef<HTMLInputElement>(null);
 
   const load = () => {
     api.groups().then(setGroups).catch((e) => setError(e.message));
@@ -33,18 +31,6 @@ export default function Groups() {
   };
 
   useEffect(() => { load(); }, []);
-
-  async function handleImport(groupId: string, file: File) {
-    setImporting(groupId); setImportErr("");
-    try {
-      await api.importIntoGroup(groupId, file);
-      load();
-    } catch (e) {
-      setImportErr((e as Error).message);
-    } finally {
-      setImporting(null);
-    }
-  }
 
   async function handleRename() {
     if (!renaming) return;
@@ -88,93 +74,38 @@ export default function Groups() {
     }
   }
 
-  async function handleDropCreate() {
-    if (!dropFile || !dropName.trim()) return;
-    setCreating(true);
-    try {
-      const grp = await api.createGroup(dropName.trim());
-      await api.importIntoGroup(grp.group_id, dropFile);
-      setDropFile(null); setDropName("");
-      load();
-    } catch (e) {
-      setImportErr((e as Error).message);
-    } finally {
-      setCreating(false);
-    }
-  }
-
   return (
     <>
-      <TopBar crumbs={[{ label: "Groups" }]} />
+      <TopBar crumbs={[{ label: "Test Cases", to: "/test-cases" }, { label: "Groups" }]} />
       <div className="mx-auto max-w-[1280px] px-6 pb-16 pt-5">
-        <div className="mb-6 flex items-end justify-between gap-4">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="font-serif text-[32px] font-medium leading-none tracking-tight">Test Case Groups</h1>
-            <p className="mono mt-2 text-xs text-muted">Label test cases so you can run any set of them together</p>
+            <h1 className="font-serif text-[32px] font-medium leading-none tracking-tight">Test Cases</h1>
+            <p className="mono mt-2 text-xs text-muted">Questions and expected answers tracked across eval runs</p>
           </div>
-          <button
-            onClick={() => setShowNew(true)}
-            className="rounded bg-brand px-4 py-2 text-sm font-medium text-white hover:brightness-110"
-          >
-            + New Group
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setImportFor({})}
+              className="rounded border border-line bg-surface px-4 py-2 text-sm font-medium hover:bg-surface-2">
+              Import
+            </button>
+            <button
+              onClick={() => setShowNew(true)}
+              className="rounded bg-brand px-4 py-2 text-sm font-medium text-white hover:brightness-110"
+            >
+              + New group
+            </button>
+          </div>
         </div>
 
-        {/* Info banner */}
+        <SectionTabs active="groups" />
+
         <div className="mb-5 rounded border border-line bg-surface-2 px-4 py-3 text-sm text-muted">
           <span className="font-medium text-fg">Groups are labels.</span> Put a label on any test cases, then run a whole
           group — or several — in one go. A test case can carry any number of labels, and you can also run hand-picked
-          test cases from the Test Cases page. Click a group to see its test cases.
+          test cases from the All test cases tab. Click a group to see its test cases and how it has done.
         </div>
 
-        {/* Drop zone */}
-        {!dropFile ? (
-          <div
-            onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
-            onDragLeave={() => setDrag(false)}
-            onDrop={(e) => {
-              e.preventDefault(); setDrag(false);
-              const f = e.dataTransfer.files[0];
-              if (f) { setDropFile(f); setDropName(f.name.replace(/\.xlsx$/i, "")); }
-            }}
-            onClick={() => fileInput.current?.click()}
-            className={`mb-5 flex cursor-pointer flex-col items-center gap-1 rounded border-2 border-dashed p-5 text-center text-sm transition ${drag ? "border-brand bg-brand-soft" : "border-line hover:border-brand/60"}`}
-          >
-            <span className="font-medium">Drop an .xlsx here to create a new group</span>
-            <span className="text-xs text-muted">Or click to pick a file</span>
-          </div>
-        ) : (
-          <div className="mb-5 rounded border border-brand bg-brand-soft p-4">
-            <div className="mb-2 text-sm font-medium">Create new group from: <span className="text-brand">{dropFile.name}</span></div>
-            <div className="flex items-center gap-2">
-              <input
-                value={dropName}
-                onChange={(e) => setDropName(e.target.value)}
-                placeholder="Group name…"
-                className="flex-1 rounded border border-line bg-surface px-3 py-2 text-sm outline-none focus:border-brand"
-              />
-              <button
-                onClick={handleDropCreate}
-                disabled={creating || !dropName.trim()}
-                className="rounded bg-brand px-4 py-2 text-sm font-medium text-white disabled:opacity-50 enabled:hover:brightness-110"
-              >
-                {creating ? "Creating…" : "Create & Import"}
-              </button>
-              <button
-                onClick={() => { setDropFile(null); setDropName(""); }}
-                className="rounded border border-line px-4 py-2 text-sm hover:bg-surface-2"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
-        <input ref={fileInput} type="file" accept=".xlsx" hidden
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) { setDropFile(f); setDropName(f.name.replace(/\.xlsx$/i, "")); }
-          }} />
-
+        {notice && <p className="mb-3 text-sm text-good" role="status">{notice}</p>}
         {importErr && <p className="mb-4 text-sm text-bad">{importErr}</p>}
 
         <div className="card overflow-hidden">
@@ -183,7 +114,7 @@ export default function Groups() {
           {groups?.length === 0 && (
             <div className="px-5 py-16 text-center">
               <div className="font-serif text-lg">No groups yet</div>
-              <div className="mt-1 text-sm text-muted">Drop an .xlsx above or click "New Group" to create your first group.</div>
+              <div className="mt-1 text-sm text-muted">Click "New group", or use Import to bring in test cases and create groups from a file.</div>
             </div>
           )}
           {groups && groups.length > 0 && (
@@ -206,9 +137,9 @@ export default function Groups() {
                 {paging.rows.map((g) => (
                   <tr key={g.group_id} tabIndex={0}
                     className="cursor-pointer align-middle outline-none hover:bg-surface-2 focus-visible:bg-surface-2"
-                    onClick={() => navigate(`/test-cases?group_id=${encodeURIComponent(g.group_id)}`)}
+                    onClick={() => navigate(`/test-cases/groups/${encodeURIComponent(g.group_id)}`)}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter" && e.target === e.currentTarget) navigate(`/test-cases?group_id=${encodeURIComponent(g.group_id)}`);
+                      if (e.key === "Enter" && e.target === e.currentTarget) navigate(`/test-cases/groups/${encodeURIComponent(g.group_id)}`);
                     }}>
                     <td className="px-5 py-4 font-medium" onClick={renaming?.id === g.group_id ? (e) => e.stopPropagation() : undefined}>
                       {renaming?.id === g.group_id ? (
@@ -240,20 +171,10 @@ export default function Groups() {
                           onClick={() => setRenaming({ id: g.group_id, name: g.name })}
                           className="text-xs font-medium text-muted hover:text-brand"
                         >Rename</button>
-                        <label className={`cursor-pointer text-xs font-medium text-muted hover:text-brand ${importing === g.group_id ? "opacity-50" : ""}`}>
-                          {importing === g.group_id ? "Importing…" : "Import .xlsx"}
-                          <input
-                            type="file"
-                            accept=".xlsx"
-                            hidden
-                            disabled={importing !== null}
-                            onChange={(e) => {
-                              const f = e.target.files?.[0];
-                              if (f) handleImport(g.group_id, f);
-                              e.target.value = "";
-                            }}
-                          />
-                        </label>
+                        <button
+                          onClick={() => setImportFor({ groupId: g.group_id })}
+                          className="text-xs font-medium text-muted hover:text-brand"
+                        >Import into…</button>
                         {pendingDelete === g.group_id ? (
                           <span className="flex items-center gap-1">
                             <span className="text-xs text-bad">Sure?</span>
@@ -317,6 +238,14 @@ export default function Groups() {
         </section>
       )}
 
+      {importFor && (
+        <ImportDialog
+          groups={groups ?? []}
+          initialGroupId={importFor.groupId}
+          onClose={() => setImportFor(null)}
+          onDone={(message) => { setImportFor(null); setNotice(message); load(); }}
+        />
+      )}
       {runGroupId && <ExecuteModal initial={{ mode: "groups", groupIds: [runGroupId] }} onClose={() => setRunGroupId(null)} />}
       {showNew && (
         <NewGroupModal

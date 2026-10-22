@@ -180,6 +180,50 @@ export interface TestCase {
   groups: GroupRef[];
 }
 
+/** The fields a test case import understands, and which file column feeds each. */
+export type ImportMapping = Record<string, string | null>;
+
+export interface ImportProblem {
+  /** Row number as shown in the spreadsheet (the header is row 1). */
+  row: number;
+  reason: string;
+  cells: Record<string, string>;
+}
+
+export interface ImportPreview {
+  filename: string;
+  sheets: string[];
+  sheet: string | null;
+  columns: string[];
+  mapping: ImportMapping;
+  fields: string[];
+  field_labels: Record<string, string>;
+  ignored_columns: string[];
+  question_missing: boolean;
+  auto_chat: boolean;
+  auto_turn: boolean;
+  total_rows: number;
+  counts: { new: number; update: number; unchanged: number; skipped_deleted: number; problem: number };
+  slot_conflicts: number;
+  sample: { row: number; chat_id: string; turn_no: number; question: string; expected_answer: string; groups: string[]; outcome: string }[];
+  problems: ImportProblem[];
+  group_names_in_file: string[];
+  new_group_names: string[];
+}
+
+export interface ImportResult {
+  new: number;
+  updated: number;
+  unchanged: number;
+  skipped_deleted: number;
+  slot_conflicts: number;
+  labelled: number;
+  groups_created: string[];
+  problems: number;
+  problem_rows: ImportProblem[];
+  columns: string[];
+}
+
 /** What a run should execute: groups and/or individually picked test cases. */
 export interface RunSelection {
   groupIds?: string[];

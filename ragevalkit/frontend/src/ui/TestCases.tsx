@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { api } from "../api";
 import { AddToGroupModal } from "./AddToGroupModal";
 import type { Crumb } from "./Breadcrumbs";
 import { ExecuteModal } from "./ExecuteModal";
 import { ChatTurn, GroupChips } from "./GroupChips";
 import { GroupHistory } from "./GroupHistory";
+import { ImportDialog } from "./ImportDialog";
 import { Pager, usePaging } from "./Pager";
+import { SectionTabs } from "./SectionTabs";
 import { TopBar } from "./TopBar";
 import { fmtDate, plural } from "../lib";
 import type { Group, TestCase } from "../types";
@@ -24,8 +26,11 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function TestCases() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const groupId = searchParams.get("group_id") ?? searchParams.get("dataset_id") ?? "";
+  const { groupId: routeGroupId } = useParams();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const legacyGroup = searchParams.get("group_id") ?? searchParams.get("dataset_id");
+  const groupId = routeGroupId ?? (searchParams.get("ungrouped") === "1" ? NO_GROUP : "");
 
   const [cases, setCases] = useState<TestCase[] | null>(null);
   const [groups, setGroups] = useState<Group[]>([]);
@@ -40,6 +45,7 @@ export default function TestCases() {
   const [showRun, setShowRun] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showGroupRun, setShowGroupRun] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const headerBox = useRef<HTMLInputElement>(null);
 
   const realGroupId = groupId && groupId !== NO_GROUP ? groupId : "";
@@ -62,7 +68,7 @@ export default function TestCases() {
   }, [notice]);
 
   const setGroupFilter = (value: string) => {
-    setSearchParams(value ? { group_id: value } : {}, { replace: true });
+    navigate(value === NO_GROUP ? "/test-cases?ungrouped=1" : value ? `/test-cases/groups/${encodeURIComponent(value)}` : "/test-cases");
     setChecked(new Set());
   };
 
@@ -141,22 +147,31 @@ export default function TestCases() {
     } catch (e) { setError((e as Error).message); }
   }
 
-  // Home > Test Cases, or Home > Groups > <group> while a group is selected in the filter.
+  // Dashboard > Test Cases, or Dashboard > Test Cases > Groups > <group> on a group's page.
   const groupName = groups.find((g) => g.group_id === realGroupId)?.name;
   const crumbs: Crumb[] = realGroupId
-    ? [{ label: "Groups", to: "/groups" }, { label: groupName ?? "Group" }]
+    ? [{ label: "Test Cases", to: "/test-cases" }, { label: "Groups", to: "/test-cases/groups" }, { label: groupName ?? "Group" }]
     : [{ label: "Test Cases" }];
+
+  // links from before groups moved under Test Cases
+  if (legacyGroup && !routeGroupId) return <Navigate to={`/test-cases/groups/${encodeURIComponent(legacyGroup)}`} replace />;
 
   return (
     <>
       <TopBar crumbs={crumbs} />
       <div className="mx-auto max-w-[1280px] px-6 pb-16 pt-5">
-        <div className="mb-6 flex flex-wrap items-end gap-4">
+        <div className="mb-4 flex flex-wrap items-end gap-4">
           <div>
-            <h1 className="font-serif text-[32px] font-medium leading-none tracking-tight">Test Cases</h1>
-            <p className="mono mt-2 text-xs text-muted">Questions and expected answers tracked across eval runs</p>
+            <h1 className="font-serif text-[32px] font-medium leading-none tracking-tight">{realGroupId ? (groupName ?? "Group") : "Test Cases"}</h1>
+            <p className="mono mt-2 text-xs text-muted">
+              {realGroupId ? "A group of test cases: run it, or change who is in it" : "Questions and expected answers tracked across eval runs"}
+            </p>
           </div>
           <div className="ml-auto flex items-center gap-2">
+            <button onClick={() => setShowImport(true)}
+              className="rounded border border-line bg-surface px-4 py-2 text-sm font-medium hover:bg-surface-2">
+              Import
+            </button>
             <button
               onClick={() => setShowNew(true)}
               className="rounded bg-brand px-4 py-2 text-sm font-medium text-white hover:brightness-110"
@@ -165,6 +180,8 @@ export default function TestCases() {
             </button>
           </div>
         </div>
+
+        <SectionTabs active={realGroupId ? "groups" : "all"} />
 
         {realGroupId && <GroupHistory groupId={realGroupId} onRun={() => setShowGroupRun(true)} />}
 
@@ -259,7 +276,7 @@ export default function TestCases() {
               <div className="font-serif text-lg">No test cases found</div>
               <div className="mt-1 text-sm text-muted">
                 {cases.length === 0 && !realGroupId && statusFilter === "active"
-                  ? "Create one with “New test case”, or upload an .xlsx on the Groups page."
+                  ? "Add one with “New test case”, or bring many in at once with Import."
                   : "Nothing matches the current filters."}
               </div>
             </div>
@@ -340,6 +357,14 @@ export default function TestCases() {
             tcIds={ids}
             onClose={() => setShowAdd(false)}
             onDone={(message) => { setShowAdd(false); setNotice(message); setChecked(new Set()); load(); loadGroups(); }}
+          />
+        )}
+        {showImport && (
+          <ImportDialog
+            groups={groups}
+            initialGroupId={realGroupId || undefined}
+            onClose={() => setShowImport(false)}
+            onDone={(message) => { setShowImport(false); setNotice(message); load(); loadGroups(); }}
           />
         )}
         {showRun && <ExecuteModal initial={{ mode: "cases", tcIds: ids }} onClose={() => setShowRun(false)} />}

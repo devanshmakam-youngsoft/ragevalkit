@@ -1,5 +1,5 @@
 import { apiPath } from "./base";
-import type { DatasetInfo, Group, GroupHistory, RecoResult, RunPreview, RunSelection, RunState, TestCase, VersionDetail, VersionSummary } from "./types";
+import type { DatasetInfo, Group, GroupHistory, ImportMapping, ImportPreview, ImportResult, RecoResult, RunPreview, RunSelection, RunState, TestCase, VersionDetail, VersionSummary } from "./types";
 
 /** Fired when any call comes back 401 so the app can return to the login page. */
 export const authEvents = new EventTarget();
@@ -145,6 +145,27 @@ export const api = {
     fetch(apiPath(`test-cases/${tcId}`), {
       method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(updates),
     }).then((r) => json<TestCase>(r)),
+  // Bulk import of test cases
+  importTemplateUrl: () => apiPath("test-cases/import/template"),
+  previewImport: (file: File, o: { sheet?: string | null; mapping?: ImportMapping | null } = {}) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    if (o.sheet) fd.append("sheet", o.sheet);
+    if (o.mapping) fd.append("mapping", JSON.stringify(o.mapping));
+    return fetch(apiPath("test-cases/import/preview"), { method: "POST", body: fd }).then((r) => json<ImportPreview>(r));
+  },
+  importCases: (file: File, o: {
+    sheet?: string | null; mapping?: ImportMapping | null; groupIds?: string[]; newGroupName?: string; updateBySlot?: boolean;
+  } = {}) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    if (o.sheet) fd.append("sheet", o.sheet);
+    if (o.mapping) fd.append("mapping", JSON.stringify(o.mapping));
+    fd.append("group_ids", JSON.stringify(o.groupIds ?? []));
+    if (o.newGroupName) fd.append("new_group_name", o.newGroupName);
+    fd.append("update_by_slot", String(o.updateBySlot ?? false));
+    return fetch(apiPath("test-cases/import"), { method: "POST", body: fd }).then((r) => json<ImportResult>(r));
+  },
   /** Permanently removes test cases that are already deleted. Past run results are kept. */
   purgeTestCases: (tcIds: string[]) =>
     fetch(apiPath("test-cases/purge"), {
