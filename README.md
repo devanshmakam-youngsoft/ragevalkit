@@ -84,6 +84,19 @@ The dashboard shows all versions with average scores, quality trend, and node ti
 
 ---
 
+## Test cases and groups
+
+Test cases are the unit of the library. A **group** is just a label you put on test cases: one case can carry any number of labels, and you can add or remove them from the Test Cases page (tick rows → *Add to group…*) or from a case's detail panel.
+
+You can run:
+
+- one or more **groups** (a case that is in several selected groups runs once), or
+- any **hand-picked test cases** — tick rows on the Test Cases page and choose *Run*, or use *Pick test cases* in the Execute dialog.
+
+Follow-up questions need the turns before them, so by default a run also includes the earlier turns of each selected case's conversation; the Execute dialog shows exactly how many cases will run and lets you turn this off. Chat ID and turn number can be edited on any test case.
+
+---
+
 ## Source Verification
 
 Add an `expected_sources` column to your dataset to track which documents the RAG should retrieve.
@@ -121,3 +134,17 @@ Results always include `matched_sources`, `missing_sources`, and `source_match` 
 ## Versioning
 
 When you release a new version of your RAG app, run the evaluator against the same test cases and give it a new version name (e.g. `v2`). The dashboard tracks all versions so you can compare quality over time.
+
+---
+
+## Development
+
+The dashboard source lives in `ragevalkit/frontend/` (React + Vite). To rebuild it:
+
+```bash
+cd ragevalkit/frontend
+npm ci
+npm run build
+```
+
+then copy `dist/*` into `ragevalkit/static/` (replace the old files). Backend tests: `pip install -e .[dev]` then `pytest`.

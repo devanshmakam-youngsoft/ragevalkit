@@ -1,5 +1,5 @@
 import { apiPath } from "./base";
-import type { Dataset, DatasetInfo, Group, RunState, TestCase, VersionDetail, VersionSummary } from "./types";
+import type { DatasetInfo, Group, RunPreview, RunSelection, RunState, TestCase, VersionDetail, VersionSummary } from "./types";
 
 /** Fired when any call comes back 401 so the app can return to the login page. */
 export const authEvents = new EventTarget();
@@ -67,29 +67,45 @@ export const api = {
     const qs = params.toString();
     return fetch(apiPath(`groups/${groupId}/test-cases${qs ? `?${qs}` : ""}`)).then((r) => json<TestCase[]>(r));
   },
-  addToGroup: (groupId: string, tcId: string) =>
-    fetch(apiPath(`groups/${groupId}/members/${tcId}`), { method: "POST" }).then((r) => json<object>(r)),
-  removeFromGroup: (groupId: string, tcId: string) =>
-    fetch(apiPath(`groups/${groupId}/members/${tcId}`), { method: "DELETE" }).then((r) => json<object>(r)),
+  renameGroup: (groupId: string, name: string) =>
+    fetch(apiPath(`groups/${groupId}`), {
+      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name }),
+    }).then((r) => json<Group>(r)),
+  addToGroup: (groupId: string, tcIds: string[]) =>
+    fetch(apiPath(`groups/${groupId}/members`), {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tc_ids: tcIds }),
+    }).then((r) => json<{ added: number }>(r)),
+  removeFromGroup: (groupId: string, tcIds: string[]) =>
+    fetch(apiPath(`groups/${groupId}/members/remove`), {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tc_ids: tcIds }),
+    }).then((r) => json<{ removed: number }>(r)),
+  setTestCaseGroups: (tcId: string, groupIds: string[]) =>
+    fetch(apiPath(`test-cases/${tcId}/groups`), {
+      method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ group_ids: groupIds }),
+    }).then((r) => json<object>(r)),
   deleteGroup: (groupId: string) =>
     fetch(apiPath(`groups/${groupId}`), { method: "DELETE" }).then((r) => json<object>(r)),
-  startRunFromGroup: (version: string, groupId: string, overwrite: boolean, statusFilter = "active") => {
+  /** Start a run from the library: any mix of groups and individually picked test cases. */
+  startRunFromSelection: (version: string, overwrite: boolean, notes: string, sel: RunSelection) => {
     const fd = new FormData();
     fd.append("version", version);
     fd.append("overwrite", String(overwrite));
-    fd.append("group_id", groupId);
-    fd.append("status_filter", statusFilter);
-    return fetch(apiPath("runs"), { method: "POST", body: fd }).then((r) => json<RunState>(r));
-  },
-  startRunFromGroups: (version: string, groupIds: string[], overwrite: boolean, statusFilter = "active", notes = "") => {
-    const fd = new FormData();
-    fd.append("version", version);
-    fd.append("overwrite", String(overwrite));
-    fd.append("group_ids", JSON.stringify(groupIds));
-    fd.append("status_filter", statusFilter);
+    fd.append("group_ids", JSON.stringify(sel.groupIds ?? []));
+    fd.append("tc_ids", JSON.stringify(sel.tcIds ?? []));
+    fd.append("status_filter", sel.statusFilter ?? "active");
+    fd.append("include_context", String(sel.includeContext ?? true));
     fd.append("notes", notes);
     return fetch(apiPath("runs"), { method: "POST", body: fd }).then((r) => json<RunState>(r));
   },
+  /** Dry run: how many test cases a selection would execute. */
+  previewRun: (sel: RunSelection) =>
+    fetch(apiPath("runs/preview"), {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        group_ids: sel.groupIds ?? [], tc_ids: sel.tcIds ?? [],
+        status_filter: sel.statusFilter ?? "active", include_context: sel.includeContext ?? true,
+      }),
+    }).then((r) => json<RunPreview>(r)),
   startRunAndSave: (version: string, file: File, overwrite: boolean, groupName: string) => {
     const fd = new FormData();
     fd.append("version", version);
@@ -110,14 +126,14 @@ export const api = {
   },
   testCaseHistory: (tcId: string) =>
     fetch(apiPath(`test-cases/${tcId}/history`)).then((r) => json<TestCase[]>(r)),
-  editTestCase: (tcId: string, updates: Partial<Pick<TestCase, "question" | "expected_answer" | "expected_sources" | "type">>) =>
+  editTestCase: (tcId: string, updates: Partial<Pick<TestCase, "chat_id" | "turn_no" | "question" | "expected_answer" | "expected_sources" | "type">>) =>
     fetch(apiPath(`test-cases/${tcId}`), {
       method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(updates),
     }).then((r) => json<TestCase>(r)),
-  updateTestCaseStatus: (tcId: string, status: "active" | "inactive" | "deleted") =>
-    fetch(apiPath(`test-cases/${tcId}/status`), {
-      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }),
-    }).then((r) => json<{ tc_id: string; status: string }>(r)),
+  updateTestCaseStatus: (tcIds: string[], status: "active" | "inactive" | "deleted") =>
+    fetch(apiPath("test-cases/status"), {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tc_ids: tcIds, status }),
+    }).then((r) => json<{ updated: number; status: string }>(r)),
   uploadDataset: (file: File) => {
     const fd = new FormData();
     fd.append("file", file);
@@ -127,12 +143,4 @@ export const api = {
     fetch(apiPath("test-cases"), {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
     }).then((r) => json<TestCase>(r)),
-  startRunFromLibrary: (version: string, datasetId: string, overwrite: boolean, statusFilter = "active") => {
-    const fd = new FormData();
-    fd.append("version", version);
-    fd.append("overwrite", String(overwrite));
-    fd.append("group_id", datasetId); // was dataset_id, now maps to group_id
-    fd.append("status_filter", statusFilter);
-    return fetch(apiPath("runs"), { method: "POST", body: fd }).then((r) => json<RunState>(r));
-  },
 };

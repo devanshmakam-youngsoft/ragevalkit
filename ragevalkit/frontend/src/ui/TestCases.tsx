@@ -1,12 +1,19 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../api";
+import { AddToGroupModal } from "./AddToGroupModal";
 import type { Crumb } from "./Breadcrumbs";
+import { ExecuteModal } from "./ExecuteModal";
+import { ChatTurn, GroupChips } from "./GroupChips";
 import { TopBar } from "./TopBar";
 import { fmtDate } from "../lib";
 import type { Group, TestCase } from "../types";
 
 type StatusFilter = "active" | "inactive" | "deleted" | "all";
+type Status = "active" | "inactive" | "deleted";
+
+/** Filter value for "cases that carry no group label". */
+const NO_GROUP = "__none__";
 
 const STATUS_COLORS: Record<string, string> = {
   active: "text-good",
@@ -15,57 +22,106 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function TestCases() {
-  const [searchParams] = useSearchParams();
-  const initGroupId = searchParams.get("group_id") ?? searchParams.get("dataset_id") ?? "";
+  const [searchParams, setSearchParams] = useSearchParams();
+  const groupId = searchParams.get("group_id") ?? searchParams.get("dataset_id") ?? "";
 
   const [cases, setCases] = useState<TestCase[] | null>(null);
   const [groups, setGroups] = useState<Group[]>([]);
-  const [groupId, setGroupId] = useState(initGroupId);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("active");
   const [query, setQuery] = useState("");
   const [error, setError] = useState("");
-  const [selected, setSelected] = useState<TestCase | null>(null);
+  const [notice, setNotice] = useState("");
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [checked, setChecked] = useState<Set<string>>(new Set());
   const [showNew, setShowNew] = useState(false);
+  const [showAdd, setShowAdd] = useState(false);
+  const [showRun, setShowRun] = useState(false);
+  const headerBox = useRef<HTMLInputElement>(null);
 
+  const realGroupId = groupId && groupId !== NO_GROUP ? groupId : "";
+
+  const loadGroups = () => { api.groups().then(setGroups).catch(() => undefined); };
   const load = () => {
-    setCases(null);
-    api.testCases(groupId || undefined, statusFilter === "all" ? undefined : statusFilter)
-      .then(setCases)
+    api.testCases(realGroupId || undefined, statusFilter === "all" ? undefined : statusFilter)
+      .then((rows) => { setCases(rows); setError(""); })
       .catch((e) => setError(e.message));
   };
 
-  useEffect(() => {
-    api.groups().then(setGroups).catch(() => undefined);
-  }, []);
+  useEffect(loadGroups, []);
+  useEffect(() => { setCases(null); load(); }, [groupId, statusFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => { load(); }, [groupId, statusFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+  // A short confirmation line that clears itself.
+  useEffect(() => {
+    if (!notice) return;
+    const t = window.setTimeout(() => setNotice(""), 4000);
+    return () => window.clearTimeout(t);
+  }, [notice]);
+
+  const setGroupFilter = (value: string) => {
+    setSearchParams(value ? { group_id: value } : {}, { replace: true });
+    setChecked(new Set());
+  };
 
   const filtered = useMemo(() => {
-    if (!cases) return [];
-    if (!query.trim()) return cases;
-    const q = query.toLowerCase();
-    return cases.filter((c) =>
+    let rows = cases ?? [];
+    if (groupId === NO_GROUP) rows = rows.filter((c) => c.groups.length === 0);
+    const q = query.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter((c) =>
       c.question.toLowerCase().includes(q) ||
       c.expected_answer.toLowerCase().includes(q) ||
-      c.chat_id.toLowerCase().includes(q)
-    );
-  }, [cases, query]);
+      c.chat_id.toLowerCase().includes(q) ||
+      c.groups.some((g) => g.name.toLowerCase().includes(q)));
+  }, [cases, query, groupId]);
+
+  const open = cases?.find((c) => c.tc_id === openId) ?? null;
+  const allShownChecked = filtered.length > 0 && filtered.every((c) => checked.has(c.tc_id));
+  const someShownChecked = filtered.some((c) => checked.has(c.tc_id));
+  const hiddenChecked = [...checked].filter((id) => !filtered.some((c) => c.tc_id === id)).length;
+
+  useEffect(() => {
+    if (headerBox.current) headerBox.current.indeterminate = someShownChecked && !allShownChecked;
+  }, [someShownChecked, allShownChecked]);
+
+  const toggleOne = (id: string) =>
+    setChecked((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  const toggleAllShown = () =>
+    setChecked((prev) => {
+      const next = new Set(prev);
+      filtered.forEach((c) => (allShownChecked ? next.delete(c.tc_id) : next.add(c.tc_id)));
+      return next;
+    });
+
+  const ids = [...checked];
+
+  async function bulkStatus(status: Status) {
+    try {
+      const { updated } = await api.updateTestCaseStatus(ids, status);
+      setNotice(`${updated} test case${updated !== 1 ? "s" : ""} marked ${status}`);
+      setChecked(new Set());
+      load();
+    } catch (e) { setError((e as Error).message); }
+  }
+
+  async function bulkRemoveFromGroup() {
+    try {
+      const { removed } = await api.removeFromGroup(realGroupId, ids);
+      const name = groups.find((g) => g.group_id === realGroupId)?.name ?? "the group";
+      setNotice(`${removed} test case${removed !== 1 ? "s" : ""} removed from "${name}"`);
+      setChecked(new Set());
+      load(); loadGroups();
+    } catch (e) { setError((e as Error).message); }
+  }
 
   // Home > Test Cases, or Home > Groups > <group> while a group is selected in the filter.
-  const groupName = groups.find((g) => g.group_id === groupId)?.name;
-  const crumbs: Crumb[] = groupId
+  const groupName = groups.find((g) => g.group_id === realGroupId)?.name;
+  const crumbs: Crumb[] = realGroupId
     ? [{ label: "Groups", to: "/groups" }, { label: groupName ?? "Group" }]
     : [{ label: "Test Cases" }];
-
-  const handleStatus = async (tc: TestCase, status: "active" | "inactive" | "deleted") => {
-    try {
-      await api.updateTestCaseStatus(tc.tc_id, status);
-      load();
-      if (selected?.tc_id === tc.tc_id) setSelected(null);
-    } catch (e: unknown) {
-      alert((e as Error).message);
-    }
-  };
 
   return (
     <>
@@ -90,10 +146,12 @@ export default function TestCases() {
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <select
             value={groupId}
-            onChange={(e) => setGroupId(e.target.value)}
+            onChange={(e) => setGroupFilter(e.target.value)}
+            aria-label="Filter by group"
             className="rounded border border-line bg-surface-2 px-3 py-2 text-sm outline-none"
           >
             <option value="">All groups</option>
+            <option value={NO_GROUP}>No group</option>
             {groups.map((g) => (
               <option key={g.group_id} value={g.group_id}>{g.name}</option>
             ))}
@@ -101,7 +159,8 @@ export default function TestCases() {
 
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+            onChange={(e) => { setStatusFilter(e.target.value as StatusFilter); setChecked(new Set()); }}
+            aria-label="Filter by status"
             className="rounded border border-line bg-surface-2 px-3 py-2 text-sm outline-none"
           >
             <option value="active">Active</option>
@@ -113,47 +172,94 @@ export default function TestCases() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search questions…"
-            className="w-60 rounded border border-line bg-surface-2 px-3 py-2 text-sm outline-none focus:border-brand"
+            placeholder="Search questions, chats, groups…"
+            className="w-72 rounded border border-line bg-surface-2 px-3 py-2 text-sm outline-none focus:border-brand"
           />
 
           <span className="mono text-xs text-muted">{filtered.length} case{filtered.length !== 1 ? "s" : ""}</span>
         </div>
-        {!groupId && cases && (
-          <p className="mb-3 text-xs text-muted">Showing all {cases.length} test cases</p>
-        )}
 
+        {/* Bulk actions — appear once something is ticked */}
+        {checked.size > 0 && (
+          <div className="mb-3 flex flex-wrap items-center gap-2 rounded border border-brand bg-brand-soft px-4 py-2.5 text-sm">
+            <span className="font-medium">
+              {checked.size} selected{hiddenChecked > 0 && <span className="font-normal text-muted"> ({hiddenChecked} hidden by search)</span>}
+            </span>
+            <span className="mx-1 h-4 w-px bg-line" />
+            <button onClick={() => setShowRun(true)}
+              className="rounded bg-brand px-3 py-1 text-xs font-semibold text-white hover:brightness-110">
+              Run {checked.size}…
+            </button>
+            <button onClick={() => setShowAdd(true)} className="rounded border border-line bg-surface px-3 py-1 text-xs font-medium hover:bg-surface-2">
+              Add to group…
+            </button>
+            {realGroupId && (
+              <button onClick={bulkRemoveFromGroup} className="rounded border border-line bg-surface px-3 py-1 text-xs font-medium hover:bg-surface-2">
+                Remove from "{groupName}"
+              </button>
+            )}
+            {statusFilter !== "active" && (
+              <button onClick={() => bulkStatus("active")} className="rounded border border-line bg-surface px-3 py-1 text-xs font-medium hover:border-good hover:text-good">Activate</button>
+            )}
+            {statusFilter !== "inactive" && statusFilter !== "deleted" && (
+              <button onClick={() => bulkStatus("inactive")} className="rounded border border-line bg-surface px-3 py-1 text-xs font-medium hover:bg-surface-2">Deactivate</button>
+            )}
+            {statusFilter !== "deleted" && (
+              <button onClick={() => bulkStatus("deleted")} className="rounded border border-line bg-surface px-3 py-1 text-xs font-medium hover:border-bad hover:text-bad">Delete</button>
+            )}
+            <button onClick={() => setChecked(new Set())} className="ml-auto text-xs text-muted hover:text-fg">Clear</button>
+          </div>
+        )}
+        {notice && <p className="mb-3 text-sm text-good" role="status">{notice}</p>}
         {error && <p className="mb-4 text-sm text-bad">{error}</p>}
 
         <div className="card overflow-hidden">
           {!cases && !error && <p className="px-5 py-12 text-center text-muted">Loading…</p>}
-          {cases?.length === 0 && (
+          {cases && filtered.length === 0 && (
             <div className="px-5 py-16 text-center">
               <div className="font-serif text-lg">No test cases found</div>
-              <div className="mt-1 text-sm text-muted">Run an eval to import test cases from your dataset.</div>
+              <div className="mt-1 text-sm text-muted">
+                {cases.length === 0 && !realGroupId && statusFilter === "active"
+                  ? "Create one with “New test case”, or upload an .xlsx on the Groups page."
+                  : "Nothing matches the current filters."}
+              </div>
             </div>
           )}
           {filtered.length > 0 && (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[800px] text-left text-sm">
+              <table className="w-full min-w-[860px] text-left text-sm">
                 <thead className="bg-surface-2 text-[11px] uppercase tracking-[0.08em] text-muted">
                   <tr>
-                    <th className="px-5 py-3 font-medium">Chat · Turn</th>
+                    <th className="w-10 py-3 pl-5 pr-2">
+                      <input ref={headerBox} type="checkbox" checked={allShownChecked} onChange={toggleAllShown}
+                        aria-label="Select all shown" className="accent-brand" />
+                    </th>
+                    <th className="px-3 py-3 font-medium">Chat</th>
+                    <th className="px-3 py-3 font-medium">Turn</th>
                     <th className="px-3 py-3 font-medium">Question</th>
+                    <th className="px-3 py-3 font-medium">Groups</th>
                     <th className="px-3 py-3 font-medium">Type</th>
                     <th className="px-3 py-3 font-medium">Status</th>
                     <th className="px-3 py-3 font-medium">v</th>
-                    <th className="px-3 py-3 font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
                   {filtered.map((tc) => (
-                    <tr key={tc.tc_id} className="cursor-pointer align-top hover:bg-surface-2" onClick={() => setSelected(tc)}>
-                      <td className="mono px-5 py-3.5 text-xs text-muted">{tc.chat_id}.{tc.turn_no}</td>
-                      <td className="max-w-[360px] px-3 py-3.5">
-                        <div className="line-clamp-2 cursor-pointer font-medium text-brand hover:underline">{tc.question}</div>
+                    <tr key={tc.tc_id} tabIndex={0}
+                      className={`cursor-pointer align-top outline-none hover:bg-surface-2 focus-visible:bg-surface-2 ${checked.has(tc.tc_id) ? "bg-brand-soft" : ""}`}
+                      onClick={() => setOpenId(tc.tc_id)}
+                      onKeyDown={(e) => { if (e.key === "Enter" && e.target === e.currentTarget) setOpenId(tc.tc_id); }}>
+                      <td className="py-3.5 pl-5 pr-2" onClick={(e) => e.stopPropagation()}>
+                        <input type="checkbox" checked={checked.has(tc.tc_id)} onChange={() => toggleOne(tc.tc_id)}
+                          aria-label={`Select chat ${tc.chat_id} turn ${tc.turn_no}`} className="accent-brand" />
+                      </td>
+                      <td className="mono max-w-[140px] truncate px-3 py-3.5 text-xs" title={tc.chat_id}>{tc.chat_id}</td>
+                      <td className="mono px-3 py-3.5 text-xs text-muted">{tc.turn_no}</td>
+                      <td className="max-w-[380px] px-3 py-3.5">
+                        <div className="line-clamp-2 font-medium">{tc.question}</div>
                         <div className="mt-1 line-clamp-1 text-xs text-muted">{tc.expected_answer}</div>
                       </td>
+                      <td className="px-3 py-3.5"><GroupChips groups={tc.groups} /></td>
                       <td className="px-3 py-3.5">
                         <span className="mono text-[11px] text-muted">{tc.type}</span>
                       </td>
@@ -163,28 +269,6 @@ export default function TestCases() {
                         </span>
                       </td>
                       <td className="mono px-3 py-3.5 text-xs text-muted">v{tc.version}</td>
-                      <td className="px-3 py-3.5" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center gap-2">
-                          {tc.status !== "active" && (
-                            <button onClick={() => handleStatus(tc, "active")}
-                              className="rounded border border-line px-2 py-0.5 text-[11px] hover:border-good hover:text-good">
-                              Activate
-                            </button>
-                          )}
-                          {tc.status === "active" && (
-                            <button onClick={() => handleStatus(tc, "inactive")}
-                              className="rounded border border-line px-2 py-0.5 text-[11px] hover:border-muted">
-                              Deactivate
-                            </button>
-                          )}
-                          {tc.status !== "deleted" && (
-                            <button onClick={() => handleStatus(tc, "deleted")}
-                              className="rounded border border-line px-2 py-0.5 text-[11px] hover:border-bad hover:text-bad">
-                              Delete
-                            </button>
-                          )}
-                        </div>
-                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -193,58 +277,115 @@ export default function TestCases() {
           )}
         </div>
 
-        {selected && (
+        {open && (
           <TestCaseDrawer
-            tc={selected}
-            onClose={() => setSelected(null)}
-            onSaved={() => { load(); setSelected(null); }}
+            tc={open}
+            groups={groups}
+            onClose={() => setOpenId(null)}
+            onChanged={(message) => { if (message) setNotice(message); load(); loadGroups(); }}
           />
         )}
         {showNew && (
           <NewTestCaseModal
             groups={groups}
-            defaultGroupId={groupId || (groups[0]?.group_id ?? "")}
+            defaultGroupId={realGroupId}
             onClose={() => setShowNew(false)}
-            onSaved={() => { load(); setShowNew(false); }}
+            onSaved={() => { load(); loadGroups(); setShowNew(false); }}
           />
         )}
+        {showAdd && (
+          <AddToGroupModal
+            groups={groups}
+            tcIds={ids}
+            onClose={() => setShowAdd(false)}
+            onDone={(message) => { setShowAdd(false); setNotice(message); setChecked(new Set()); load(); loadGroups(); }}
+          />
+        )}
+        {showRun && <ExecuteModal initial={{ mode: "cases", tcIds: ids }} onClose={() => setShowRun(false)} />}
       </div>
     </>
   );
 }
 
-function TestCaseDrawer({ tc, onClose, onSaved }: { tc: TestCase; onClose: () => void; onSaved: () => void }) {
+function TestCaseDrawer({ tc, groups, onClose, onChanged }: {
+  tc: TestCase;
+  groups: Group[];
+  onClose: () => void;
+  onChanged: (message?: string) => void;
+}) {
+  const initialForm = () => ({
+    chat_id: tc.chat_id,
+    turn_no: String(tc.turn_no),
+    question: tc.question,
+    expected_answer: tc.expected_answer,
+    expected_sources: tc.expected_sources ?? "",
+    type: tc.type,
+  });
   const [history, setHistory] = useState<TestCase[] | null>(null);
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ question: tc.question, expected_answer: tc.expected_answer, expected_sources: tc.expected_sources ?? "", type: tc.type });
+  const [form, setForm] = useState(initialForm);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
 
   useEffect(() => {
     api.testCaseHistory(tc.tc_id).then(setHistory).catch(() => undefined);
+    setForm(initialForm());
+    setEditing(false);
+    setErr("");
+  }, [tc.tc_id, tc.version]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [tc.tc_id, onClose]);
+  }, [onClose]);
 
   const save = async () => {
+    const turn = Number(form.turn_no);
+    if (!form.chat_id.trim()) { setErr("Chat ID is required."); return; }
+    if (!Number.isInteger(turn) || turn < 1) { setErr("Turn must be a whole number, 1 or higher."); return; }
+    if (!form.question.trim()) { setErr("Question is required."); return; }
     setSaving(true);
     setErr("");
     try {
-      const updates: Record<string, string> = {};
+      const updates: Parameters<typeof api.editTestCase>[1] = {};
+      if (form.chat_id.trim() !== tc.chat_id) updates.chat_id = form.chat_id.trim();
+      if (turn !== tc.turn_no) updates.turn_no = turn;
       if (form.question !== tc.question) updates.question = form.question;
       if (form.expected_answer !== tc.expected_answer) updates.expected_answer = form.expected_answer;
       if (form.expected_sources !== (tc.expected_sources ?? "")) updates.expected_sources = form.expected_sources;
       if (form.type !== tc.type) updates.type = form.type;
       if (Object.keys(updates).length === 0) { setEditing(false); return; }
       await api.editTestCase(tc.tc_id, updates);
-      onSaved();
+      onChanged("Saved as a new version");
     } catch (e: unknown) {
       setErr((e as Error).message);
     } finally {
       setSaving(false);
     }
   };
+
+  const setStatus = async (status: Status) => {
+    try {
+      await api.updateTestCaseStatus([tc.tc_id], status);
+      onChanged(`Test case marked ${status}`);
+    } catch (e: unknown) {
+      setErr((e as Error).message);
+    }
+  };
+
+  const setLabels = async (groupIds: string[]) => {
+    try {
+      await api.setTestCaseGroups(tc.tc_id, groupIds);
+      onChanged();
+    } catch (e: unknown) {
+      setErr((e as Error).message);
+    }
+  };
+
+  const labelIds = tc.groups.map((g) => g.group_id);
+  const addable = groups.filter((g) => !labelIds.includes(g.group_id));
+  const input = "w-full rounded border border-line bg-surface-2 px-3 py-2 text-sm outline-none focus:border-brand";
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/40" onMouseDown={onClose}>
@@ -254,10 +395,8 @@ function TestCaseDrawer({ tc, onClose, onSaved }: { tc: TestCase; onClose: () =>
       >
         <div className="flex items-start justify-between gap-4">
           <div>
-            <div className="text-xs font-medium text-muted">
-              Chat {tc.chat_id} · turn {tc.turn_no}
-            </div>
-            <div className="mono mt-0.5 text-[11px] text-muted">
+            <ChatTurn chatId={tc.chat_id} turnNo={tc.turn_no} />
+            <div className="mono mt-2 text-[11px] text-muted">
               {tc.tc_id} · v{tc.version} · <span className={STATUS_COLORS[tc.status]}>{tc.status}</span>
             </div>
           </div>
@@ -266,36 +405,37 @@ function TestCaseDrawer({ tc, onClose, onSaved }: { tc: TestCase; onClose: () =>
 
         {editing ? (
           <div className="mt-5 space-y-4">
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <Field label="Chat ID">
+                  <input value={form.chat_id} onChange={(e) => setForm((f) => ({ ...f, chat_id: e.target.value }))} className={input} />
+                </Field>
+              </div>
+              <div className="w-24">
+                <Field label="Turn #">
+                  <input value={form.turn_no} type="number" min={1} step={1}
+                    onChange={(e) => setForm((f) => ({ ...f, turn_no: e.target.value }))} className={input} />
+                </Field>
+              </div>
+              <div className="w-28">
+                <Field label="Type">
+                  <input value={form.type} onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))} className={input} />
+                </Field>
+              </div>
+            </div>
             <Field label="Question">
-              <textarea
-                value={form.question}
+              <textarea value={form.question} rows={3}
                 onChange={(e) => setForm((f) => ({ ...f, question: e.target.value }))}
-                rows={3}
-                className="w-full rounded border border-line bg-surface-2 p-2.5 text-sm outline-none focus:border-brand"
-              />
+                className="w-full rounded border border-line bg-surface-2 p-2.5 text-sm outline-none focus:border-brand" />
             </Field>
             <Field label="Expected answer">
-              <textarea
-                value={form.expected_answer}
+              <textarea value={form.expected_answer} rows={4}
                 onChange={(e) => setForm((f) => ({ ...f, expected_answer: e.target.value }))}
-                rows={4}
-                className="w-full rounded border border-line bg-surface-2 p-2.5 text-sm outline-none focus:border-brand"
-              />
+                className="w-full rounded border border-line bg-surface-2 p-2.5 text-sm outline-none focus:border-brand" />
             </Field>
             <Field label="Expected sources (| = AND, , = OR)">
-              <input
-                value={form.expected_sources}
-                onChange={(e) => setForm((f) => ({ ...f, expected_sources: e.target.value }))}
-                placeholder="doc_a.pdf|doc_b.pdf"
-                className="w-full rounded border border-line bg-surface-2 p-2.5 text-sm outline-none focus:border-brand"
-              />
-            </Field>
-            <Field label="Type">
-              <input
-                value={form.type}
-                onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}
-                className="w-full rounded border border-line bg-surface-2 p-2.5 text-sm outline-none focus:border-brand"
-              />
+              <input value={form.expected_sources} placeholder="doc_a.pdf|doc_b.pdf"
+                onChange={(e) => setForm((f) => ({ ...f, expected_sources: e.target.value }))} className={input} />
             </Field>
             {err && <p className="text-xs text-bad">{err}</p>}
             <div className="flex gap-2 pt-1">
@@ -303,7 +443,8 @@ function TestCaseDrawer({ tc, onClose, onSaved }: { tc: TestCase; onClose: () =>
                 className="rounded bg-brand px-4 py-2 text-sm font-medium text-white disabled:opacity-50 enabled:hover:brightness-110">
                 {saving ? "Saving…" : "Save new version"}
               </button>
-              <button onClick={() => setEditing(false)} className="rounded border border-line px-4 py-2 text-sm hover:bg-surface-2">
+              <button onClick={() => { setEditing(false); setForm(initialForm()); setErr(""); }}
+                className="rounded border border-line px-4 py-2 text-sm hover:bg-surface-2">
                 Cancel
               </button>
             </div>
@@ -313,14 +454,47 @@ function TestCaseDrawer({ tc, onClose, onSaved }: { tc: TestCase; onClose: () =>
             <ReadField label="Question">{tc.question}</ReadField>
             <ReadField label="Expected answer">{tc.expected_answer}</ReadField>
             {tc.expected_sources && <ReadField label="Expected sources">{tc.expected_sources}</ReadField>}
-            <div className="flex gap-2 pt-1">
+            <div className="flex flex-wrap gap-2 pt-1">
               <button onClick={() => setEditing(true)}
                 className="rounded border border-line px-4 py-2 text-sm font-medium hover:bg-surface-2">
                 Edit
               </button>
+              {tc.status !== "active" && (
+                <button onClick={() => setStatus("active")} className="rounded border border-line px-4 py-2 text-sm hover:border-good hover:text-good">Activate</button>
+              )}
+              {tc.status === "active" && (
+                <button onClick={() => setStatus("inactive")} className="rounded border border-line px-4 py-2 text-sm hover:bg-surface-2">Deactivate</button>
+              )}
+              {tc.status !== "deleted" && (
+                <button onClick={() => setStatus("deleted")} className="rounded border border-line px-4 py-2 text-sm hover:border-bad hover:text-bad">Delete</button>
+              )}
             </div>
+            {err && <p className="text-xs text-bad">{err}</p>}
           </div>
         )}
+
+        {/* Group labels: edited in place, no save step */}
+        <div className="mt-6">
+          <div className="label mb-2">Groups</div>
+          <div className="flex flex-wrap items-center gap-2">
+            {tc.groups.map((g) => (
+              <span key={g.group_id} className="inline-flex items-center gap-1 rounded bg-brand-soft px-2 py-1 text-xs font-medium">
+                {g.name}
+                <button onClick={() => setLabels(labelIds.filter((id) => id !== g.group_id))}
+                  aria-label={`Remove from ${g.name}`} className="text-muted hover:text-bad">×</button>
+              </span>
+            ))}
+            {tc.groups.length === 0 && <span className="text-xs text-muted">Not in any group.</span>}
+            {addable.length > 0 && (
+              <select value="" onChange={(e) => e.target.value && setLabels([...labelIds, e.target.value])}
+                aria-label="Add to group"
+                className="rounded border border-line bg-surface-2 px-2 py-1 text-xs outline-none">
+                <option value="">+ Add to group…</option>
+                {addable.map((g) => <option key={g.group_id} value={g.group_id}>{g.name}</option>)}
+              </select>
+            )}
+          </div>
+        </div>
 
         {history && history.length > 1 && (
           <div className="mt-8">
@@ -329,8 +503,8 @@ function TestCaseDrawer({ tc, onClose, onSaved }: { tc: TestCase; onClose: () =>
               {[...history].reverse().map((h) => (
                 <div key={h.version} className={`rounded border p-3 text-xs ${h.version === tc.version ? "border-brand" : "border-line"}`}>
                   <div className="mb-1 flex items-center justify-between">
-                    <span className="mono font-medium">v{h.version}</span>
-                    <span className="text-muted">{fmtDate(h.created_at)}</span>
+                    <span className="mono font-medium">v{h.version} <span className="font-normal text-muted">· chat {h.chat_id} · turn {h.turn_no}</span></span>
+                    <span className="text-muted">{fmtDate(h.updated_at ?? h.created_at)}</span>
                   </div>
                   <div className="line-clamp-2 text-muted">{h.question}</div>
                 </div>
@@ -387,12 +561,17 @@ function NewTestCaseModal({
       setErr("Chat ID, question, and expected answer are required.");
       return;
     }
+    const turn = Number(form.turn_no);
+    if (!Number.isInteger(turn) || turn < 1) {
+      setErr("Turn must be a whole number, 1 or higher.");
+      return;
+    }
     setSaving(true); setErr("");
     try {
       await api.createTestCase({
         group_id: form.group_id || undefined,
         chat_id: form.chat_id.trim(),
-        turn_no: parseInt(form.turn_no) || 1,
+        turn_no: turn,
         type: form.type || "rag",
         question: form.question.trim(),
         expected_answer: form.expected_answer.trim(),
@@ -432,7 +611,7 @@ function NewTestCaseModal({
             </div>
             <div className="w-24">
               <Field label="Turn #">
-                <input value={form.turn_no} onChange={set("turn_no")} type="number" min={1}
+                <input value={form.turn_no} onChange={set("turn_no")} type="number" min={1} step={1}
                   className="w-full rounded border border-line bg-surface-2 px-3 py-2 text-sm outline-none focus:border-brand" />
               </Field>
             </div>

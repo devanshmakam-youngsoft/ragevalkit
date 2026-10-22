@@ -1,16 +1,15 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { api } from "./api";
 import { apiPath } from "./base";
-import type { RunState } from "./types";
+import type { RunSelection, RunState } from "./types";
 
 interface RunCtx {
   run: RunState | null;
   /** Bumps every time a run finishes so lists can refetch. */
   versionsKey: number;
   start: (version: string, file: File | null, overwrite: boolean) => Promise<void>;
-  startFromLibrary: (version: string, datasetId: string, overwrite: boolean, statusFilter?: string) => Promise<void>;
-  startFromGroup: (version: string, groupId: string, overwrite: boolean, statusFilter?: string) => Promise<void>;
-  startFromGroups: (version: string, groupIds: string[], overwrite: boolean, statusFilter?: string, notes?: string) => Promise<void>;
+  /** Run groups and/or individually picked test cases from the library. */
+  startFromSelection: (version: string, overwrite: boolean, notes: string, selection: RunSelection) => Promise<void>;
   startRunAndSave: (version: string, file: File, overwrite: boolean, groupName: string) => Promise<void>;
   requestStop: () => void;
   dismiss: () => void;
@@ -93,20 +92,8 @@ export function RunProvider({ children }: { children: ReactNode }) {
     attach(started.run_id);
   }, [attach]);
 
-  const startFromLibrary = useCallback(async (version: string, datasetId: string, overwrite: boolean, statusFilter = "active") => {
-    const started = await api.startRunFromLibrary(version, datasetId, overwrite, statusFilter);
-    setRun(started);
-    attach(started.run_id);
-  }, [attach]);
-
-  const startFromGroup = useCallback(async (version: string, groupId: string, overwrite: boolean, statusFilter = "active") => {
-    const started = await api.startRunFromGroup(version, groupId, overwrite, statusFilter);
-    setRun(started);
-    attach(started.run_id);
-  }, [attach]);
-
-  const startFromGroups = useCallback(async (version: string, groupIds: string[], overwrite: boolean, statusFilter = "active", notes = "") => {
-    const started = await api.startRunFromGroups(version, groupIds, overwrite, statusFilter, notes);
+  const startFromSelection = useCallback(async (version: string, overwrite: boolean, notes: string, selection: RunSelection) => {
+    const started = await api.startRunFromSelection(version, overwrite, notes, selection);
     setRun(started);
     attach(started.run_id);
   }, [attach]);
@@ -123,7 +110,7 @@ export function RunProvider({ children }: { children: ReactNode }) {
   }, [run]);
 
   return (
-    <Ctx.Provider value={{ run, versionsKey, start, startFromLibrary, startFromGroup, startFromGroups, startRunAndSave, requestStop, dismiss: () => setRun(null) }}>
+    <Ctx.Provider value={{ run, versionsKey, start, startFromSelection, startRunAndSave, requestStop, dismiss: () => setRun(null) }}>
       {children}
     </Ctx.Provider>
   );

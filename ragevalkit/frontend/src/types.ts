@@ -102,6 +102,12 @@ export interface Group {
 /** Backward-compat alias — prefer Group in new code. */
 export type Dataset = Group;
 
+/** A group label on a test case. */
+export interface GroupRef {
+  group_id: string;
+  name: string;
+}
+
 export interface TestCase {
   tc_id: string;
   chat_id: string;
@@ -113,4 +119,24 @@ export interface TestCase {
   status: "active" | "inactive" | "deleted";
   version: number;
   created_at: string;
+  updated_at?: string;
+  /** Group labels this case carries (a case can have any number). */
+  groups: GroupRef[];
+}
+
+/** What a run should execute: groups and/or individually picked test cases. */
+export interface RunSelection {
+  groupIds?: string[];
+  tcIds?: string[];
+  statusFilter?: string;
+  includeContext?: boolean;
+}
+
+export interface RunPreview {
+  selected: number;
+  context: number;
+  total: number;
+  missing: number;
+  group_names: string[];
+  collisions: { chat_id: string; turn_no: number; tc_ids: string[] }[];
 }

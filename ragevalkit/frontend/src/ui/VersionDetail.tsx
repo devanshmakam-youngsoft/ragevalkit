@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "../api";
 import { Mark, NodeTimings, ScorePill, Stat } from "./parts";
+import { ChatTurn } from "./GroupChips";
 import { TopBar } from "./TopBar";
 import { fmt, fmtDate, fmtSeconds, nodeMeta } from "../lib";
 import { type ResultRow, type VersionDetail as Detail } from "../types";
@@ -130,7 +131,8 @@ export default function VersionDetail() {
           <table className="w-full min-w-[900px] text-left text-sm">
             <thead className="bg-surface-2 text-[11px] uppercase tracking-[0.08em] text-muted">
               <tr>
-                <th className="px-5 py-3 font-medium">#</th>
+                <th className="px-3 py-3 font-medium">Chat</th>
+                <th className="px-3 py-3 font-medium">Turn</th>
                 <th className="px-3 py-3 font-medium">Question</th>
                 <th className="px-3 py-3 font-medium">Type</th>
                 {th("answer_marks", "Answer")}
@@ -142,7 +144,8 @@ export default function VersionDetail() {
             <tbody className="divide-y divide-line">
               {rows.map(({ r, i }) => (
                 <tr key={i} onClick={() => setOpen(r)} className="cursor-pointer align-top hover:bg-surface-2">
-                  <td className="px-5 py-3.5 text-xs tabular-nums text-muted">{r.chat_id}.{r.turn_no}</td>
+                  <td className="mono max-w-[120px] truncate px-3 py-3.5 text-xs" title={r.chat_id}>{r.chat_id}</td>
+                  <td className="mono px-3 py-3.5 text-xs text-muted">{r.turn_no}</td>
                   <td className="max-w-[400px] px-3 py-3.5">
                     <div className="line-clamp-2 font-medium">{r.question}</div>
                     <div className="mt-1 line-clamp-1 text-xs text-muted">{r.generated_answer ?? "No answer generated"}</div>
@@ -176,7 +179,7 @@ export default function VersionDetail() {
                   </td>
                 </tr>
               ))}
-              {rows.length === 0 && <tr><td colSpan={7} className="px-5 py-12 text-center text-muted">No rows match the filters.</td></tr>}
+              {rows.length === 0 && <tr><td colSpan={8} className="px-5 py-12 text-center text-muted">No rows match the filters.</td></tr>}
             </tbody>
           </table>
         </div>
@@ -219,8 +222,8 @@ function RowDrawer({ row, onClose }: { row: ResultRow; onClose: () => void }) {
       <aside className="slide-in h-full w-full max-w-[640px] overflow-y-auto border-l border-line bg-surface p-6 " onMouseDown={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 text-xs font-medium text-muted">
-              <code className="rounded bg-surface-2 px-1.5 py-0.5 font-mono">{row.chat_id}.{row.turn_no}</code>
+            <div className="flex items-end gap-4 text-xs font-medium text-muted">
+              <ChatTurn chatId={row.chat_id} turnNo={row.turn_no} />
               <span>{row.type}</span>
             </div>
             <h2 className="mt-1 font-serif text-xl font-medium leading-snug">{row.question}</h2>

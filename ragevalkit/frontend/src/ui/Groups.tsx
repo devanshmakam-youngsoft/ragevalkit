@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { api } from "../api";
+import { ExecuteModal } from "./ExecuteModal";
 import { TopBar } from "./TopBar";
 import { fmtDate } from "../lib";
 import type { Group } from "../types";
@@ -16,6 +17,9 @@ export default function Groups() {
   const [dropFile, setDropFile] = useState<File | null>(null);
   const [creating, setCreating] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+  const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
+  const [runGroupId, setRunGroupId] = useState<string | null>(null);
+  const navigate = useNavigate();
   const fileInput = useRef<HTMLInputElement>(null);
 
   const load = () => {
@@ -33,6 +37,18 @@ export default function Groups() {
       setImportErr((e as Error).message);
     } finally {
       setImporting(null);
+    }
+  }
+
+  async function handleRename() {
+    if (!renaming) return;
+    try {
+      await api.renameGroup(renaming.id, renaming.name);
+      setRenaming(null);
+      setImportErr("");
+      load();
+    } catch (e) {
+      setImportErr((e as Error).message);
     }
   }
 
@@ -68,7 +84,7 @@ export default function Groups() {
         <div className="mb-6 flex items-end justify-between gap-4">
           <div>
             <h1 className="font-serif text-[32px] font-medium leading-none tracking-tight">Test Case Groups</h1>
-            <p className="mono mt-2 text-xs text-muted">Organize test cases into named groups for targeted eval runs</p>
+            <p className="mono mt-2 text-xs text-muted">Label test cases so you can run any set of them together</p>
           </div>
           <button
             onClick={() => setShowNew(true)}
@@ -80,9 +96,9 @@ export default function Groups() {
 
         {/* Info banner */}
         <div className="mb-5 rounded border border-line bg-surface-2 px-4 py-3 text-sm text-muted">
-          <span className="font-medium text-fg">Test Case Groups</span> let you organize questions into named sets —{" "}
-          run evals against a specific group instead of uploading an Excel file every time.
-          One test case can belong to multiple groups.
+          <span className="font-medium text-fg">Groups are labels.</span> Put a label on any test cases, then run a whole
+          group — or several — in one go. A test case can carry any number of labels, and you can also run hand-picked
+          test cases from the Test Cases page. Click a group to see its test cases.
         </div>
 
         {/* Drop zone */}
@@ -162,8 +178,24 @@ export default function Groups() {
               </thead>
               <tbody className="divide-y divide-line">
                 {groups.map((g) => (
-                  <tr key={g.group_id} className="align-middle">
-                    <td className="px-5 py-4 font-medium">{g.name}</td>
+                  <tr key={g.group_id} tabIndex={0}
+                    className="cursor-pointer align-middle outline-none hover:bg-surface-2 focus-visible:bg-surface-2"
+                    onClick={() => navigate(`/test-cases?group_id=${encodeURIComponent(g.group_id)}`)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && e.target === e.currentTarget) navigate(`/test-cases?group_id=${encodeURIComponent(g.group_id)}`);
+                    }}>
+                    <td className="px-5 py-4 font-medium" onClick={renaming?.id === g.group_id ? (e) => e.stopPropagation() : undefined}>
+                      {renaming?.id === g.group_id ? (
+                        <span className="flex items-center gap-2">
+                          <input value={renaming.name} autoFocus
+                            onChange={(e) => setRenaming({ id: g.group_id, name: e.target.value })}
+                            onKeyDown={(e) => { if (e.key === "Enter") handleRename(); if (e.key === "Escape") setRenaming(null); }}
+                            className="w-56 rounded border border-line bg-surface px-2 py-1 text-sm outline-none focus:border-brand" />
+                          <button onClick={handleRename} disabled={!renaming.name.trim()} className="text-xs font-medium text-brand hover:underline disabled:opacity-50">Save</button>
+                          <button onClick={() => setRenaming(null)} className="text-xs text-muted hover:underline">Cancel</button>
+                        </span>
+                      ) : g.name}
+                    </td>
                     <td className="px-3 py-4">
                       <span className="mono rounded bg-surface-2 px-2 py-0.5 text-xs text-muted">{g.group_id}</span>
                     </td>
@@ -173,14 +205,17 @@ export default function Groups() {
                         : g.member_count}
                     </td>
                     <td className="px-3 py-4 text-xs text-muted">{fmtDate(g.created_at)}</td>
-                    <td className="px-3 py-4">
+                    <td className="px-3 py-4" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-3">
-                        <Link
-                          to={`/test-cases?group_id=${encodeURIComponent(g.group_id)}`}
-                          className="text-xs font-medium text-brand hover:underline"
-                        >
-                          View {g.member_count} case{g.member_count !== 1 ? "s" : ""}
-                        </Link>
+                        <button
+                          onClick={() => setRunGroupId(g.group_id)}
+                          disabled={g.member_count === 0}
+                          className="text-xs font-medium text-brand hover:underline disabled:cursor-not-allowed disabled:opacity-40"
+                        >Run</button>
+                        <button
+                          onClick={() => setRenaming({ id: g.group_id, name: g.name })}
+                          className="text-xs font-medium text-muted hover:text-brand"
+                        >Rename</button>
                         <label className={`cursor-pointer text-xs font-medium text-muted hover:text-brand ${importing === g.group_id ? "opacity-50" : ""}`}>
                           {importing === g.group_id ? "Importing…" : "Import .xlsx"}
                           <input
@@ -223,6 +258,7 @@ export default function Groups() {
         </div>
       </div>
 
+      {runGroupId && <ExecuteModal initial={{ mode: "groups", groupIds: [runGroupId] }} onClose={() => setRunGroupId(null)} />}
       {showNew && (
         <NewGroupModal
           onClose={() => setShowNew(false)}
