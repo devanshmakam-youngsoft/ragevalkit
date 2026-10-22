@@ -39,10 +39,12 @@ NOT allowed to ignore (these make two sources different documents — do NOT mat
 
 When in doubt about whether a difference is meaningful, treat the sources as different.
 
+Judge each expected source independently; do not try to combine them. The expected list may contain
+alternatives for the same document, and the caller decides which combinations are required.
+
 Respond ONLY with a JSON object with exactly these keys:
   matched_sources  — list of expected sources that WERE retrieved (use the exact strings from the expected list)
   missing_sources  — list of expected sources that were NOT retrieved
-  source_score     — integer 0-10: 10 = every expected source retrieved, 0 = none retrieved, scale linearly
   source_comment   — one sentence explaining the result"""
 
 SUMMARY_PROMPT = """You are reviewing the results of one evaluation run of an AI system.

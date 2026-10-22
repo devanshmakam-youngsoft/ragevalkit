@@ -61,6 +61,7 @@ import pandas as pd
 
 from ragevalkit import lexical, recording
 from ragevalkit.config import Config
+from ragevalkit.dataset import parse_source_groups
 from ragevalkit.exceptions import RunBusy
 from ragevalkit.judge import Judge
 from ragevalkit.store import EvalStore, build_group_stats, build_summary, stats_for_llm
@@ -179,14 +180,13 @@ def _source_check(expected_str: str, recorded: list) -> dict:
 
     Single-level usage (no commas) is identical to the old pipe-only format.
     """
-    groups = [g.strip() for g in (expected_str or "").split("|") if g.strip()]
+    groups = parse_source_groups(expected_str)
     if not groups:
         return {"source_match": None, "matched_sources": [], "missing_sources": []}
     recorded_lower = [str(s).lower() for s in (recorded or [])]
     matched_sources: list[str] = []
     missing_sources: list[str] = []
-    for group in groups:
-        alternatives = [a.strip() for a in group.split(",") if a.strip()]
+    for alternatives in groups:
         hit = next(
             (alt for alt in alternatives
              if any(alt.lower() in r or r in alt.lower() for r in recorded_lower)),
@@ -195,7 +195,7 @@ def _source_check(expected_str: str, recorded: list) -> dict:
         if hit:
             matched_sources.append(hit)
         else:
-            missing_sources.append(group)
+            missing_sources.append(" , ".join(alternatives))
     return {
         "source_match": len(missing_sources) == 0,
         "matched_sources": matched_sources,
@@ -460,10 +460,9 @@ class RunManager:
                 mode = self.config.source_check_mode
                 if mode == "llm":
                     try:
-                        expected_list = [s.strip() for s in expected_sources.split("|") if s.strip()]
-                        result = self.judge.check_sources(expected_list, sources)
+                        result = self.judge.check_sources(parse_source_groups(expected_sources), sources)
                         out.update(
-                            source_match=bool(result.matched_sources),
+                            source_match=result.source_match,
                             matched_sources=result.matched_sources,
                             missing_sources=result.missing_sources,
                             source_score=result.source_score,

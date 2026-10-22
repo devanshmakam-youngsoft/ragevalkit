@@ -37,8 +37,10 @@ class Grade(BaseModel):
 
 
 class SourceCheckResult(BaseModel):
-    matched_sources: list[str] = []
-    missing_sources: list[str] = []
+    """Outcome of an LLM source check, resolved against the AND/OR groups in expected_sources."""
+    source_match: bool
+    matched_sources: list[str] = []   # one retrieved alternative per satisfied group
+    missing_sources: list[str] = []   # the full group string for each unsatisfied group
     source_score: int = Field(ge=0, le=10)
     source_comment: str = ""
 
@@ -103,9 +105,16 @@ class Judge:
             grade.material_comment = "Not applicable (no retrieval expected)."
         return grade
 
-    def check_sources(self, expected: list[str], recorded: list[str]) -> SourceCheckResult:
+    def check_sources(self, groups: list[list[str]], recorded: list[str]) -> SourceCheckResult:
+        """Check retrieved sources against AND-groups of OR-alternatives.
+
+        The LLM only decides which individual expected sources were retrieved; the group
+        logic (every group needs at least one retrieved alternative) is applied here so
+        ``source_match`` and ``source_score`` are deterministic.
+        """
+        alternatives = list(dict.fromkeys(alt for group in groups for alt in group))
         recorded_str = "\n".join(f"- {r}" for r in recorded) if recorded else "None retrieved."
-        expected_str = "\n".join(f"- {e}" for e in expected)
+        expected_str = "\n".join(f"- {e}" for e in alternatives)
         user = f"Expected sources:\n{expected_str}\n\nRetrieved sources:\n{recorded_str}"
 
         def _invoke():
@@ -114,10 +123,26 @@ class Judge:
                  {"role": "user", "content": user}],
                 json_mode=True,
             )
-            data = json.loads(raw)
-            return SourceCheckResult(**data)
+            return json.loads(raw)
 
-        return self._with_retries(_invoke)
+        data = self._with_retries(_invoke)
+        retrieved = {str(s).strip().lower() for s in data.get("matched_sources") or []}
+
+        matched: list[str] = []
+        missing: list[str] = []
+        for group in groups:
+            hit = next((alt for alt in group if alt.lower() in retrieved), None)
+            if hit:
+                matched.append(hit)
+            else:
+                missing.append(" , ".join(group))
+        return SourceCheckResult(
+            source_match=not missing,
+            matched_sources=matched,
+            missing_sources=missing,
+            source_score=round(10 * len(matched) / len(groups)) if groups else 0,
+            source_comment=str(data.get("source_comment") or ""),
+        )
 
     def summarize_run(self, stats: str) -> str:
         try:
