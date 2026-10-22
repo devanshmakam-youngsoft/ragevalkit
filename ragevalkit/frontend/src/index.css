@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+/* Base: Tailwind theme mapped to the CSS variables defined in ui/theme.css (Paper & Ink). */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--border);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-coral: var(--coral);
+  --color-sun: var(--sun);
+  --color-good: var(--good);
+  --color-warn: var(--warn);
+  --color-bad: var(--bad);
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Fraunces", Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+html, body, #root { min-height: 100%; }
+body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; margin: 0; }
+
+@keyframes blink { 50% { opacity: 0.25; } }
+.live-dot { animation: blink 1.2s ease-in-out infinite; }
+@keyframes pop-in { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: none; } }
+.pop-in { animation: pop-in 0.18s ease-out; }
+@keyframes slide-in { from { transform: translateX(32px); opacity: 0; } to { transform: none; opacity: 1; } }
+.slide-in { animation: slide-in 0.22s ease-out; }
+.clamp-4 { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }

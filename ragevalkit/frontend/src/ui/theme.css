@@ -1,0 +1,78 @@
+/* Paper & Ink: warm paper, serif numerals, teal / sun / coral / plum accents, highlighter marks on key figures. */
+:root {
+  --bg: #f6f1e5;
+  --surface: #fffdf6;
+  --surface-2: #f0ead9;
+  --border: #ddd5bf;
+  --fg: #1a1916;
+  --muted: #6b6657;
+  --brand: #00917f;
+  --brand-soft: #d8f1ec;
+  --coral: #f2573a;
+  --sun: #f6b800;
+  --plum: #8a4fd0;
+  --good: #14934f;
+  --warn: #b98000;
+  --bad: #d93c36;
+  /* highlighter-marker colours for emphasised numbers */
+  --hl: #ffe27a;
+  --hl-good: #a8ecc0;
+  --hl-warn: #ffe27a;
+  --hl-bad: #ffb4a6;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --bg: #11110f;
+  --surface: #1a1a17;
+  --surface-2: #242420;
+  --border: #36352f;
+  --fg: #f1ede0;
+  --muted: #a09b8c;
+  --brand: #2fd3bb;
+  --brand-soft: #123530;
+  --coral: #ff7a5c;
+  --sun: #ffcf3f;
+  --plum: #b585f2;
+  --good: #5fdc92;
+  --warn: #f0be4a;
+  --bad: #ff7b72;
+  --hl: #6b5500;
+  --hl-good: #1d5a37;
+  --hl-warn: #6b5500;
+  --hl-bad: #6e2a22;
+  color-scheme: dark;
+}
+
+
+/* three-colour stripe across the top of every page */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 5px;
+  z-index: 60;
+  background: linear-gradient(90deg, var(--brand) 0 34%, var(--sun) 34% 67%, var(--coral) 67% 100%);
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+/* marker-pen emphasis behind a number */
+.hl {
+  background: linear-gradient(transparent 52%, var(--hl-c, var(--hl)) 52% 94%, transparent 94%);
+  padding: 0 4px;
+  margin: 0 -4px;
+  box-decoration-break: clone;
+}
+
+
+
+
+.font-serif { font-family: var(--font-serif); font-optical-sizing: auto; }
+.num { font-family: var(--font-serif); font-variant-numeric: lining-nums tabular-nums; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 500; }

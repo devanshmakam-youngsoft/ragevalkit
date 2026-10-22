@@ -18,3 +18,7 @@ eval_inputs/
 
 # Claude Code local files
 .claude/
+
+# Frontend build artifacts
+node_modules/
+ragevalkit/frontend/dist/
