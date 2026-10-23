@@ -53,7 +53,7 @@ def test_imperfect_quotes_are_matched_and_stored_as_the_documents_exact_words(qu
 ])
 def test_quotes_that_are_not_in_the_document_are_still_rejected(quote):
     turns, reason = validate(direct([chunk(MARKDOWN_PASSAGE)]), reply(evidence=[quote]), turns=3, avoid=[])
-    assert turns is None and "appears in the passages" in reason
+    assert turns is None and "does not point at any sentence" in reason
 
 
 def test_a_repaired_quote_still_finds_its_page():
@@ -138,4 +138,4 @@ def test_multipart_with_evidence_from_only_one_passage_is_still_rejected():
 
 def test_a_reply_with_no_evidence_field_gets_a_retry_hint_in_the_right_shape():
     turns, reason = validate(multipart(), multi_reply(evidence=None), turns=3, avoid=[])
-    assert turns is None and 'one sentence copied from Passage A' in reason
+    assert turns is None and "B4" in reason and "each passage" in reason

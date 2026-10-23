@@ -27,7 +27,7 @@ _NOT_STANDALONE = re.compile(
 # standalone questions ("above $500", "one of", "the first day") are deliberately not here.
 _REFERS_BACK = re.compile(
     r"\b(it|its|it's|they|them|their|theirs|that|those|these|there|then|same|former|latter|previous|earlier|"
-    r"instead|otherwise|also|too|as well|the other|the others|that one|this one)\b", re.I)
+    r"instead|otherwise|also|too|as well|the other|the others|that one|this one|this|such|both|either|another|else|rest|mentioned)\b", re.I)
 _ELLIPTIC_START = re.compile(r"^\s*(and|but|so|then|also|what about|how about|what if|why|how come|in that case|if so|if not)\b", re.I)
 
 
@@ -62,8 +62,9 @@ def _check_indirect(question: str, quotes: list[str], passages: list[str]) -> st
 def _check_follow_up(question: str, earlier: list[str]) -> str | None:
     """A follow-up must need the conversation so far: it refers back, and it does not restate the topic."""
     if not (_REFERS_BACK.search(question) or _ELLIPTIC_START.search(question)):
-        return ('this follow-up could be asked on its own, so it is just another direct question; make it depend on '
-                'the previous answer by referring back to it ("it", "that", "those", "in that case", "and what about ...?")')
+        return (f'this follow-up ("{question}") could be asked on its own, so it is just another direct question; rewrite it so it '
+                'depends on the previous answer by referring back to it ("it", "that", "those", "in that case", "and what about ...?") '
+                'without naming the topic again')
     q_tokens = set(lexical.tokenize(question))
     seen = set(lexical.tokenize(" ".join(earlier)))
     if len(q_tokens) >= 4 and len(q_tokens & seen) / len(q_tokens) > RESTATES_LIMIT:
@@ -84,8 +85,46 @@ def _turns_of(task: Task, data: dict, turns: int) -> tuple[list | None, str]:
     return raw_turns, ""
 
 
+def _check_turn(task: Task, raw, index: int, earlier: list[dict], passages: list[str], avoid: list[str]) -> tuple[dict | None, str]:
+    """One turn of a reply: (the cleaned turn, "") or (None, the reason it was rejected)."""
+    if not isinstance(raw, dict):
+        return None, "each turn must be an object with question, expected_answer and evidence"
+    question, answer = str(raw.get("question") or "").strip(), str(raw.get("expected_answer") or "").strip()
+    problem = check_text(question, answer, standalone=index == 0)
+    if problem:
+        return None, problem
+
+    proof = evidence_of.extract(evidence_of.raw_evidence(raw), task.chunks)
+    if not proof:
+        hint = (' Reply with "evidence": ["A2", "B4"]: the numbers of one sentence from each passage.'
+                if task.category == "multipart" else ' Reply with "evidence": ["A3"]: the number of the sentence that states the answer.')
+        return None, "the evidence does not point at any sentence of the passages; cite sentence numbers exactly as shown, such as A3." + hint
+    if task.category == "multipart" and len({e["passage"] for e in proof}) < 2:
+        return None, "a multi-part question needs evidence from both Passage A and Passage B"
+    if task.category == "indirect":
+        problem = _check_indirect(question, [e["quote"] for e in proof], passages)
+        if problem:
+            return None, problem
+
+    turn = {"question": question, "expected_answer": answer, "evidence": proof}
+    if task.category == "multiturn" and index > 0:
+        problem = _check_follow_up(question, [t["question"] for t in earlier])
+        if problem:
+            return None, problem
+        needs = _depends_on(raw)
+        if len(needs) < MIN_DEPENDS_CHARS:
+            return None, 'every follow-up needs "depends_on": one sentence saying what it relies on from the earlier turns'
+        turn["needs_context"] = needs
+
+    if any(similarity(question, other) >= SIMILARITY_LIMIT for other in avoid + [t["question"] for t in earlier]):
+        return None, "this is too similar to a question already written; ask about something different"
+    return turn, ""
+
+
 def validate(task: Task, data: dict | None, *, turns: int, avoid: list[str]) -> tuple[list[dict] | None, str]:
-    """Check one model reply. Returns (turns, "") when it follows every rule, else (None, reason)."""
+    """Check one model reply. Returns (turns, "") when it follows every rule, else (None, reason).
+
+    In a conversation the reason names the turn that broke the rule, so the retry can fix just that one."""
     if not data:
         return None, "the reply was not valid JSON in the required shape"
     raw_turns, problem = _turns_of(task, data, turns)
@@ -95,36 +134,8 @@ def validate(task: Task, data: dict | None, *, turns: int, avoid: list[str]) -> 
 
     out: list[dict] = []
     for index, raw in enumerate(raw_turns):
-        if not isinstance(raw, dict):
-            return None, "each turn must be an object with question, expected_answer and evidence"
-        question, answer = str(raw.get("question") or "").strip(), str(raw.get("expected_answer") or "").strip()
-        problem = check_text(question, answer, standalone=index == 0)
-        if problem:
-            return None, problem
-
-        proof = evidence_of.extract(evidence_of.raw_evidence(raw), task.chunks)
-        if not proof:
-            hint = (' Reply with "evidence": ["one sentence copied from Passage A", "one sentence copied from Passage B"].'
-                    if task.category == "multipart" else ' Reply with "evidence": ["one sentence copied from the passage"].')
-            return None, "none of the evidence quotes appears in the passages; copy sentences exactly as written, with no '...'." + hint
-        if task.category == "multipart" and len({e["passage"] for e in proof}) < 2:
-            return None, "a multi-part question needs evidence from both Passage A and Passage B"
-        if task.category == "indirect":
-            problem = _check_indirect(question, [e["quote"] for e in proof], passages)
-            if problem:
-                return None, problem
-
-        turn = {"question": question, "expected_answer": answer, "evidence": proof}
-        if task.category == "multiturn" and index > 0:
-            problem = _check_follow_up(question, [t["question"] for t in out])
-            if problem:
-                return None, problem
-            needs = _depends_on(raw)
-            if len(needs) < MIN_DEPENDS_CHARS:
-                return None, 'every follow-up needs "depends_on": one sentence saying what it relies on from the earlier turns'
-            turn["needs_context"] = needs
-
-        if any(similarity(question, other) >= SIMILARITY_LIMIT for other in avoid + [t["question"] for t in out]):
-            return None, "this is too similar to a question already written; ask about something different"
+        turn, problem = _check_turn(task, raw, index, out, passages, avoid)
+        if turn is None:
+            return None, f"turn {index + 1}: {problem}" if task.category == "multiturn" else problem
         out.append(turn)
     return out, ""

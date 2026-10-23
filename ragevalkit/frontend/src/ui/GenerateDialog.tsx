@@ -13,7 +13,8 @@ const DESCRIPTIONS: Record<string, string> = {
 /** A model-facing rejection reason, in words a person can act on. */
 function friendly(reason: string): string {
   const r = reason.toLowerCase();
-  if (r.includes("appears in the passages") || r.includes("word for word")) return "the quotes it gave as evidence could not be found in the document, even after retries";
+  if (r.includes("does not point at any sentence") || r.includes("appears in the passages")) return "it could not show which sentences of the document the answer comes from, even after retries";
+  if (r.includes("on its own, so") || r.includes("repeats the earlier question") || r.includes("depends_on")) return "it could not write a follow-up that really depends on the earlier answers, even after retries";
   if (r.includes("too similar")) return "it kept repeating a question that had already been written";
   if (r.includes("stand on its own")) return "it kept referring to “the document” instead of asking a self-contained question";
   if (r.includes("four or more words") || r.includes("evidence's own words")) return "it could not phrase the question indirectly enough";

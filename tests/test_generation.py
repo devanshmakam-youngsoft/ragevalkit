@@ -79,6 +79,7 @@ class FakeLLM:
             raise ConnectionError("network down")
         system, user = messages[0]["content"], messages[1]["content"]
         passages = [p.strip() for p in re.findall(r"\[Passage [AB]\] \([^)]*\)\n(.*?)(?=\n\n\[Passage|\n\nQuestions already|\Z)", user, re.S)]
+        passages = [re.sub(r"\[[AB]\d+\] ", "", p) for p in passages]      # the sentence numbers are not part of the text
 
         def quote(text, k):
             words = text.split()
@@ -214,8 +215,8 @@ def test_a_valid_item_passes_and_keeps_its_evidence_with_the_page():
 
 
 @pytest.mark.parametrize("changes, expected", [
-    ({"evidence": ["Employees can submit claims whenever they feel like it at all."]}, "appears in the passages"),   # invented quote
-    ({"evidence": ["too short"]}, "appears in the passages"),
+    ({"evidence": ["Employees can submit claims whenever they feel like it at all."]}, "does not point at any sentence"),   # invented quote
+    ({"evidence": ["too short"]}, "does not point at any sentence"),
     ({"question": "According to the document, what is the deadline?"}, "stand on its own"),
     ({"question": "Why?"}, "between 12 and 400"),
     ({"expected_answer": ""}, "expected answer"),

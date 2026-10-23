@@ -9,7 +9,7 @@ from ragevalkit.generator.planning import Task
 
 COMMON_RULES = """You write test questions for an assistant that answers questions from a company's documents. A tester will put your question to that assistant and compare its reply with your expected answer, so both must be right.
 
-You are given one or two passages from a single document.
+You are given one or two passages from a single document. Each passage is shown as numbered sentences, such as [A1], [A2], [B1].
 
 Ground rules
 - Use ONLY the passages. Every fact in the expected answer must be stated in them. Never add outside knowledge.
@@ -20,9 +20,9 @@ Ground rules
 - The expected answer is complete but short (one to three sentences) and states the facts the assistant must give.
 
 Evidence
-- "evidence" lists the sentences that prove the answer, copied character for character from the passages: one sentence or clause each, 8 to 30 words. Do not paraphrase, do not shorten with "...", do not change punctuation or wording."""
+- "evidence" lists the numbers of the sentences that prove the answer, for example ["A3", "A4"]. Give the one to three sentences that actually state the facts you used, and only numbers that appear in the passages. Give numbers only: never copy or retype the sentence."""
 
-_SINGLE_FORMAT = 'Reply with JSON only: {"question": "...", "expected_answer": "...", "evidence": ["exact sentence from the passage"]}'
+_SINGLE_FORMAT = 'Reply with JSON only: {"question": "...", "expected_answer": "...", "evidence": ["A3"]}'
 
 CATEGORY_RULES = {
     "direct": f"""Write ONE direct question. It asks for a fact that one passage states plainly, so a good assistant answers it by finding that sentence.
@@ -39,9 +39,9 @@ Never copy a phrase of four or more words from the passages into the question.
 
 {_SINGLE_FORMAT}""",
 
-    "multipart": """Write ONE multi-part question: a single question that asks for two or more distinct things, joined the way a person would ("What is X, and who has to approve Y?", "How long does X take, and what happens if Y?"). Each part must be answered by a DIFFERENT passage (Passage A and Passage B). The expected answer addresses every part, in order. Give at least one evidence sentence from each passage.
+    "multipart": """Write ONE multi-part question: a single question that asks for two or more distinct things, joined the way a person would ("What is X, and who has to approve Y?", "How long does X take, and what happens if Y?"). Each part must be answered by a DIFFERENT passage (Passage A and Passage B). The expected answer addresses every part, in order. Cite at least one sentence from each passage.
 
-Reply with JSON only: {"question": "...", "expected_answer": "...", "evidence": ["sentence from Passage A", "sentence from Passage B"]}""",
+Reply with JSON only: {"question": "...", "expected_answer": "...", "evidence": ["A2", "B4"]}""",
 
     "multiturn": """Write ONE realistic conversation of exactly {turns} turns between a user and an assistant that answers from the passages.
 
@@ -51,8 +51,9 @@ How the conversation must work
 - Do NOT repeat the topic's name or the nouns the user already used: people say "it", not "the expense claim submission deadline".
 - Each follow-up builds on something the previous answer actually said (a number, a condition, a name, an option) and moves the conversation forward: dig into a detail, ask about an exception or a consequence, compare with another case, or ask what happens next. Never just start a new, unrelated question.
 - Keep the whole conversation on one topic.
-- Each answer must still come from the passages. An expected answer may use what the earlier answers established.
+- Each answer must still come from the passages. An expected answer may use what the earlier answers established. Every turn has its own "evidence": the numbers of the sentences that support THAT turn's answer.
 - For every turn after the first add "depends_on": one short sentence saying exactly what from the earlier turns the question relies on.
+- Check before you reply: read each follow-up on its own, as if it were the first message. If it makes sense alone, rewrite it so it refers back.
 
 Bad follow-up (it stands alone, so it is just another direct question): "What is the deadline for submitting expense claims?"
 Good follow-up (it needs the earlier answer): "And what happens if I miss that?"
@@ -62,7 +63,7 @@ Example of the style (a made-up topic; never reuse it):
 2. "Can I keep them longer than that?" (depends_on: "the three-week loan period")
 3. "And if somebody else is waiting for one of them?" (depends_on: "the books that may be kept longer")
 
-Reply with JSON only: {"turns": [{"question": "...", "expected_answer": "...", "evidence": ["exact sentence"], "depends_on": ""}, ...]}""",
+Reply with JSON only: {"turns": [{"question": "...", "expected_answer": "...", "evidence": ["A3"]}, {"question": "...", "expected_answer": "...", "evidence": ["A5"], "depends_on": "..."}, ...]}""",
 }
 
 RETRY_INSTRUCTION = "That was rejected: {reason}. Write a different one that follows every rule. Reply with JSON only."
@@ -74,7 +75,8 @@ def system_prompt(category: str, turns: int) -> str:
 
 def build_messages(task: Task, turns: int, avoid: list[str]) -> list[dict]:
     """The conversation sent to the model for one task: the rules, the passages, and what is already written."""
-    parts = [f"[Passage {'AB'[i]}] ({c.label})\n{c.text}" for i, c in enumerate(task.chunks[:2])]
+    parts = [f"[Passage {'AB'[i]}] ({c.label})\n" + "\n".join(f"[{'AB'[i]}{n}] {s}" for n, s in enumerate(c.sentences, 1))
+             for i, c in enumerate(task.chunks[:2])]
     user = "\n\n".join(parts)
     if avoid:
         user += "\n\nQuestions already written (do not repeat or closely resemble them):\n" + "\n".join(f"- {q}" for q in avoid[-12:])

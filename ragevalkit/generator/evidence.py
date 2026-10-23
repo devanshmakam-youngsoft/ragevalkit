@@ -43,9 +43,37 @@ def find_quote(quote: str, chunks: list[Chunk]) -> tuple[int, str] | None:
     return (best[1], best[2]) if best else None
 
 
+# a citation of numbered sentences: "A3", "[B2]", "3", "A3-A5", "A3, A4"
+_CITATION = re.compile(r"^\W*(?:([AB])\s*)?(\d{1,3})(?:\s*[-–]\s*(?:[AB]\s*)?(\d{1,3}))?\W*$", re.I)
+
+
+def cited(text: str, chunks: list[Chunk]) -> list[tuple[int, str]] | None:
+    """The sentences a citation such as "A3, B2" points at, as (passage index, sentence), or None when ``text``
+    is not a citation at all (then it is read as a quote). A number that does not exist points at nothing."""
+    parts = [p.strip() for p in re.split(r"[,;&]|\band\b", text) if p.strip()]
+    if not parts or len(text) > 40:
+        return None
+    found: list[tuple[int, str]] = []
+    for part in parts:
+        match = _CITATION.match(part)
+        if not match:
+            return None
+        letter, first, last = match.group(1), int(match.group(2)), int(match.group(3) or match.group(2))
+        index = "AB".index(letter.upper()) if letter else 0
+        if index >= len(chunks):
+            continue
+        sentences = chunks[index].sentences
+        for number in range(first, min(last, first + 5) + 1):
+            if 1 <= number <= len(sentences):
+                found.append((index, sentences[number - 1]))
+    return found
+
+
 def _strings(value) -> list[str]:
     """Every piece of text in a reply field, whatever shape the model gave it: a list of quotes, a list of
     objects, or a mapping such as {"A": "...", "B": "..."} (the keys are ignored)."""
+    if isinstance(value, int) and not isinstance(value, bool):
+        return [str(value)]
     if isinstance(value, str):
         return [value]
     if isinstance(value, dict):
@@ -71,15 +99,27 @@ def raw_evidence(reply: dict):
 
 
 def extract(value, chunks: list[Chunk]) -> list[dict]:
-    """The quotes in ``value`` that really are in the passages, with the file, page and passage letter each came from."""
+    """The evidence in ``value`` that really is in the passages, with the file, page and passage letter of each.
+
+    The model cites numbered sentences ("A3"); a quoted sentence is accepted too. Either way what is stored is
+    the passage's own wording."""
     found, seen = [], set()
+
+    def add(index: int, quote: str):
+        if quote in seen:
+            return
+        seen.add(quote)
+        chunk = chunks[index]
+        found.append({"quote": quote, "file": chunk.file, "page": chunk.page_of(normalise(quote)), "passage": "AB"[index] if index < 2 else "A"})
+
     for text in _strings(value):
+        by_number = cited(text, chunks)
+        if by_number is not None:
+            for index, sentence in by_number:
+                add(index, sentence)
+            continue
         for fragment in _fragments(text):
             hit = find_quote(fragment, chunks)
-            if hit is None or hit[1] in seen:
-                continue
-            index, quote = hit
-            seen.add(quote)
-            chunk = chunks[index]
-            found.append({"quote": quote, "file": chunk.file, "page": chunk.page_of(normalise(quote)), "passage": "AB"[index] if index < 2 else "A"})
+            if hit is not None:
+                add(*hit)
     return found[:MAX_EVIDENCE]

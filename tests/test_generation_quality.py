@@ -95,7 +95,7 @@ def test_the_multiturn_prompt_demands_follow_ups_that_cannot_stand_alone():
 @pytest.mark.parametrize("category", ["direct", "indirect", "multipart", "multiturn"])
 def test_every_prompt_states_the_grounding_rules_and_the_reply_format(category):
     prompt = system_prompt(category, 3)
-    assert "Use ONLY the passages" in prompt and "character for character" in prompt and "Reply with JSON only" in prompt
+    assert "Use ONLY the passages" in prompt and "Give numbers only" in prompt and "Reply with JSON only" in prompt
     assert category in CATEGORY_RULES
 
 
@@ -188,3 +188,90 @@ def test_new_cases_default_to_rag_and_can_be_non_rag(client):
     imported = client.post("/api/test-cases/import", files={"file": ("c.csv", b"question\nWhat is the SLA?\n", "text/csv")}).json()
     assert imported["new"] == 1
     assert {c["type"] for c in client.get("/api/test-cases").json()} == {"rag", "non-rag"}
+
+
+# ---- evidence is cited by sentence number ------------------------------------------------------------
+
+def numbered(text=PASSAGE):
+    return chunk(text)
+
+
+def test_the_prompt_shows_each_passage_as_numbered_sentences_to_cite():
+    user = build_messages(Task("direct", "a.md", [numbered()], 1), 3, [])[1]["content"]
+    assert "[A1] Employees must submit expense claims within thirty days of travel." in user
+    assert "[A4] Receipts are required for every item above twenty-five dollars." in user
+
+
+@pytest.mark.parametrize("evidence", [["A2"], ["[A2]"], "A2", ["a2"], [2], ["2"], [{"id": "A2"}]])
+def test_evidence_cited_by_number_is_stored_as_the_passages_own_sentence(evidence):
+    turns, reason = validate(Task("direct", "a.md", [numbered()], 1), dict(FIRST, evidence=evidence), turns=3, avoid=[])
+    assert reason == "", reason
+    assert [e["quote"] for e in turns[0]["evidence"]] == ["Managers approve claims above five hundred dollars within five working days."]
+    assert turns[0]["evidence"][0]["passage"] == "A" and turns[0]["evidence"][0]["page"] == "page 1"
+
+
+def test_several_numbers_and_ranges_are_read_and_unknown_numbers_prove_nothing():
+    task = Task("direct", "a.md", [numbered()], 1)
+    turns, _ = validate(task, dict(FIRST, evidence=["A1, A3"]), turns=3, avoid=[])
+    assert len(turns[0]["evidence"]) == 2
+    turns, _ = validate(task, dict(FIRST, evidence=["A1-A3"]), turns=3, avoid=[])
+    assert len(turns[0]["evidence"]) == 3
+    turns, reason = validate(task, dict(FIRST, evidence=["A40"]), turns=3, avoid=[])
+    assert turns is None and "sentence numbers" in reason
+
+
+def test_multipart_numbers_point_at_the_right_passage():
+    two = Task("multipart", "a.md", [numbered(), numbered("Visitors must sign in at the front desk before entering the building. Badges must be worn at all times.")], 1)
+    turns, reason = validate(two, dict(FIRST, question="What is the claim deadline, and what must visitors do?", evidence=["A1", "B1"]), turns=3, avoid=[])
+    assert reason == "" and [e["passage"] for e in turns[0]["evidence"]] == ["A", "B"]
+    assert "front desk" in turns[0]["evidence"][1]["quote"]
+
+
+def test_a_wrapped_pdf_sentence_is_one_sentence_and_list_items_stay_apart():
+    text = ("Employees must submit expense claims\n\nwithin thirty days of travel. Managers approve\n\nclaims above five hundred dollars.\n\n"
+            "- Receipts are needed above twenty-five dollars\n- Late claims wait for the next cycle")
+    sentences = numbered(text).sentences
+    assert sentences[0] == "Employees must submit expense claims within thirty days of travel."
+    assert sentences[1] == "Managers approve claims above five hundred dollars."
+    assert sentences[2:] == ["Receipts are needed above twenty-five dollars", "Late claims wait for the next cycle"]
+
+
+def test_a_quote_is_still_accepted_when_the_model_copies_instead_of_citing():
+    turns, reason = validate(Task("direct", "a.md", [numbered()], 1), FIRST, turns=3, avoid=[])
+    assert reason == "" and turns[0]["evidence"][0]["quote"].startswith("Employees must submit")
+
+
+# ---- conversations: more ways to refer back, and the reason names the turn ---------------------------
+
+@pytest.mark.parametrize("question", [
+    "Does this apply on weekends too?",
+    "Is there another way to get paid sooner?",
+    "What happens to the rest of them?",
+    "Do both need approval?",
+])
+def test_more_everyday_ways_of_referring_back_are_accepted(question):
+    assert check(FIRST, follow_up(question))[1] == ""
+
+
+def test_a_rejected_follow_up_names_its_turn_and_quotes_the_question_back():
+    _, reason = check(FIRST, follow_up("When are late expense claims paid by finance?"))
+    assert reason.startswith("turn 2:") and '"When are late expense claims paid by finance?"' in reason
+    _, reason = check(FIRST, follow_up("And what if I miss that?", quote="Nothing like this is in the passage at all."))
+    assert reason.startswith("turn 2:") and "sentence numbers" in reason
+
+
+def test_single_question_reasons_have_no_turn_prefix():
+    _, reason = validate(Task("direct", "a.md", [chunk()], 1), dict(FIRST, question="Why?"), turns=3, avoid=[])
+    assert not reason.startswith("turn")
+
+
+def test_markdown_headings_lists_tables_and_abbreviations_are_numbered_sensibly():
+    text = ("## 3. Retell Caller Agent\n\nThe agent answers inbound calls and routes them. It supports **English** and Spanish.\n\n"
+            "### Escalation rules\n- Calls longer than 10 minutes are escalated to a human agent\n\n"
+            "| Plan | Minutes |\n|---|---|\n| Basic | 500 |\n\n"
+            "Billing is monthly. Overage is charged at $0.10 per minute, e.g. Basic plans pay more.")
+    assert chunk(text).sentences == [
+        "Retell Caller Agent", "The agent answers inbound calls and routes them.", "It supports English and Spanish.",
+        "Escalation rules", "Calls longer than 10 minutes are escalated to a human agent",
+        "Plan Minutes Basic 500", "Billing is monthly.", "Overage is charged at $0.10 per minute, e.g. Basic plans pay more.",
+    ]
