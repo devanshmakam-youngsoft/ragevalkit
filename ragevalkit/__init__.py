@@ -88,6 +88,8 @@ def serve(
     judge_prompt: str | None = None,
     judge_retries: int = 3,
     judge_fn: Callable | None = None,
+    # --- writing test cases from documents ---
+    generator_model: str | None = None,
     # --- scoring / recommendation ---
     answer_weight: float = 0.6,
     material_weight: float = 0.4,
@@ -163,6 +165,9 @@ def serve(
                 def my_judge(question, expected, generated, material) -> dict:
                     return {"answer_marks": 8, "answer_comment": "Good."}
 
+        generator_model: LiteLLM model that writes test cases from uploaded documents (Test Cases →
+            Generate from documents). Defaults to ``judge_model``. The text of the documents is sent to it,
+            so choose a model you are allowed to send them to (a local ``ollama/...`` model works).
         answer_weight: Weight of ``answer_marks`` in the version recommendation score.
         material_weight: Weight of ``material_marks``. Set to ``0`` for systems with no retrieval.
         recommendation_tolerance: Versions within this quality-score delta are considered tied.
@@ -257,6 +262,8 @@ def serve(
     if summary_prompt is not None:
         cfg_extra["summary_prompt"] = summary_prompt
     cfg_extra["source_check_mode"] = source_check_mode
+    if generator_model:
+        cfg_extra["generator_model"] = generator_model
 
     config = Config(
         backend_port=port,

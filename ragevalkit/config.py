@@ -39,6 +39,15 @@ class Config(BaseSettings):
     judge_temperature: float | None = None
     judge_retries: int = 3
 
+    # Writing test cases from documents
+    # Model that writes the questions; empty means "use judge_model". Document text is sent to it.
+    generator_model: str = ""
+    generate_max_files: int = 5
+    generate_max_file_mb: int = 50
+    generate_per_category_max: int = 10
+    generate_workers: int = 4          # questions written in parallel
+    batch_ttl_hours: int = 24          # generated questions not approved within this time are deleted
+
     # Source check mode
     # "keyword" — fast substring match on pipe-separated expected_sources (default)
     # "llm"     — LLM decides whether retrieved sources cover expected sources; adds source_score + source_comment

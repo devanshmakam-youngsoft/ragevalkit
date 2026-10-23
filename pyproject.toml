@@ -32,6 +32,7 @@ dependencies = [
     "pandas>=2.2",
     "openpyxl>=3.1",
     "sentence-transformers>=3.0",
+    "pypdf>=4.0",
 ]
 
 [project.optional-dependencies]

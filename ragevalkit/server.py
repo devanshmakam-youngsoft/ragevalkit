@@ -9,7 +9,8 @@ from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from ragevalkit.config import Config
-from ragevalkit.routes import auth, health, imports, runs
+from ragevalkit.routes import auth, generate, health, imports, runs
+from ragevalkit.generator import GenerationManager
 from ragevalkit.runner import RunManager
 from ragevalkit.store import EvalStore
 
@@ -28,6 +29,7 @@ def create_app(
     extra_metrics: dict | None = None,
     on_complete: Callable | None = None,
     session_id_fn: Callable | None = None,
+    generation_llm: Callable | None = None,
 ) -> FastAPI:
     if config.eval_secret == DEFAULT_SECRET and config.require_login:
         logger.warning("Using the default EVAL_SECRET. Set a strong secret before exposing this service.")
@@ -64,10 +66,12 @@ def create_app(
         session_id_fn=session_id_fn,
     )
 
+    app.state.generator = GenerationManager(config, app.state.store, llm=generation_llm)
+
     if config.eval_env == "uat":
         logger.info("ragevalkit: eval_env='uat' — UAT recording mode active.")
 
-    for module in (health, auth, imports, runs):
+    for module in (health, auth, generate, imports, runs):
         app.include_router(module.router)
 
     # SPA fallback: on refresh, the browser requests /datasets, /groups, etc. directly.

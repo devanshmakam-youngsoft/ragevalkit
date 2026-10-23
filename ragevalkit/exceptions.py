@@ -28,6 +28,10 @@ class DatasetError(RagevalError):
     """Dataset file is missing, unreadable, or fails column validation."""
 
 
+class DocumentError(RagevalError):
+    """An uploaded document could not be read (scanned, password-protected, unsupported or empty)."""
+
+
 # ---------------------------------------------------------------------------
 # Store
 # ---------------------------------------------------------------------------

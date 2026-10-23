@@ -399,6 +399,7 @@ class EvalStore:
         self.test_cases = self.db.table("test_cases")
         self.groups = self.db.table("groups")
         self.group_members = self.db.table("group_members")
+        self.batches = self.db.table("gen_batches")  # generated test cases waiting for review
         self._lock = threading.Lock()
 
     # ------------------------------------------------------------------
@@ -927,6 +928,47 @@ class EvalStore:
         return self._with_groups([record])[0]
 
     # ------------------------------------------------------------------
+    # Review batches: test cases written from documents, saved as they are made and kept until approved
+    # ------------------------------------------------------------------
+
+    def save_batch(self, batch: dict) -> None:
+        with self._lock:
+            self.batches.upsert(json.loads(json.dumps(batch)), Query().batch_id == batch["batch_id"])
+
+    def get_batch(self, batch_id: str) -> dict | None:
+        self.purge_expired_batches()
+        with self._lock:
+            hits = self.batches.search(Query().batch_id == batch_id)
+            return dict(hits[0]) if hits else None
+
+    def list_batches(self) -> list[dict]:
+        """Batches waiting for review, newest first."""
+        self.purge_expired_batches()
+        with self._lock:
+            return sorted((dict(b) for b in self.batches.all()), key=lambda b: b.get("created_at", ""), reverse=True)
+
+    def delete_batch(self, batch_id: str) -> bool:
+        with self._lock:
+            return bool(self.batches.remove(Query().batch_id == batch_id))
+
+    def purge_expired_batches(self) -> int:
+        """Delete batches nobody approved in time (never one that is still being written)."""
+        now = datetime.now(timezone.utc).isoformat()
+        with self._lock:
+            expired = [b.doc_id for b in self.batches.all() if b.get("status") != "running" and b.get("expires_at", "9") < now]
+            if expired:
+                self.batches.remove(doc_ids=expired)
+        return len(expired)
+
+    def interrupt_running_batches(self) -> int:
+        """After a restart nothing is writing any more: mark such batches so what they saved can be reviewed."""
+        with self._lock:
+            running = [b.doc_id for b in self.batches.all() if b.get("status") == "running"]
+            if running:
+                self.batches.update({"status": "interrupted"}, doc_ids=running)
+        return len(running)
+
+    # ------------------------------------------------------------------
     # Group management (groups are labels on test cases)
     # ------------------------------------------------------------------
 
@@ -1125,6 +1167,8 @@ class EvalStore:
                         record = {k: v for k, v in existing.items() if not k.startswith("_")}
                         record.pop("doc_id", None)
                         record.update(fields, version=existing["version"] + 1, updated_at=now)
+                        if r.get("origin"):
+                            record["origin"] = r["origin"]
                         inserts.append(record)
                         latest[target] = record
                 else:
@@ -1132,6 +1176,7 @@ class EvalStore:
                     record = {
                         "tc_id": tc_id, "version": 1, "chat_id": r["chat_id"], "turn_no": r["turn_no"],
                         **fields, "status": "active", "created_at": now, "updated_at": now,
+                        **({"origin": r["origin"]} if r.get("origin") else {}),  # e.g. generated from a document
                     }
                     inserts.append(record)
                     latest[tc_id] = record
