@@ -5,6 +5,8 @@ import { AddToGroupModal } from "./AddToGroupModal";
 import type { Crumb } from "./Breadcrumbs";
 import { ExecuteModal } from "./ExecuteModal";
 import { ChatTurn, GroupChips } from "./GroupChips";
+import { GenerateDialog } from "./GenerateDialog";
+import { GenerationBanner } from "./GenerationBanner";
 import { GroupHistory } from "./GroupHistory";
 import { ImportDialog } from "./ImportDialog";
 import { Pager, usePaging } from "./Pager";
@@ -46,6 +48,8 @@ export default function TestCases() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showGroupRun, setShowGroupRun] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [generate, setGenerate] = useState<{ resumeId?: string } | null>(null);
+  const [bannerKey, setBannerKey] = useState(0);
   const headerBox = useRef<HTMLInputElement>(null);
 
   const realGroupId = groupId && groupId !== NO_GROUP ? groupId : "";
@@ -168,6 +172,10 @@ export default function TestCases() {
             </p>
           </div>
           <div className="ml-auto flex items-center gap-2">
+            <button onClick={() => setGenerate({})}
+              className="rounded border border-line bg-surface px-4 py-2 text-sm font-medium hover:bg-surface-2">
+              Generate from documents
+            </button>
             <button onClick={() => setShowImport(true)}
               className="rounded border border-line bg-surface px-4 py-2 text-sm font-medium hover:bg-surface-2">
               Import
@@ -182,6 +190,8 @@ export default function TestCases() {
         </div>
 
         <SectionTabs active={realGroupId ? "groups" : "all"} />
+
+        <GenerationBanner refreshKey={bannerKey} onOpen={(id) => setGenerate({ resumeId: id })} />
 
         {realGroupId && <GroupHistory groupId={realGroupId} onRun={() => setShowGroupRun(true)} />}
 
@@ -276,7 +286,7 @@ export default function TestCases() {
               <div className="font-serif text-lg">No test cases found</div>
               <div className="mt-1 text-sm text-muted">
                 {cases.length === 0 && !realGroupId && statusFilter === "active"
-                  ? "Add one with “New test case”, or bring many in at once with Import."
+                  ? "Add one with “New test case”, bring many in with Import, or write them from a document with “Generate from documents”."
                   : "Nothing matches the current filters."}
               </div>
             </div>
@@ -357,6 +367,13 @@ export default function TestCases() {
             tcIds={ids}
             onClose={() => setShowAdd(false)}
             onDone={(message) => { setShowAdd(false); setNotice(message); setChecked(new Set()); load(); loadGroups(); }}
+          />
+        )}
+        {generate && (
+          <GenerateDialog
+            resumeId={generate.resumeId}
+            onClose={() => { setGenerate(null); setBannerKey((k) => k + 1); load(); loadGroups(); }}
+            onDone={(message) => { setGenerate(null); setBannerKey((k) => k + 1); setNotice(message); load(); loadGroups(); }}
           />
         )}
         {showImport && (
@@ -536,6 +553,18 @@ function TestCaseDrawer({ tc, groups, onClose, onChanged, onDeleted }: {
             <ReadField label="Question">{tc.question}</ReadField>
             <ReadField label="Expected answer">{tc.expected_answer}</ReadField>
             {tc.expected_sources && <ReadField label="Expected sources">{tc.expected_sources}</ReadField>}
+            {tc.origin?.kind === "generated" && (
+              <div>
+                <div className="label mb-1">Written from your document</div>
+                <div className="space-y-2 rounded bg-surface-2 p-3 text-sm">
+                  {tc.origin.evidence.map((e, i) => (
+                    <blockquote key={i} className="border-l-2 border-line pl-3 italic text-muted">
+                      “{e.quote}” <span className="not-italic">— {e.file}, {e.page}</span>
+                    </blockquote>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="flex flex-wrap gap-2 pt-1">
               <button onClick={() => setEditing(true)}
                 className="rounded border border-line px-4 py-2 text-sm font-medium hover:bg-surface-2">

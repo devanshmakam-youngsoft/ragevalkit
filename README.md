@@ -97,6 +97,23 @@ Follow-up questions need the turns before them, so by default a run also include
 
 **Deleting a test case or a group only hides it.** Nothing is removed, so past versions that used it still read correctly; filter by *Deleted* (test cases) or open *Deleted groups* (Groups page) to restore one. *Delete forever* is offered only for things that are already deleted. Deleting a **version** removes it and its results from the store for good. To take a test case out of runs without hiding it, mark it *inactive*.
 
+## Generating test cases from documents
+
+**Test Cases → Generate from documents** writes test cases from your own documents (PDF, TXT or Markdown; up to 5 files, 50 MB each). By default it writes 3 questions in each of four categories and puts them in a group per category:
+
+| Category | What it is |
+|---|---|
+| **Direct** | The answer is stated plainly in one place. |
+| **Indirect** | The answer is in the document, but the question uses everyday words or describes a situation rather than the document's own wording. |
+| **Multi-part** | One question with several parts, answered from different places in the document. |
+| **Multi-turn** | A short conversation (3 turns by default) whose follow-ups only make sense with the earlier answers. |
+
+- **Questions per category** is shared across the files you upload; change it (1–10) and which categories to write in the dialog.
+- **Every answer comes with evidence.** Each question stores the exact passage it was written from, with file and page. The writer is told to quote word for word and every quote is checked against the document: a question whose evidence is not really in the document is rejected and rewritten. Evidence is shown during review and later on the test case ("Written from your document"), and the file name becomes the case's `expected_sources`.
+- **Saved as it goes, approved by you.** Questions are saved on the server while they are being written, so closing the browser or losing the network loses nothing; a banner on the Test Cases page brings you back. They only become test cases when you press *Add*; you can edit or remove any of them first. Anything not added within 24 hours (`batch_ttl_hours`) is deleted.
+- **Nothing of the upload is kept** — only the questions, answers and evidence snippets.
+- **Which model writes them:** `serve(generator_model=...)`, defaulting to `judge_model`. The text of your documents is sent to that model, so pick one you are allowed to send them to (a local `ollama/...` model works). Scanned PDFs (no selectable text) and password-protected PDFs are reported with a clear message.
+
 ## Importing test cases in bulk
 
 **Test Cases → Import** takes an Excel or CSV file, or rows pasted from a spreadsheet, in three steps: pick the file, check what will happen, then choose where the cases go. Nothing is saved until the last step.

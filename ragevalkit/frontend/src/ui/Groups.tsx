@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { ExecuteModal } from "./ExecuteModal";
+import { GenerateDialog } from "./GenerateDialog";
+import { GenerationBanner } from "./GenerationBanner";
 import { ImportDialog } from "./ImportDialog";
 import { SectionTabs } from "./SectionTabs";
 import { TopBar } from "./TopBar";
@@ -16,6 +18,8 @@ export default function Groups() {
   const [importErr, setImportErr] = useState("");
   const [notice, setNotice] = useState("");
   const [importFor, setImportFor] = useState<{ groupId?: string } | null>(null);
+  const [generate, setGenerate] = useState<{ resumeId?: string } | null>(null);
+  const [bannerKey, setBannerKey] = useState(0);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const [deletedGroups, setDeletedGroups] = useState<Group[]>([]);
   const [showDeleted, setShowDeleted] = useState(false);
@@ -84,6 +88,10 @@ export default function Groups() {
             <p className="mono mt-2 text-xs text-muted">Questions and expected answers tracked across eval runs</p>
           </div>
           <div className="flex items-center gap-2">
+            <button onClick={() => setGenerate({})}
+              className="rounded border border-line bg-surface px-4 py-2 text-sm font-medium hover:bg-surface-2">
+              Generate from documents
+            </button>
             <button onClick={() => setImportFor({})}
               className="rounded border border-line bg-surface px-4 py-2 text-sm font-medium hover:bg-surface-2">
               Import
@@ -104,6 +112,8 @@ export default function Groups() {
           group — or several — in one go. A test case can carry any number of labels, and you can also run hand-picked
           test cases from the All test cases tab. Click a group to see its test cases and how it has done.
         </div>
+
+        <GenerationBanner refreshKey={bannerKey} onOpen={(id) => setGenerate({ resumeId: id })} />
 
         {notice && <p className="mb-3 text-sm text-good" role="status">{notice}</p>}
         {importErr && <p className="mb-4 text-sm text-bad">{importErr}</p>}
@@ -238,6 +248,13 @@ export default function Groups() {
         </section>
       )}
 
+      {generate && (
+        <GenerateDialog
+          resumeId={generate.resumeId}
+          onClose={() => { setGenerate(null); setBannerKey((k) => k + 1); load(); }}
+          onDone={(message) => { setGenerate(null); setBannerKey((k) => k + 1); setNotice(message); load(); }}
+        />
+      )}
       {importFor && (
         <ImportDialog
           groups={groups ?? []}

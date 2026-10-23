@@ -1,5 +1,5 @@
 import { apiPath } from "./base";
-import type { DatasetInfo, Group, GroupHistory, ImportMapping, ImportPreview, ImportResult, RecoResult, RunPreview, RunSelection, RunState, TestCase, VersionDetail, VersionSummary } from "./types";
+import type { DatasetInfo, GenBatch, GenItem, GenLimits, GenSummary, GenTurn, Group, GroupHistory, ImportMapping, ImportPreview, ImportResult, RecoResult, RunPreview, RunSelection, RunState, TestCase, VersionDetail, VersionSummary } from "./types";
 
 /** Fired when any call comes back 401 so the app can return to the login page. */
 export const authEvents = new EventTarget();
@@ -145,6 +145,30 @@ export const api = {
     fetch(apiPath(`test-cases/${tcId}`), {
       method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(updates),
     }).then((r) => json<TestCase>(r)),
+  // Writing test cases from documents
+  generateLimits: () => fetch(apiPath("generate/limits")).then((r) => json<GenLimits>(r)),
+  generateList: () => fetch(apiPath("generate")).then((r) => json<GenSummary[]>(r)),
+  generateStart: (files: File[], o: { perCategory: number; categories: string[]; turns: number }) => {
+    const fd = new FormData();
+    files.forEach((f) => fd.append("files", f));
+    fd.append("per_category", String(o.perCategory));
+    fd.append("categories", JSON.stringify(o.categories));
+    fd.append("turns", String(o.turns));
+    return fetch(apiPath("generate"), { method: "POST", body: fd }).then((r) => json<GenSummary>(r));
+  },
+  generateGet: (id: string) => fetch(apiPath(`generate/${id}`)).then((r) => json<GenBatch>(r)),
+  generateEditItem: (id: string, itemId: string, turns: Pick<GenTurn, "question" | "expected_answer">[]) =>
+    fetch(apiPath(`generate/${id}/items/${itemId}`), {
+      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ turns }),
+    }).then((r) => json<GenItem>(r)),
+  generateRemoveItem: (id: string, itemId: string) =>
+    fetch(apiPath(`generate/${id}/items/${itemId}`), { method: "DELETE" }).then((r) => json<object>(r)),
+  generateApprove: (id: string, itemIds?: string[]) =>
+    fetch(apiPath(`generate/${id}/approve`), {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ item_ids: itemIds ?? null }),
+    }).then((r) => json<{ cases: number; items: number; discarded: number; groups: string[]; groups_created: string[] }>(r)),
+  generateCancel: (id: string) => fetch(apiPath(`generate/${id}/cancel`), { method: "POST" }).then((r) => json<object>(r)),
+  generateDiscard: (id: string) => fetch(apiPath(`generate/${id}`), { method: "DELETE" }).then((r) => json<object>(r)),
   // Bulk import of test cases
   importTemplateUrl: () => apiPath("test-cases/import/template"),
   previewImport: (file: File, o: { sheet?: string | null; mapping?: ImportMapping | null } = {}) => {

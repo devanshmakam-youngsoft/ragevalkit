@@ -188,7 +188,46 @@ export interface TestCase {
   updated_at?: string;
   /** Group labels this case carries (a case can have any number). */
   groups: GroupRef[];
+  /** Set on cases written from a document: where each answer comes from. */
+  origin?: { kind: string; file: string; evidence: GenEvidence[]; model?: string };
 }
+
+/** Writing test cases from documents. */
+export interface GenCategory { key: string; label: string }
+
+export interface GenLimits {
+  max_files: number;
+  max_file_mb: number;
+  per_category_max: number;
+  per_category_default: number;
+  turns_default: number;
+  categories: GenCategory[];
+  model: string;
+  ttl_hours: number;
+  formats: string[];
+}
+
+export interface GenEvidence { quote: string; file: string; page: string; passage?: string }
+export interface GenTurn { question: string; expected_answer: string; evidence: GenEvidence[] }
+export interface GenItem { item_id: string; category: string; file: string; number: number; chat_id: string; turns: GenTurn[] }
+
+export interface GenBatch {
+  batch_id: string;
+  status: "running" | "ready" | "failed" | "cancelled" | "interrupted";
+  created_at: string;
+  expires_at: string;
+  options: { per_category: number; categories: string[]; turns: number };
+  model: string;
+  files: { name: string; pages?: number | null; passages?: number; error?: string }[];
+  total_tasks: number;
+  done_tasks: number;
+  items: GenItem[];
+  errors: { category: string; file: string; reason: string }[];
+  error: string;
+}
+
+/** A batch without its items: what the "waiting for review" banner needs. */
+export type GenSummary = Omit<GenBatch, "items"> & { item_count: number; case_count: number; by_category: Record<string, number> };
 
 /** The fields a test case import understands, and which file column feeds each. */
 export type ImportMapping = Record<string, string | null>;
