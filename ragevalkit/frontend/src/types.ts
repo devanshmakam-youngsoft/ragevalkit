@@ -51,7 +51,10 @@ export interface RecoResult {
   runner_up: string | null;
   latest_gap: { version: string; gap: number } | null;
   not_comparable: string[];
+  /** Why each version in `not_comparable` was left out. */
+  not_comparable_detail: Record<string, string>;
   excluded: string[];
+  excluded_detail: Record<string, string>;
   budget_miss: boolean;
   /** "weighted" = answer + material; "answer_only" = material was not graded for every version. */
   basis: "weighted" | "answer_only";
@@ -61,6 +64,12 @@ export interface RecoResult {
   max_time: number | null;
   qualities: Record<string, number | null>;
   considered: number;
+  /** How many test cases the comparison was made on: the ones every compared version ran. */
+  compared_cases: number | null;
+  /** Versions that ran more test cases than were compared (judged on the shared ones only). */
+  partial: { version: string; ran: number; compared: number }[];
+  /** Each compared version's scores on the shared test cases. */
+  scores: Record<string, { answer: number | null; material: number | null; time: number | null; cases: number; quality: number | null }>;
 }
 
 /** One group's scores in one run. */
@@ -83,6 +92,7 @@ export interface GroupHistory {
   best: GroupRunStat | null;
   reason: string;
   basis_note: string;
+  compared_cases?: number | null;
   runs: GroupRunStat[];
 }
 

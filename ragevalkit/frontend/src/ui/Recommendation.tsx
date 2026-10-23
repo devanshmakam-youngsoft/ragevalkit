@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { fmt, fmtSeconds } from "../lib";
+import { fmt, fmtSeconds, plural } from "../lib";
 import type { RecoResult, VersionSummary } from "../types";
 import { GLOSSARY, Term } from "./Hint";
 import { Mark } from "./parts";
@@ -30,17 +30,19 @@ function scoresOf(v: VersionSummary, group: string | null) {
   };
 }
 
-const describe = (v: VersionSummary, group: string | null) => {
-  const s = scoresOf(v, group);
+/** A version's scores as compared: on the shared test cases when the server compared on them. */
+const describe = (v: VersionSummary, group: string | null, reco: RecoResult | null) => {
+  const shared = reco?.scores[String(v.version)];
+  const s = shared ? { answer: shared.answer, material: shared.material, time: shared.time } : scoresOf(v, group);
   return `answer ${fmt(s.answer)}, context ${fmt(s.material)}, ${fmtSeconds(s.time)}`;
 };
 
-function Side({ title, v, group }: { title: string; v: VersionSummary; group: string | null }) {
+function Side({ title, v, group, reco }: { title: string; v: VersionSummary; group: string | null; reco: RecoResult | null }) {
   return (
     <div className="text-[13px] leading-snug">
       <span className="label mr-2">{title}</span>
       <Link to={`/v/${v.version}`} className="mono font-medium text-brand hover:underline">v{v.version}</Link>
-      <span className="text-muted"> · {describe(v, group)}</span>
+      <span className="text-muted"> · {describe(v, group, reco)}</span>
     </div>
   );
 }
@@ -62,7 +64,12 @@ export function Recommendation({ reco, versions, archivedCount, overrides, onCha
   const fastest = find(reco?.fastest ?? null);
   const runnerUp = find(reco?.runner_up ?? null);
   const quality = best && reco ? reco.qualities[String(best.version)] : null;
-  const bestScores = best ? scoresOf(best, groupName) : null;
+  const own = best ? scoresOf(best, groupName) : null;
+  const shared = best && reco ? reco.scores[String(best.version)] : undefined;
+  // the numbers the recommendation was based on (the shared test cases), falling back to the run's own
+  const bestScores = own ? { answer: shared?.answer ?? own.answer, material: shared ? shared.material : own.material, time: shared?.time ?? own.time } : null;
+  const ranCases = best ? (groupName ? best.group_stats?.[groupName]?.total_rows ?? best.total_rows : best.total_rows) : 0;
+  const ranGroups = best && !groupName ? best.group_names ?? [] : [];
   const list = (ids: string[]) => ids.map((id) => `v${id}`).join(", ");
 
   const weightsText = !reco ? "" : reco.basis === "answer_only"
@@ -77,7 +84,10 @@ export function Recommendation({ reco, versions, archivedCount, overrides, onCha
           {best ? (
             <>
               <div className="num mt-1.5 text-[56px] leading-none"><Mark>v{best.version}</Mark></div>
-              <Link to={`/v/${best.version}`} className="mono mt-2 inline-block text-xs text-brand hover:underline">open full results ›</Link>
+              <div className="mt-2 text-xs text-muted">
+                {plural(ranCases, "test case")} ran{ranGroups.length > 0 && <> · {ranGroups.join(", ")}</>}
+              </div>
+              <Link to={`/v/${best.version}`} className="mono mt-1 inline-block text-xs text-brand hover:underline">open full results ›</Link>
             </>
           ) : (
             <div className="num mt-2 text-[28px] leading-tight text-muted">{reco ? "None yet" : "…"}</div>
@@ -94,6 +104,12 @@ export function Recommendation({ reco, versions, archivedCount, overrides, onCha
             <p className="mt-3 text-[13px] text-muted">
               {reco.reason} <span className="mono">overall score {quality?.toFixed(2)}</span>
             </p>
+            {reco.compared_cases != null && (
+              <p className="mt-1 text-xs text-muted">
+                Compared on the {plural(reco.compared_cases, "test case")} every compared version ran.
+                {reco.partial.length > 0 && <> {reco.partial.map((p) => `v${p.version} ran ${p.ran}`).join(", ")} — judged on the shared {reco.compared_cases} only.</>}
+              </p>
+            )}
             {reco.basis_note && <p className="mt-1 text-xs text-warn">{reco.basis_note}</p>}
           </div>
         ) : (
@@ -105,19 +121,19 @@ export function Recommendation({ reco, versions, archivedCount, overrides, onCha
         )}
 
         <div className="space-y-1.5 border-line lg:border-l lg:pl-6">
-          {fastest && best && <Side title="Fastest" v={fastest} group={groupName} />}
-          {runnerUp && <Side title="Runner-up" v={runnerUp} group={groupName} />}
+          {fastest && best && <Side title="Fastest" v={fastest} group={groupName} reco={reco} />}
+          {runnerUp && <Side title="Runner-up" v={runnerUp} group={groupName} reco={reco} />}
           {reco?.latest_gap && (
             <div className="text-[13px]" style={{ color: "var(--bad)" }}>
               Latest v{reco.latest_gap.version} scores {reco.latest_gap.gap.toFixed(1)} lower overall.
             </div>
           )}
-          {reco && reco.not_comparable.length > 0 && (
-            <div className="text-xs text-muted">Not compared (different question set): {list(reco.not_comparable)}</div>
-          )}
-          {reco && reco.excluded.length > 0 && (
-            <div className="text-xs text-muted">Left out (failed rows or stopped early): {list(reco.excluded)}</div>
-          )}
+          {reco?.not_comparable.map((id) => (
+            <div key={`n${id}`} className="text-xs text-muted">Not compared: v{id} {reco.not_comparable_detail[id] ?? "ran different test cases"}.</div>
+          ))}
+          {reco?.excluded.map((id) => (
+            <div key={`e${id}`} className="text-xs text-muted">Left out: v{id} — {reco.excluded_detail[id] ?? "failed rows or stopped early"}.</div>
+          ))}
           {archivedCount > 0 && (
             <div className="text-xs text-muted">{archivedCount} archived version{archivedCount !== 1 ? "s are" : " is"} not part of this comparison.</div>
           )}

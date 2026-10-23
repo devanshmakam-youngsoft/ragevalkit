@@ -20,15 +20,17 @@ export function ScorePill({ value, suffix = "/10", digits = 1 }: { value: number
   );
 }
 
-export function Delta({ current, previous, invert = false, unit = "", digits = 1 }: {
+export function Delta({ current, previous, invert = false, unit = "", digits = 1, title }: {
   current: number | null | undefined; previous: number | null | undefined; invert?: boolean; unit?: string; digits?: number;
+  /** Explains what the change was measured on. */
+  title?: string;
 }) {
   if (current == null || previous == null) return null;
   const diff = current - previous;
-  if (Math.abs(diff) < 0.05 * Math.pow(10, 1 - digits)) return <span className="mono text-[11px] text-muted">±0</span>;
+  if (Math.abs(diff) < 0.05 * Math.pow(10, 1 - digits)) return <span className="mono text-[11px] text-muted" title={title}>±0</span>;
   const better = invert ? diff < 0 : diff > 0;
   return (
-    <span className="mono text-[11px] font-medium" style={{ color: better ? "var(--good)" : "var(--bad)" }}>
+    <span className="mono text-[11px] font-medium" title={title} style={{ color: better ? "var(--good)" : "var(--bad)" }}>
       {diff > 0 ? "+" : "−"}{Math.abs(diff).toFixed(digits)}{unit}
     </span>
   );

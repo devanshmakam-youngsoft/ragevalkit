@@ -5,7 +5,7 @@ import { api } from "../api";
 import { Delta, Mark, NodeTimings, ProgressBar, ScorePill, Stat } from "./parts";
 import { Recommendation } from "./Recommendation";
 import { TopBar } from "./TopBar";
-import { fmt, fmtDate, fmtSeconds, nodeMeta, scoreTone, unionNodes } from "../lib";
+import { fmt, fmtDate, fmtSeconds, nodeMeta, plural, scoreTone, unionNodes } from "../lib";
 import { useRun } from "../RunContext";
 import { GLOSSARY, Hint, Term } from "./Hint";
 import { Pager, usePaging } from "./Pager";
@@ -146,7 +146,57 @@ export default function Dashboard() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeVersions, groupFilter]);
   const latest = activeVersions[activeVersions.length - 1];
-  const prev = activeVersions.length > 1 ? activeVersions[activeVersions.length - 2] : undefined;
+
+  // Changes and BEST marks are measured on the test cases the compared versions share, so a version that
+  // ran extra cases is never judged on questions the others did not answer.
+  type Metric = "answer" | "material" | "time";
+  const hasShared = !!reco && Object.keys(reco.scores).length > 0;
+  const sharedScore = (v: VersionSummary, key: Metric) => reco?.scores[String(v.version)]?.[key] ?? null;
+  const partialOf = (v: VersionSummary) => reco?.partial.find((p) => p.version === String(v.version));
+  const prevShared = (v: VersionSummary) => {
+    for (let j = activeVersions.indexOf(v) - 1; j >= 0; j--) if (reco?.scores[String(activeVersions[j].version)]) return activeVersions[j];
+    return undefined;
+  };
+  const deltaProps = (v: VersionSummary, key: Metric, field: "avg_answer_marks" | "avg_material_marks" | "avg_total_time") => {
+    if (hasShared) {
+      const p = prevShared(v);
+      const cur = sharedScore(v, key);
+      if (!p || cur == null) return { current: null, previous: null };
+      return {
+        current: cur, previous: sharedScore(p, key),
+        title: `Change since v${p.version}, measured on the ${reco!.compared_cases} test cases both ran`,
+      };
+    }
+    if (!reco) return { current: null, previous: null };
+    const p = prevOf.get(v);
+    return { current: scoreOf(v, field), previous: p ? scoreOf(p, field) : undefined };
+  };
+  const isBestFor = (v: VersionSummary, key: Metric, field: "avg_answer_marks" | "avg_material_marks" | "avg_total_time", legacy: number | null) => {
+    if (hasShared) {
+      const vals = Object.values(reco!.scores).map((x) => x[key]).filter((n): n is number => n != null);
+      const cur = sharedScore(v, key);
+      return vals.length > 1 && cur != null && cur === (key === "time" ? Math.min(...vals) : Math.max(...vals));
+    }
+    return v.failed_rows === 0 && legacy != null && scoreOf(v, field) === legacy;
+  };
+  /** For a version that ran more cases than were compared: what it scored on the shared ones, with the BEST
+   *  mark beside it, because that mark was earned on the shared cases and not on the number shown above. */
+  const sharedNote = (v: VersionSummary, key: Metric, best: boolean) => {
+    const part = partialOf(v);
+    const sc = sharedScore(v, key);
+    if (!part || sc == null) return null;
+    return (
+      <span className="mono flex items-center gap-1.5 text-[10px] text-muted"
+        title={`It ran ${part.ran} test cases; the comparison uses the ${part.compared} that every compared version ran`}>
+        {key === "time" ? fmtSeconds(sc) : fmt(sc)} on the {part.compared} shared{best && <BestTag />}
+      </span>
+    );
+  };
+  const latestNote = !reco ? null : hasShared && !reco.scores[String(latest?.version)]
+    ? "Not compared with earlier versions: it ran different test cases, so there is no change to show."
+    : latest && partialOf(latest)
+      ? `It ran ${partialOf(latest)!.ran} test cases; changes are measured on the ${partialOf(latest)!.compared} it shares with earlier versions.`
+      : null;
 
   const trend = useMemo(() => activeVersions.map((v) => ({
     name: `v${v.version}`, "Answer quality": v.avg_answer_marks, "Context quality": v.avg_material_marks,
@@ -193,18 +243,30 @@ export default function Dashboard() {
       )}
 
       {latest && (
-        <section className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Stat label={<>{GLOSSARY.answer.label} · v{latest.version}{groupFilter ? ` · ${groupFilter}` : ""}<Hint text={GLOSSARY.answer.hint} /></>} accent="var(--brand)"
-            value={<><Mark color="var(--hl-good)">{fmt(scoreOf(latest, "avg_answer_marks"))}</Mark><span className="mono text-xs text-muted">/10</span><Delta current={scoreOf(latest, "avg_answer_marks")} previous={prev ? scoreOf(prev, "avg_answer_marks") : undefined} /></>}
+        <div className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <h2 className="label">Latest run</h2>
+          <span className="mono text-sm font-medium text-brand">v{latest.version}</span>
+          <span className="text-xs text-muted">
+            {plural(groupFilter ? latest.group_stats?.[groupFilter]?.total_rows ?? latest.total_rows : latest.total_rows, "test case")} · {fmtDate(latest.date)}
+            {groupFilter ? ` · ${groupFilter}` : ""}
+          </span>
+          {latestNote && <span className="text-xs text-warn">{latestNote}</span>}
+        </div>
+      )}
+
+      {latest && (
+        <section className="mt-2 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <Stat label={<Term k="answer" />} accent="var(--brand)"
+            value={<><Mark color="var(--hl-good)">{fmt(scoreOf(latest, "avg_answer_marks"))}</Mark><span className="mono text-xs text-muted">/10</span><Delta {...deltaProps(latest, "answer", "avg_answer_marks")} /></>}
             sub="average score out of 10, against the expected answers" />
           <Stat label={<Term k="context" />} accent="var(--sun)"
-            value={<><Mark color="var(--hl)">{fmt(scoreOf(latest, "avg_material_marks"))}</Mark><span className="mono text-xs text-muted">/10</span><Delta current={scoreOf(latest, "avg_material_marks")} previous={prev ? scoreOf(prev, "avg_material_marks") : undefined} /></>}
+            value={<><Mark color="var(--hl)">{fmt(scoreOf(latest, "avg_material_marks"))}</Mark><span className="mono text-xs text-muted">/10</span><Delta {...deltaProps(latest, "material", "avg_material_marks")} /></>}
             sub="did it find the information it needed?" />
           <Stat label={<>Avg response time<Hint text={GLOSSARY.time.hint} /></>} accent="var(--coral)"
-            value={<><Mark color="var(--hl-bad)">{fmtSeconds(scoreOf(latest, "avg_total_time"))}</Mark><Delta current={scoreOf(latest, "avg_total_time")} previous={prev ? scoreOf(prev, "avg_total_time") : undefined} invert digits={2} unit="s" /></>}
+            value={<><Mark color="var(--hl-bad)">{fmtSeconds(scoreOf(latest, "avg_total_time"))}</Mark><Delta {...deltaProps(latest, "time", "avg_total_time")} invert digits={2} unit="s" /></>}
             sub="from question to final answer" />
           <Stat label="Versions evaluated" accent="var(--plum)" value={<Mark>{activeVersions.length}</Mark>}
-            sub={`${latest.total_rows} questions in latest run`} />
+            sub={`${plural(latest.total_rows, "test case")} in the latest run`} />
         </section>
       )}
 
@@ -295,7 +357,6 @@ export default function Dashboard() {
                 </td></tr>
               )}
               {paging.rows.map((v) => {
-                const p = prevOf.get(v);
                 const isSelected = compareSelected.has(v.run_id);
                 return (
                   <tr key={String(v.version)}
@@ -324,9 +385,9 @@ export default function Dashboard() {
                       )}
                     </td>
                     <td className="mono px-3 py-4">{v.total_rows}</td>
-                    <td className="px-3 py-4"><div className="flex flex-col items-start gap-1"><ScorePill value={scoreOf(v, "avg_answer_marks")} /><Delta current={scoreOf(v, "avg_answer_marks")} previous={p ? scoreOf(p, "avg_answer_marks") : undefined} />{v.failed_rows === 0 && bests.answer != null && scoreOf(v, "avg_answer_marks") === bests.answer && <BestTag />}</div></td>
-                    <td className="px-3 py-4"><div className="flex flex-col items-start gap-1"><ScorePill value={scoreOf(v, "avg_material_marks")} /><Delta current={scoreOf(v, "avg_material_marks")} previous={p ? scoreOf(p, "avg_material_marks") : undefined} />{v.failed_rows === 0 && bests.material != null && scoreOf(v, "avg_material_marks") === bests.material && <BestTag />}</div></td>
-                    <td className="px-3 py-4"><div className="mono">{fmtSeconds(scoreOf(v, "avg_total_time"))}</div><Delta current={scoreOf(v, "avg_total_time")} previous={p ? scoreOf(p, "avg_total_time") : undefined} invert digits={2} unit="s" />{v.failed_rows === 0 && bests.time != null && scoreOf(v, "avg_total_time") === bests.time && <div><BestTag /></div>}</td>
+                    <td className="px-3 py-4"><div className="flex flex-col items-start gap-1"><ScorePill value={scoreOf(v, "avg_answer_marks")} /><Delta {...deltaProps(v, "answer", "avg_answer_marks")} />{sharedNote(v, "answer", isBestFor(v, "answer", "avg_answer_marks", bests.answer))}{!partialOf(v) && isBestFor(v, "answer", "avg_answer_marks", bests.answer) && <BestTag />}</div></td>
+                    <td className="px-3 py-4"><div className="flex flex-col items-start gap-1"><ScorePill value={scoreOf(v, "avg_material_marks")} /><Delta {...deltaProps(v, "material", "avg_material_marks")} />{sharedNote(v, "material", isBestFor(v, "material", "avg_material_marks", bests.material))}{!partialOf(v) && isBestFor(v, "material", "avg_material_marks", bests.material) && <BestTag />}</div></td>
+                    <td className="px-3 py-4"><div className="flex flex-col items-start gap-1"><div className="mono">{fmtSeconds(scoreOf(v, "avg_total_time"))}</div><Delta {...deltaProps(v, "time", "avg_total_time")} invert digits={2} unit="s" />{sharedNote(v, "time", isBestFor(v, "time", "avg_total_time", bests.time))}{!partialOf(v) && isBestFor(v, "time", "avg_total_time", bests.time) && <BestTag />}</div></td>
                     <td className="px-3 py-4"><NodeTimings v={v} compact /></td>
                     <td className="max-w-[340px] px-3 py-4 text-[13px] leading-relaxed text-muted"><WatchOuts v={v} /></td>
                     <td className="px-3 py-4 align-middle" onClick={(e) => e.stopPropagation()}>

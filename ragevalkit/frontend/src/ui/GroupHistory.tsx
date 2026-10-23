@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api";
-import { fmt, fmtDate, fmtSeconds } from "../lib";
+import { fmt, fmtDate, fmtSeconds, plural } from "../lib";
 import { useRun } from "../RunContext";
 import { GLOSSARY, Term } from "./Hint";
 import type { GroupHistory as History, GroupRunStat } from "../types";
@@ -77,6 +77,12 @@ export function GroupHistory({ groupId, onRun }: { groupId: string; onRun: () =>
         </button>
       </div>
       {history.basis_note && <p className="px-5 pb-3 text-xs text-warn">{history.basis_note}</p>}
+      {history.compared_cases != null && runs.length > 1 && (
+        <p className="px-5 pb-3 text-xs text-muted">
+          "Best" and the overall score compare versions on the {plural(history.compared_cases, "test case")} they all ran in this group.
+          The other columns show what the group scored in each run.
+        </p>
+      )}
 
       {runs.length > 0 && (
         <div className="overflow-x-auto border-t border-line">
