@@ -157,6 +157,33 @@ def build_scores(rows: list[dict]) -> dict:
     }
 
 
+def case_key(chat_id, turn_no, question, expected_answer) -> str:
+    """Identifies one test case *as it was asked*: the same chat, turn, question and expected answer.
+
+    Versions are compared on cases with the same key, so a case whose question or expected answer was
+    edited between two runs is not mistaken for the same test."""
+    raw = f"{chat_id}\x1f{turn_no}\x1f{str(question).strip()}\x1f{str(expected_answer).strip()}"
+    return hashlib.sha1(raw.encode("utf-8")).hexdigest()[:12]
+
+
+def build_case_scores(rows: list[dict]) -> list[dict]:
+    """The compact per-case scores of one run, saved on its summary so any two versions can later be
+    compared on the cases they share: {k: case key, a: answer marks, m: material marks, t: seconds,
+    ok: answered and graded, g: the groups the case belonged to when it ran}."""
+    out = []
+    for r in rows:
+        t = r.get("total_time_taken")
+        out.append({
+            "k": case_key(r.get("chat_id", ""), r.get("turn_no", 1), r.get("question", ""), r.get("expected_answer", "")),
+            "a": r.get("answer_marks"),
+            "m": r.get("material_marks"),
+            "t": None if t is None or _isnan(t) else t,
+            "ok": r.get("status") == "ok",
+            "g": list(r.get("groups") or []),
+        })
+    return out
+
+
 def build_summary(
     version: str,
     rows: list[dict],
@@ -187,6 +214,7 @@ def build_summary(
         "question_fingerprint": question_fingerprint,
         "comment": "",
         "scores": build_scores(rows),
+        "case_scores": build_case_scores(rows),
     }
     for n in node_order(rows):
         summary[f"avg_{n}"] = _mean([(r.get("node_timings") or {}).get(n) for r in rows], 3)
@@ -388,12 +416,41 @@ class EvalStore:
             self.receipts.remove(Q.version == version)
             self.receipts.insert_multiple([{**r, "version": version} for r in rows])
 
+    @staticmethod
+    def _plain(summary: dict) -> dict:
+        """A summary as the dashboard lists it: without the bulky per-case scores."""
+        entry = dict(summary)
+        entry.pop("case_scores", None)
+        return entry
+
+    def list_versions_for_comparison(self) -> list[dict]:
+        """Run summaries *with* per-case scores, for comparing versions. Runs saved before per-case
+        scores existed are filled in from their saved results once, then kept."""
+        with self._lock:
+            missing = [r["version"] for r in self.runs.all() if "case_scores" not in r]
+        for version in missing:
+            with self._lock:
+                rows = [dict(r) for r in self.receipts.search(Query().version == version)]
+            if not rows:
+                continue  # nothing saved to score from: such a run is compared on its totals
+            self._label_old_rows(rows)
+            scores = build_case_scores(rows)
+            with self._lock:
+                self.runs.update({"case_scores": scores}, Query().version == version)
+        with self._lock:
+            summaries = [dict(r) for r in self.runs.all()]
+        out = []
+        for entry in summaries:
+            entry["nodes"] = summary_nodes(entry)
+            out.append(entry)
+        return sorted(out, key=lambda s: str(s.get("date", "")))
+
     def list_versions(self) -> list[dict]:
         with self._lock:
             summaries = self.runs.all()
         out = []
         for s in summaries:
-            entry = dict(s)
+            entry = self._plain(s)
             entry["nodes"] = summary_nodes(entry)
             out.append(entry)
         return sorted(out, key=lambda s: str(s.get("date", "")))
@@ -404,7 +461,7 @@ class EvalStore:
             summaries = self.runs.all()
         out = []
         for s in summaries:
-            entry = dict(s)
+            entry = self._plain(s)
             if not include_archived and entry.get("archived"):
                 continue
             entry["nodes"] = summary_nodes(entry)
@@ -438,7 +495,7 @@ class EvalStore:
             hits = self.runs.search(Query().version == version)
             if not hits:
                 raise VersionNotFound(version)
-            summary = dict(hits[0])
+            summary = self._plain(hits[0])
             rows = [dict(r) for r in self.receipts.search(Query().version == version)]
         summary["nodes"] = summary_nodes(summary)
         for row in rows:

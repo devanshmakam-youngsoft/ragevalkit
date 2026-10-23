@@ -360,7 +360,7 @@ def get_recommendation(
     if tolerance is not None and tolerance < 0:
         raise HTTPException(422, "tolerance must be 0 or higher")
     cfg, store = request.app.state.config, request.app.state.store
-    return recommend(store.list_versions(), group=group, **_reco_settings(cfg, tolerance, max_time))
+    return recommend(store.list_versions_for_comparison(), group=group, **_reco_settings(cfg, tolerance, max_time))
 
 
 # ---------------------------------------------------------------------------
@@ -486,7 +486,7 @@ def list_groups(request: Request, include_deleted: bool = False) -> list[dict]:
     """List groups, each with its test case count and how it has done: last run and best version so far.
     Deleted groups are only included on request (``include_deleted=true``) and carry ``deleted_at``."""
     cfg, store = request.app.state.config, request.app.state.store
-    versions = store.list_versions()
+    versions = store.list_versions_for_comparison()
     out = []
     for g in store.list_groups(include_deleted=include_deleted):
         overview = group_overview(versions, g["name"], **_reco_settings(cfg))
@@ -506,7 +506,7 @@ def group_runs(group_id: str, request: Request) -> dict:
     group = next((g for g in store.list_groups() if g["group_id"] == group_id), None)
     if group is None:
         raise HTTPException(404, "Group not found")
-    return {"group": group, **group_overview(store.list_versions(), group["name"], **_reco_settings(cfg))}
+    return {"group": group, **group_overview(store.list_versions_for_comparison(), group["name"], **_reco_settings(cfg))}
 
 
 @router.post("/groups", status_code=201)
