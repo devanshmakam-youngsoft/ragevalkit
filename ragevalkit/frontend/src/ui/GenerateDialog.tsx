@@ -10,6 +10,18 @@ const DESCRIPTIONS: Record<string, string> = {
   multiturn: "A short conversation: each follow-up only makes sense with the earlier answers.",
 };
 
+/** A model-facing rejection reason, in words a person can act on. */
+function friendly(reason: string): string {
+  const r = reason.toLowerCase();
+  if (r.includes("appears in the passages") || r.includes("word for word")) return "the quotes it gave as evidence could not be found in the document, even after retries";
+  if (r.includes("too similar")) return "it kept repeating a question that had already been written";
+  if (r.includes("stand on its own")) return "it kept referring to “the document” instead of asking a self-contained question";
+  if (r.includes("four or more words") || r.includes("evidence's own words")) return "it could not phrase the question indirectly enough";
+  if (r.includes("both passage")) return "it could not combine two different parts of the document";
+  if (r.includes("could not be reached")) return `the AI model returned an error (${reason.replace(/^.*could not be reached:\s*/i, "").slice(0, 160)})`;
+  return reason;
+}
+
 const mb = (bytes: number) => (bytes / (1024 * 1024)).toFixed(bytes > 10 * 1024 * 1024 ? 0 : 1);
 
 function timeLeft(iso: string): string {
@@ -366,7 +378,7 @@ export function GenerateDialog({ resumeId, onClose, onDone }: {
               {batch.errors.length > 0 && (
                 <details className="mt-4 text-xs text-muted">
                   <summary className="cursor-pointer text-warn">{plural(batch.errors.length, "question")} could not be written</summary>
-                  <ul className="mt-1.5 space-y-1">{batch.errors.map((e, i) => <li key={i}>{labels[e.category] ?? e.category} · {e.file}: {e.reason}</li>)}</ul>
+                  <ul className="mt-1.5 space-y-1">{batch.errors.map((e, i) => <li key={i}>{labels[e.category] ?? e.category} · {e.file}: {friendly(e.reason)}</li>)}</ul>
                 </details>
               )}
             </>
