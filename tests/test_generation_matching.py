@@ -40,9 +40,9 @@ def test_imperfect_quotes_are_matched_and_stored_as_the_documents_exact_words(qu
     ch = chunk(MARKDOWN_PASSAGE)
     turns, reason = validate(direct([ch]), reply(evidence=[quote]), turns=3, avoid=[])
     assert reason == "", reason
-    stored = turns[0]["evidence"][0]["quote"]
-    assert stored in ch.cleaned                      # always the document's own text, never the model's version
-    assert "*" not in stored and "..." not in stored and len(stored.split()) >= 7
+    stored = [e["quote"] for e in turns[0]["evidence"]]
+    assert all(q in ch.cleaned for q in stored)      # always the document's own text, never the model's version
+    assert all("*" not in q and "..." not in q for q in stored) and sum(len(q.split()) for q in stored) >= 7
 
 
 @pytest.mark.parametrize("quote", [
@@ -94,3 +94,48 @@ def test_a_providers_json_mode_error_falls_back_to_asking_without_it(monkeypatch
 def test_replies_with_fences_and_chatter_are_still_read():
     assert _loads('Sure! Here it is:\n```json\n{"question": "q", "evidence": []}\n```\nHope that helps.')["question"] == "q"
     assert _loads("not json at all") is None
+
+
+# ---- evidence comes back in many shapes, especially for multi-part questions ---------------------------------
+
+PASSAGE_A = ("Employees must submit expense claims within thirty days of travel. Managers approve claims above five hundred "
+             "dollars within five working days of receiving them.")
+PASSAGE_B = ("Visitors must sign the register at reception and wear a badge at all times while inside the building. "
+             "Contractors collect their badge from the security office before eight in the morning.")
+QUOTE_A = "Employees must submit expense claims within thirty days of travel."
+QUOTE_B = "Visitors must sign the register at reception and wear a badge at all times while inside the building."
+
+
+def multipart():
+    return Task("multipart", "faq.md", [chunk(PASSAGE_A), chunk(PASSAGE_B)], 1)
+
+
+def multi_reply(evidence_key="evidence", evidence=None):
+    return {"question": "What is the claim deadline, and what must visitors do on arrival?", "expected_answer": "Thirty days; sign the register.",
+            evidence_key: evidence}
+
+
+@pytest.mark.parametrize("key, evidence", [
+    ("evidence", [QUOTE_A, QUOTE_B]),                                                       # the asked-for shape
+    ("evidence", {"A": QUOTE_A, "B": QUOTE_B}),                                             # a mapping per passage
+    ("evidence", {"passage_a": [QUOTE_A], "passage_b": [QUOTE_B]}),                         # a mapping of lists
+    ("evidence", [{"passage": "A", "quote": QUOTE_A}, {"passage": "B", "quote": QUOTE_B}]),   # a list of objects
+    ("evidence", QUOTE_A + " ... " + QUOTE_B),                                              # one string joining both
+    ("evidence", QUOTE_A + " " + QUOTE_B),                                                  # one string, two sentences
+    ("quotes", [QUOTE_A, QUOTE_B]),                                                         # another field name
+    ("supporting_evidence", [QUOTE_A, QUOTE_B]),
+])
+def test_multipart_evidence_is_read_whatever_shape_the_model_uses(key, evidence):
+    turns, reason = validate(multipart(), multi_reply(key, evidence), turns=3, avoid=[])
+    assert reason == "", reason
+    assert {e["passage"] for e in turns[0]["evidence"]} == {"A", "B"}
+
+
+def test_multipart_with_evidence_from_only_one_passage_is_still_rejected():
+    turns, reason = validate(multipart(), multi_reply(evidence=[QUOTE_A]), turns=3, avoid=[])
+    assert turns is None and "both Passage A and Passage B" in reason
+
+
+def test_a_reply_with_no_evidence_field_gets_a_retry_hint_in_the_right_shape():
+    turns, reason = validate(multipart(), multi_reply(evidence=None), turns=3, avoid=[])
+    assert turns is None and 'one sentence copied from Passage A' in reason

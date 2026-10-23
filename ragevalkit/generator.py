@@ -195,17 +195,49 @@ def _find_quote(quote: str, chunks: list[Chunk]) -> tuple[int, str] | None:
     return (best[1], best[2]) if best else None
 
 
-def _evidence(quotes, chunks: list[Chunk]) -> list[dict]:
+_EVIDENCE_KEYS = ("evidence", "evidences", "quotes", "quote", "supporting_quotes", "supporting_evidence")
+
+
+def _strings(value) -> list[str]:
+    """Every piece of text in a reply field, whatever shape the model gave it: a list of quotes, a list of
+    objects, or a mapping such as {"A": "...", "B": "..."} (the keys are ignored)."""
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, dict):
+        return [t for v in value.values() for t in _strings(v)]
+    if isinstance(value, (list, tuple)):
+        return [t for v in value for t in _strings(v)]
+    return []
+
+
+def _fragments(text: str) -> list[str]:
+    """A quote cut at ellipses and sentence ends, so a string that joins a sentence from each passage is
+    checked sentence by sentence. Fragments of under four words prove nothing and are dropped."""
+    parts = re.split(r"\.{3,}|\u2026|(?<=[.!?])\s+(?=[A-Z0-9\"'(])", clean(text))
+    return [p.strip() for p in parts if len(p.split()) >= 4]
+
+
+def _evidence(value, chunks: list[Chunk]) -> list[dict]:
     """The quotes that really are in the passages, with the file, page and passage letter each came from."""
-    found = []
-    for quote in quotes if isinstance(quotes, list) else [quotes]:
-        hit = _find_quote(str(quote or ""), chunks)
-        if hit is None:
-            continue
-        index, text = hit
-        chunk = chunks[index]
-        found.append({"quote": text, "file": chunk.file, "page": chunk.page_of(normalise(text)), "passage": "AB"[index] if index < 2 else "A"})
-    return found
+    found, seen = [], set()
+    for text in _strings(value):
+        for fragment in _fragments(text):
+            hit = _find_quote(fragment, chunks)
+            if hit is None or hit[1] in seen:
+                continue
+            index, quote = hit
+            seen.add(quote)
+            chunk = chunks[index]
+            found.append({"quote": quote, "file": chunk.file, "page": chunk.page_of(normalise(quote)), "passage": "AB"[index] if index < 2 else "A"})
+    return found[:6]
+
+
+def _raw_evidence(raw: dict):
+    """The evidence field of a reply, under whichever name the model used."""
+    for key in _EVIDENCE_KEYS:
+        if raw.get(key):
+            return raw[key]
+    return None
 
 
 def _check_text(question: str, answer: str, *, standalone: bool) -> str | None:
@@ -237,9 +269,11 @@ def validate(task: Task, data: dict | None, *, turns: int, avoid: list[str]) -> 
         problem = _check_text(question, answer, standalone=index == 0)
         if problem:
             return None, problem
-        evidence = _evidence(raw.get("evidence"), task.chunks)
+        evidence = _evidence(_raw_evidence(raw), task.chunks)
         if not evidence:
-            return None, "none of the evidence quotes appears in the passages; copy one sentence exactly as written, with no '...'"
+            hint = (' Reply with "evidence": ["one sentence copied from Passage A", "one sentence copied from Passage B"].'
+                    if task.category == "multipart" else ' Reply with "evidence": ["one sentence copied from the passage"].')
+            return None, "none of the evidence quotes appears in the passages; copy sentences exactly as written, with no '...'." + hint
         if task.category == "multipart" and len({e["passage"] for e in evidence}) < 2:
             return None, "a multi-part question needs evidence from both Passage A and Passage B"
         if task.category == "indirect":
