@@ -21,8 +21,10 @@ multiturn  a short conversation whose follow-ups only make sense with the earlie
 """
 from __future__ import annotations
 
+import difflib
 import json
 import logging
+import math
 import re
 import shutil
 import threading
@@ -35,7 +37,7 @@ from pathlib import Path
 from typing import Callable
 
 from ragevalkit import lexical
-from ragevalkit.docs import Chunk, ReadDocument, normalise, read_document, spread_order
+from ragevalkit.docs import Chunk, ReadDocument, clean, normalise, read_document, spread_order
 from ragevalkit.exceptions import DocumentError, RagevalError
 
 logger = logging.getLogger(__name__)
@@ -68,7 +70,7 @@ Rules:
 - Do not ask about page numbers, layout, or the document itself.
 - Write in the same language as the passages.
 - The expected answer is complete but short: one to three sentences.
-- "evidence" lists exact quotes copied word for word from the passages (8 to 40 words each). Never paraphrase a quote."""
+- "evidence" lists quotes copied from the passages character for character: one sentence or clause each (8 to 30 words). Do not paraphrase, do not shorten with "...", do not change punctuation or wording."""
 
 CATEGORY_RULES = {
     "direct": """Write ONE direct question. It asks for a fact that one passage states plainly, so it can be answered by finding that sentence.
@@ -167,18 +169,42 @@ def _similar(a: str, b: str) -> float:
     return len(x & y) / len(x | y) if x | y else 0.0
 
 
-def _evidence(quotes, chunks: list[Chunk], normalised: list[str]) -> list[dict]:
+def _word_key(word: str) -> str:
+    return re.sub(r"[^\w]", "", word.lower())
+
+
+def _find_quote(quote: str, chunks: list[Chunk]) -> tuple[int, str] | None:
+    """Where a quote is in the passages, as (passage index, the passage's own wording of it).
+
+    Models rarely copy a quote perfectly: they add **bold**, an ellipsis, drop a comma or change one word.
+    So the quote is matched word by word (ignoring case and punctuation) and accepted when a long enough run
+    of its words is really in a passage; what is *kept* is the passage's exact text for that run, so the stored
+    evidence is always verbatim. A quote with nothing of the sort in the passages is not accepted."""
+    wanted = [k for k in (_word_key(w) for w in re.sub(r"\.{3,}|\u2026", " ", clean(quote)).split()) if k]
+    if len(wanted) < 4:
+        return None
+    best: tuple[int, int, str] | None = None
+    for index, chunk in enumerate(chunks):
+        original = [w for w in chunk.cleaned.split() if _word_key(w)]
+        keys = [_word_key(w) for w in original]
+        match = difflib.SequenceMatcher(None, wanted, keys, autojunk=False).find_longest_match(0, len(wanted), 0, len(keys))
+        if match.size >= max(5, math.ceil(len(wanted) * 0.6)):
+            text = " ".join(original[match.b:match.b + match.size])
+            if len(text) >= MIN_QUOTE_CHARS and (best is None or match.size > best[0]):
+                best = (match.size, index, text)
+    return (best[1], best[2]) if best else None
+
+
+def _evidence(quotes, chunks: list[Chunk]) -> list[dict]:
     """The quotes that really are in the passages, with the file, page and passage letter each came from."""
     found = []
     for quote in quotes if isinstance(quotes, list) else [quotes]:
-        text = str(quote or "").strip()
-        n = normalise(text)
-        if len(n) < MIN_QUOTE_CHARS:
+        hit = _find_quote(str(quote or ""), chunks)
+        if hit is None:
             continue
-        for index, (chunk, chunk_text) in enumerate(zip(chunks, normalised)):
-            if n in chunk_text:
-                found.append({"quote": text, "file": chunk.file, "page": chunk.page_of(n), "passage": "AB"[index] if index < 2 else "A"})
-                break
+        index, text = hit
+        chunk = chunks[index]
+        found.append({"quote": text, "file": chunk.file, "page": chunk.page_of(normalise(text)), "passage": "AB"[index] if index < 2 else "A"})
     return found
 
 
@@ -211,9 +237,9 @@ def validate(task: Task, data: dict | None, *, turns: int, avoid: list[str]) -> 
         problem = _check_text(question, answer, standalone=index == 0)
         if problem:
             return None, problem
-        evidence = _evidence(raw.get("evidence"), task.chunks, normalised)
+        evidence = _evidence(raw.get("evidence"), task.chunks)
         if not evidence:
-            return None, "none of the evidence quotes appears word for word in the passages; copy quotes exactly"
+            return None, "none of the evidence quotes appears in the passages; copy one sentence exactly as written, with no '...'"
         if task.category == "multipart" and len({e["passage"] for e in evidence}) < 2:
             return None, "a multi-part question needs evidence from both Passage A and Passage B"
         if task.category == "indirect":
@@ -253,9 +279,12 @@ class LiteLLM:
         try:
             resp = litellm.completion(**kwargs)
         except Exception as e:
-            if "response_format" not in str(e).lower():
+            problem = str(e).lower()
+            if not any(k in problem for k in ("response_format", "json_validate_failed", "failed to validate json", "json mode", "json_object")):
                 raise
-            kwargs.pop("response_format")  # this provider has no JSON mode: the prompt asks for JSON anyway
+            # this provider has no JSON mode, or its JSON mode rejected the output (Groq: "Failed to validate JSON"):
+            # ask again without it. The prompt already requires JSON and the reply is parsed leniently.
+            kwargs.pop("response_format")
             resp = litellm.completion(**kwargs)
         return resp.choices[0].message.content
 

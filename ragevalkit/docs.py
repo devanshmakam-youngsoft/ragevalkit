@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from functools import cached_property
 from pathlib import Path
 
 from ragevalkit.exceptions import DocumentError
@@ -27,6 +28,11 @@ class Chunk:
     text: str
     label: str                                   # "page 3", "pages 3–4" or "section: Refunds"
     pages: list[tuple[int, str]] = field(default_factory=list)   # (page number, normalised text) per page
+
+    @cached_property
+    def cleaned(self) -> str:
+        """The passage as quotes are matched against it: markdown marks and odd quotes removed, case kept."""
+        return clean(self.text)
 
     def page_of(self, quote_norm: str) -> str:
         """The page a normalised quote is on (or the passage's label when it spans pages / has none)."""
@@ -51,12 +57,19 @@ _DASHES = str.maketrans({"‐": "-", "‑": "-", "‒": "-", "–": "-", "—": 
                          "‘": "'", "’": "'", "“": '"', "”": '"', " ": " ", "­": ""})
 
 
-def normalise(text: str) -> str:
-    """Text as compared when checking that a quote really is in a passage: case, spacing, quotes and
-    line-break hyphenation are ignored."""
+def clean(text: str) -> str:
+    """Text with the noise models and documents disagree about removed: odd quotes and dashes, line-break
+    hyphenation, markdown marks (**bold**, `code`, # headings, > quotes, | tables, list bullets) and spacing."""
     text = (text or "").translate(_DASHES)
-    text = re.sub(r"-\s*\n\s*", "", text)          # "refund-\nable" -> "refundable"
-    return re.sub(r"\s+", " ", text).strip().lower()
+    text = re.sub(r"-\s*\n\s*", "", text)                          # "refund-\nable" -> "refundable"
+    text = re.sub(r"(?m)^\s*(?:[-*\u2022]|\d+[.)])\s+", "", text)  # list bullets and numbers at the start of a line
+    text = re.sub(r"[*`~#>|]+", " ", text)                           # emphasis, code, headings, quotes, table cells
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def normalise(text: str) -> str:
+    """``clean`` in lower case: how two pieces of text are compared."""
+    return clean(text).lower()
 
 
 def is_usable(chunk: Chunk) -> bool:

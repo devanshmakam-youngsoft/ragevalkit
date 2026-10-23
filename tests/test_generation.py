@@ -208,8 +208,8 @@ def test_a_valid_item_passes_and_keeps_its_evidence_with_the_page():
 
 
 @pytest.mark.parametrize("changes, expected", [
-    ({"evidence": ["Employees can submit claims whenever they feel like it at all."]}, "word for word"),     # invented quote
-    ({"evidence": ["too short"]}, "word for word"),
+    ({"evidence": ["Employees can submit claims whenever they feel like it at all."]}, "appears in the passages"),   # invented quote
+    ({"evidence": ["too short"]}, "appears in the passages"),
     ({"question": "According to the document, what is the deadline?"}, "stand on its own"),
     ({"question": "Why?"}, "between 12 and 400"),
     ({"expected_answer": ""}, "expected answer"),
@@ -460,3 +460,4 @@ def test_model_failures_are_reported_per_question_and_do_not_lose_the_rest(make_
         gen.time.sleep = original
     assert batch["status"] == "failed" and batch["items"] == [] and "could not be reached" in batch["error"]
     assert len(batch["errors"]) == 4
+
