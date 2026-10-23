@@ -10,6 +10,7 @@ import { GenerationBanner } from "./GenerationBanner";
 import { GroupHistory } from "./GroupHistory";
 import { ImportDialog } from "./ImportDialog";
 import { Pager, usePaging } from "./Pager";
+import { TypeSelect } from "./TypeSelect";
 import { SectionTabs } from "./SectionTabs";
 import { TopBar } from "./TopBar";
 import { fmtDate, plural } from "../lib";
@@ -496,7 +497,7 @@ function TestCaseDrawer({ tc, groups, onClose, onChanged, onDeleted }: {
           <div>
             <ChatTurn chatId={tc.chat_id} turnNo={tc.turn_no} />
             <div className="mono mt-2 text-[11px] text-muted">
-              {tc.tc_id} · v{tc.version} · <span className={STATUS_COLORS[tc.status]}>{tc.status}</span>
+              {tc.tc_id} · v{tc.version} · <span className={STATUS_COLORS[tc.status]}>{tc.status}</span> · {tc.type}
             </div>
           </div>
           <button onClick={onClose} className="mono text-xs text-muted hover:text-fg">esc</button>
@@ -516,9 +517,9 @@ function TestCaseDrawer({ tc, groups, onClose, onChanged, onDeleted }: {
                     onChange={(e) => setForm((f) => ({ ...f, turn_no: e.target.value }))} className={input} />
                 </Field>
               </div>
-              <div className="w-28">
+              <div className="w-32">
                 <Field label="Type">
-                  <input value={form.type} onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))} className={input} />
+                  <TypeSelect value={form.type} onChange={(v) => setForm((f) => ({ ...f, type: v }))} />
                 </Field>
               </div>
             </div>
@@ -555,7 +556,12 @@ function TestCaseDrawer({ tc, groups, onClose, onChanged, onDeleted }: {
             {tc.expected_sources && <ReadField label="Expected sources">{tc.expected_sources}</ReadField>}
             {tc.origin?.kind === "generated" && (
               <div>
-                <div className="label mb-1">Written from your document</div>
+                <div className="label mb-1">
+                  Written from your document{tc.origin.category ? ` · ${{ direct: "Direct", indirect: "Indirect", multipart: "Multi-part", multiturn: "Multi-turn" }[tc.origin.category] ?? tc.origin.category}` : ""}
+                </div>
+                {tc.origin.needs_context && (
+                  <p className="mb-2 text-xs text-muted">This follow-up builds on: {tc.origin.needs_context}</p>
+                )}
                 <div className="space-y-2 rounded bg-surface-2 p-3 text-sm">
                   {tc.origin.evidence.map((e, i) => (
                     <blockquote key={i} className="border-l-2 border-line pl-3 italic text-muted">
@@ -734,10 +740,9 @@ function NewTestCaseModal({
                   className="w-full rounded border border-line bg-surface-2 px-3 py-2 text-sm outline-none focus:border-brand" />
               </Field>
             </div>
-            <div className="w-28">
+            <div className="w-32">
               <Field label="Type">
-                <input value={form.type} onChange={set("type")} placeholder="rag"
-                  className="w-full rounded border border-line bg-surface-2 px-3 py-2 text-sm outline-none focus:border-brand" />
+                <TypeSelect value={form.type} onChange={(v) => setForm((f) => ({ ...f, type: v }))} />
               </Field>
             </div>
           </div>

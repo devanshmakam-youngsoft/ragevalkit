@@ -99,20 +99,25 @@ Follow-up questions need the turns before them, so by default a run also include
 
 ## Generating test cases from documents
 
-**Test Cases → Generate from documents** writes test cases from your own documents (PDF, TXT or Markdown; up to 5 files, 50 MB each). By default it writes 3 questions in each of four categories and puts them in a group per category:
+**Test Cases → Generate from documents** writes test cases from your own documents (PDF, Word `.docx`, TXT or Markdown; up to 5 files, 50 MB each). By default it writes 3 questions in each of four categories and puts them in a group per category:
 
 | Category | What it is |
 |---|---|
 | **Direct** | The answer is stated plainly in one place. |
 | **Indirect** | The answer is in the document, but the question uses everyday words or describes a situation rather than the document's own wording. |
 | **Multi-part** | One question with several parts, answered from different places in the document. |
-| **Multi-turn** | A short conversation (3 turns by default) whose follow-ups only make sense with the earlier answers. |
+| **Multi-turn** | A short conversation (3 turns by default). Each follow-up is what a person would type *next* ("and what happens if I miss that?"): it refers back to the earlier answer and cannot be understood alone. Every follow-up records what it builds on, shown during review. |
 
+- **Type.** Every generated test case has the type `rag` (its answer has to come from the documents); the category is the group it is in.
 - **Questions per category** is shared across the files you upload; change it (1–10) and which categories to write in the dialog.
 - **Every answer comes with evidence.** Each question stores the exact passage it was written from, with file and page. The writer is told to quote word for word and every quote is checked against the document: a question whose evidence is not really in the document is rejected and rewritten. Evidence is shown during review and later on the test case ("Written from your document"), and the file name becomes the case's `expected_sources`.
 - **Saved as it goes, approved by you.** Questions are saved on the server while they are being written, so closing the browser or losing the network loses nothing; a banner on the Test Cases page brings you back. They only become test cases when you press *Add*; you can edit or remove any of them first. Anything not added within 24 hours (`batch_ttl_hours`) is deleted.
 - **Nothing of the upload is kept** — only the questions, answers and evidence snippets.
-- **Which model writes them:** `serve(generator_model=...)`, defaulting to `judge_model`. The text of your documents is sent to that model, so pick one you are allowed to send them to (a local `ollama/...` model works). Scanned PDFs (no selectable text) and password-protected PDFs are reported with a clear message.
+- **Which model writes them:** `serve(generator_model=...)`, defaulting to `judge_model`. The text of your documents is sent to that model, so pick one you are allowed to send them to (a local `ollama/...` model works). Scanned PDFs (no selectable text), password-protected files and old `.doc` files are reported with a clear message (save `.doc` as `.docx`).
+
+## Test case types: rag and non-rag
+
+Each test case has a type. **`rag`** (the default) means the answer has to come from your documents, so the retrieved material is scored too. **`non-rag`** is for greetings, small talk and anything else where no retrieval is expected: it is graded on the answer only, like the `conversational` type. Older values such as `query` keep working and count as rag. Pick the type in the test case form, in a `type` column when importing, or leave it blank for `rag`.
 
 ## Importing test cases in bulk
 

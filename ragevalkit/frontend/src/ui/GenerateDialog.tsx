@@ -68,7 +68,12 @@ function ItemCard({ item, locked, onSave, onRemove }: {
       <div className="space-y-3">
         {item.turns.map((turn, i) => (
           <div key={i}>
-            {item.turns.length > 1 && <div className="label mb-1">Turn {i + 1}</div>}
+            {item.turns.length > 1 && (
+              <div className="mb-1 flex flex-wrap items-baseline gap-x-3">
+                <span className="label">Turn {i + 1}</span>
+                {turn.needs_context && <span className="text-xs text-muted">builds on: {turn.needs_context}</span>}
+              </div>
+            )}
             <label className="sr-only" htmlFor={`${item.item_id}-q${i}`}>Question</label>
             <textarea id={`${item.item_id}-q${i}`} value={draft[i]?.question ?? ""} rows={2} disabled={locked}
               onChange={(e) => set(i, "question", e.target.value)} onBlur={save}
@@ -167,7 +172,7 @@ export function GenerateDialog({ resumeId, onClose, onDone }: {
     if (files.length > limits.max_files) out.push(`Choose at most ${limits.max_files} documents.`);
     for (const f of files) {
       if (!limits.formats.some((ext) => f.name.toLowerCase().endsWith("." + ext) || (ext === "md" && f.name.toLowerCase().endsWith(".markdown")))) {
-        out.push(`${f.name}: only PDF, TXT and MD files can be used.`);
+        out.push(`${f.name}: only PDF, Word (.docx), TXT and Markdown files can be used.`);
       } else if (f.size > limits.max_file_mb * 1024 * 1024) {
         out.push(`${f.name} is ${mb(f.size)} MB; the limit is ${limits.max_file_mb} MB per file.`);
       }
@@ -246,8 +251,8 @@ export function GenerateDialog({ resumeId, onClose, onDone }: {
                 className={`flex cursor-pointer flex-col items-center gap-1 rounded border-2 border-dashed p-7 text-center transition ${drag ? "border-brand bg-brand-soft" : "border-line hover:border-brand/60"}`}
               >
                 <span className="text-base font-medium">Drop documents here, or click to choose</span>
-                <span className="text-xs text-muted">PDF, TXT or Markdown · up to {limits.max_files} files · {limits.max_file_mb} MB each</span>
-                <input ref={input} type="file" multiple hidden accept=".pdf,.txt,.md,.markdown"
+                <span className="text-xs text-muted">PDF, Word, TXT or Markdown · up to {limits.max_files} files · {limits.max_file_mb} MB each</span>
+                <input ref={input} type="file" multiple hidden accept=".pdf,.docx,.txt,.md,.markdown"
                   onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
               </div>
               {files.length > 0 && (

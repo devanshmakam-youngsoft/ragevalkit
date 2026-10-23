@@ -189,7 +189,7 @@ export interface TestCase {
   /** Group labels this case carries (a case can have any number). */
   groups: GroupRef[];
   /** Set on cases written from a document: where each answer comes from. */
-  origin?: { kind: string; file: string; evidence: GenEvidence[]; model?: string };
+  origin?: { kind: string; file: string; evidence: GenEvidence[]; model?: string; category?: string; needs_context?: string };
 }
 
 /** Writing test cases from documents. */
@@ -208,7 +208,7 @@ export interface GenLimits {
 }
 
 export interface GenEvidence { quote: string; file: string; page: string; passage?: string }
-export interface GenTurn { question: string; expected_answer: string; evidence: GenEvidence[] }
+export interface GenTurn { question: string; expected_answer: string; evidence: GenEvidence[]; needs_context?: string }
 export interface GenItem { item_id: string; category: string; file: string; number: number; chat_id: string; turns: GenTurn[] }
 
 export interface GenBatch {
