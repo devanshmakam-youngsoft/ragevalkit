@@ -4,7 +4,7 @@ from types import SimpleNamespace
 import pytest
 
 from ragevalkit.docs import Chunk, normalise
-from ragevalkit.generator import LiteLLM, Task, _loads, validate
+from ragevalkit.generator import LiteLLM, Task, parse_reply, validate
 
 MARKDOWN_PASSAGE = (
     "## Expenses\n\n**Employees** must submit expense claims within *thirty days* of travel. "
@@ -92,8 +92,8 @@ def test_a_providers_json_mode_error_falls_back_to_asking_without_it(monkeypatch
 
 
 def test_replies_with_fences_and_chatter_are_still_read():
-    assert _loads('Sure! Here it is:\n```json\n{"question": "q", "evidence": []}\n```\nHope that helps.')["question"] == "q"
-    assert _loads("not json at all") is None
+    assert parse_reply('Sure! Here it is:\n```json\n{"question": "q", "evidence": []}\n```\nHope that helps.')["question"] == "q"
+    assert parse_reply("not json at all") is None
 
 
 # ---- evidence comes back in many shapes, especially for multi-part questions ---------------------------------

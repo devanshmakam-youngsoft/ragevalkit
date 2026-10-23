@@ -78,6 +78,18 @@ class RunBusy(RunError):
 
 
 # ---------------------------------------------------------------------------
+# Writing test cases from documents
+# ---------------------------------------------------------------------------
+
+class GenerationError(RagevalError):
+    """A question could not be written that follows every rule."""
+
+
+class GenerationBusy(RagevalError):
+    """Another generation is already running."""
+
+
+# ---------------------------------------------------------------------------
 # Judge
 # ---------------------------------------------------------------------------
 

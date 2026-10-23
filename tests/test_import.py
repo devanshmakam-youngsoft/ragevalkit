@@ -38,7 +38,7 @@ def test_a_file_with_only_questions_is_enough():
     df = table(question=["What is A?", "What is B?", "What is A?"])
     rows, problems = parse_rows(df, mapped(df))
     assert [r["turn_no"] for r in rows] == [1, 1]                      # each question is its own one-turn chat
-    assert rows[0]["chat_id"] != rows[1]["chat_id"] and rows[0]["type"] == "query"
+    assert rows[0]["chat_id"] != rows[1]["chat_id"] and rows[0]["type"] == "rag"
     assert len(problems) == 1 and "Same question as row 2" in problems[0].reason
 
 
@@ -93,7 +93,7 @@ def store(tmp_path):
     s.close()
 
 
-def row(n, chat, turn, question, answer="a", groups=(), sources="", type_="query"):
+def row(n, chat, turn, question, answer="a", groups=(), sources="", type_="rag"):
     return {"row": n, "chat_id": chat, "turn_no": turn, "type": type_, "question": question,
             "expected_answer": answer, "expected_sources": sources, "groups": list(groups)}
 

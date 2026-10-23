@@ -1143,7 +1143,7 @@ class EvalStore:
                     "question": r["question"],
                     "expected_answer": r["expected_answer"],
                     "expected_sources": _clean_es(r.get("expected_sources", "")),
-                    "type": r.get("type") or "query",
+                    "type": r.get("type") or "rag",
                 }
                 target: str | None = tc_id
                 existing = latest.get(tc_id)

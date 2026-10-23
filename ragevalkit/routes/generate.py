@@ -7,7 +7,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from pydantic import BaseModel
 
-from ragevalkit.docs import SUPPORTED_SUFFIXES
+from ragevalkit.docs import SUPPORTED_MESSAGE, SUPPORTED_SUFFIXES
 from ragevalkit.generator import CATEGORIES, GenerationBusy
 from ragevalkit.routes.deps import require_user
 
@@ -71,7 +71,7 @@ async def start_generation(
             name = Path(upload.filename).name
             suffix = Path(name).suffix.lower()
             if suffix not in SUPPORTED_SUFFIXES:
-                raise HTTPException(422, f"{name}: unsupported file type. Upload PDF, TXT or MD files.")
+                raise HTTPException(422, f"{name}: unsupported file type. {SUPPORTED_MESSAGE}")
             dest = workdir / f"{index}{suffix}"
             size = 0
             with dest.open("wb") as out:

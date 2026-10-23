@@ -103,10 +103,16 @@ class FakeLLM:
             return json.dumps({"question": f"What is the rule about {topic(passages[0], n)}, and what is the rule about {topic(passages[1], n + 1)}?",
                                "expected_answer": "Both rules are stated.", "evidence": [quote(passages[0], n), quote(passages[1], n)]})
         turns = int(re.search(r"exactly (\d+) turns", system).group(1))
-        return json.dumps({"turns": [
-            {"question": (f"What is the rule about {topic(passages[0], n)}?" if t == 0 else f"And what about {topic(passages[0], n + t)} then?"),
-             "expected_answer": f"Answer {t + 1}.", "evidence": [quote(passages[0], n + t)]}
-            for t in range(turns)]})
+        follow_ups = [("And what happens if I miss that by {n} days?", "the deadline given in the previous answer"),
+                      ("Who has to sign off on it when it is {n} dollars?", "the amount mentioned earlier"),
+                      ("Does the same apply to the other cases there, say {n}?", "the rule explained in the earlier answers")]
+
+        def turn(t):
+            question, needs = (f"What is the rule about {topic(passages[0], n)}?", "") if t == 0 else (
+                follow_ups[(t - 1) % 3][0].format(n=n * 10 + t), follow_ups[(t - 1) % 3][1])
+            return {"question": question, "expected_answer": f"Answer {t + 1}.", "evidence": [quote(passages[0], n + t)], "depends_on": needs}
+
+        return json.dumps({"turns": [turn(t) for t in range(turns)]})
 
 
 def chunk(text: str, file="a.txt", label="page 1") -> Chunk:
@@ -245,7 +251,8 @@ def test_multipart_needs_evidence_from_both_passages():
 
 def test_multiturn_needs_the_right_number_of_turns_and_only_the_first_must_stand_alone():
     follow = {"question": "And what about the ones above that amount?", "expected_answer": "Managers approve them within five working days.",
-              "evidence": ["Managers approve claims above five hundred dollars within five working days."]}
+              "evidence": ["Managers approve claims above five hundred dollars within five working days."],
+              "depends_on": "the filing deadline given in the first answer"}
     first = {"question": "How long do I have to submit an expense claim?", "expected_answer": "Thirty days.",
              "evidence": ["Employees must submit expense claims within thirty days of travel."]}
     ok, reason = validate(task("multiturn"), {"turns": [first, follow]}, turns=2, avoid=[])
@@ -350,8 +357,9 @@ def test_review_then_approve_adds_cases_labelled_by_category_with_their_evidence
     cases = client.get("/api/test-cases").json()
     assert len(cases) == done["cases"] == sum(len(i["turns"]) for i in batch["items"]) - len(drop["turns"])
     assert {g["name"] for c in cases for g in c["groups"]} == {"Direct", "Indirect", "Multi-part", "Multi-turn"}
-    sample = next(c for c in cases if c["type"] == "multiturn" and c["turn_no"] == 2)
-    assert sample["expected_sources"] == "policy.txt" and sample["origin"]["kind"] == "generated" and sample["origin"]["evidence"][0]["quote"]
+    assert {c["type"] for c in cases} == {"rag"}                                 # the type is rag; the category is the group
+    sample = next(c for c in cases if c["origin"]["category"] == "multiturn" and c["turn_no"] == 2)
+    assert sample["origin"]["needs_context"] and sample["expected_sources"] == "policy.txt" and sample["origin"]["kind"] == "generated" and sample["origin"]["evidence"][0]["quote"]
     assert client.get(f"/api/generate/{bid}").status_code == 404                # the batch is gone once approved
     assert client.post(f"/api/generate/{bid}/approve", json={}).status_code == 404
 
@@ -451,13 +459,8 @@ def test_one_unreadable_file_does_not_stop_the_others(make_client):
 
 def test_model_failures_are_reported_per_question_and_do_not_lose_the_rest(make_client):
     client = make_client(llm=FakeLLM(fail_first=1000))
-    import ragevalkit.generator as gen
-    original = gen.time.sleep
-    gen.time.sleep = lambda s: None
-    try:
-        batch = wait(client, upload(client, [TXT], per_category=1).json()["batch_id"])
-    finally:
-        gen.time.sleep = original
+    client.app.state.generator._sleep = lambda s: None          # do not really wait between retries
+    batch = wait(client, upload(client, [TXT], per_category=1).json()["batch_id"])
     assert batch["status"] == "failed" and batch["items"] == [] and "could not be reached" in batch["error"]
     assert len(batch["errors"]) == 4
 

@@ -13,11 +13,15 @@ from pathlib import Path
 
 from ragevalkit.exceptions import DocumentError
 
-SUPPORTED_SUFFIXES = (".pdf", ".txt", ".md", ".markdown")
+SUPPORTED_SUFFIXES = (".pdf", ".docx", ".txt", ".md", ".markdown")
 TARGET_CHARS = 3500          # size of one passage handed to the model
 MIN_USABLE_CHARS = 400       # shorter passages (headers, captions, contents lines) make poor questions
 MAX_PAGES = 2000             # safety limit for very large PDFs
 MIN_TEXT_CHARS = 200         # below this a PDF has no real text layer (scanned images)
+MAX_UNPACKED_BYTES = 300 * 1024 * 1024   # a .docx is a zip: refuse one that unpacks to something absurd
+
+
+SUPPORTED_MESSAGE = "Upload PDF, Word (.docx), TXT or Markdown files."
 
 
 @dataclass
@@ -189,14 +193,79 @@ def _read_text(path: Path, name: str, markdown: bool) -> ReadDocument:
     return ReadDocument(name=name, chunks=_pack(units, name), pages=None, chars=len(text))
 
 
+def _docx_units(doc) -> list[tuple[str, int | None, str | None]]:
+    """The paragraphs and tables of a Word document in reading order, each with the heading it sits under."""
+    from docx.table import Table
+    from docx.text.paragraph import Paragraph
+
+    units: list[tuple[str, int | None, str | None]] = []
+    heading: str | None = None
+    for child in doc.element.body.iterchildren():
+        kind = child.tag.rsplit("}", 1)[-1]
+        if kind == "p":
+            paragraph = Paragraph(child, doc)
+            text = paragraph.text.strip()
+            if not text:
+                continue
+            style = (paragraph.style.name or "") if paragraph.style is not None else ""
+            if style.startswith("Heading") or style == "Title":
+                heading = text
+            elif "List" in style:
+                text = f"- {text}"
+            for part in _split_long(text):
+                units.append((part, None, heading))
+        elif kind == "tbl":
+            rows = []
+            for row in Table(child, doc).rows:
+                cells: list[str] = []
+                for cell in row.cells:                     # merged cells repeat: keep each once
+                    text = cell.text.strip()
+                    if text and text not in cells:
+                        cells.append(text)
+                if cells:
+                    rows.append(" | ".join(cells))
+            if rows:
+                units.append(("\n".join(rows), None, heading))
+    return units
+
+
+def _read_docx(path: Path, name: str) -> ReadDocument:
+    import zipfile
+
+    try:
+        with zipfile.ZipFile(path) as archive:
+            if sum(info.file_size for info in archive.infolist()) > MAX_UNPACKED_BYTES:
+                raise DocumentError(f"{name} is too large once unpacked.")
+        from docx import Document
+
+        units = _docx_units(Document(str(path)))
+    except DocumentError:
+        raise
+    except Exception as e:
+        raise DocumentError(
+            f"{name} could not be read as a Word document (.docx). If it is password-protected, remove the password first."
+        ) from e
+    chars = sum(len(u[0]) for u in units)
+    if chars < MIN_TEXT_CHARS // 2:
+        raise DocumentError(f"{name} has almost no text ({chars} characters).")
+    return ReadDocument(name=name, chunks=_pack(units, name), pages=None, chars=chars)
+
+
 def read_document(path: Path, name: str | None = None) -> ReadDocument:
     """Read one document into passages. Raises DocumentError with a message fit to show the user."""
     path = Path(path)
     name = name or path.name
     suffix = Path(name).suffix.lower()
+    if suffix == ".doc":
+        raise DocumentError(f"{name}: old Word files (.doc) are not supported. Open it in Word and save it as .docx.")
     if suffix not in SUPPORTED_SUFFIXES:
-        raise DocumentError(f"{name}: unsupported file type. Upload PDF, TXT or MD files.")
-    doc = _read_pdf(path, name) if suffix == ".pdf" else _read_text(path, name, markdown=suffix != ".txt")
+        raise DocumentError(f"{name}: unsupported file type. {SUPPORTED_MESSAGE}")
+    if suffix == ".pdf":
+        doc = _read_pdf(path, name)
+    elif suffix == ".docx":
+        doc = _read_docx(path, name)
+    else:
+        doc = _read_text(path, name, markdown=suffix != ".txt")
     if not doc.usable():
         raise DocumentError(f"{name} has no passages with enough text to write questions from.")
     return doc

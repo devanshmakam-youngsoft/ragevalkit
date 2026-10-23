@@ -60,6 +60,7 @@ from typing import Callable
 import pandas as pd
 
 from ragevalkit import lexical, recording
+from ragevalkit.casetypes import is_non_rag
 from ragevalkit.config import Config
 from ragevalkit.dataset import parse_source_groups
 from ragevalkit.exceptions import RunBusy
@@ -322,7 +323,7 @@ class RunManager:
 
     def _is_conversational(self, row_type: str) -> bool:
         t = row_type.strip().lower()
-        return t in self._conv_types or t.startswith("conv")
+        return t in self._conv_types or t.startswith("conv") or is_non_rag(t)
 
     def active(self) -> Run | None:
         return next((r for r in self.runs.values() if r.status == "running"), None)

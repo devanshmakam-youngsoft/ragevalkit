@@ -108,7 +108,7 @@ def load_dataset(
 
     df["turn_no"] = pd.to_numeric(df["turn_no"], errors="coerce").fillna(1).astype(int)
     df["chat_id"] = df["chat_id"].astype(str)
-    df["type"] = df["type"].fillna("query").astype(str)
+    df["type"] = df["type"].fillna("rag").astype(str)
     df["expected_answer"] = df["expected_answer"].fillna("").astype(str)
     if "expected_sources" in df.columns:
         df["expected_sources"] = df["expected_sources"].fillna("").astype(str)

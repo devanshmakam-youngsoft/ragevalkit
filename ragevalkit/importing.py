@@ -168,7 +168,7 @@ def parse_rows(df: pd.DataFrame, mapping: dict[str, str | None]) -> tuple[list[d
 
     Missing columns are filled in sensibly rather than rejected: no chat column makes every question its
     own single-turn chat, no turn column numbers the turns of each chat in file order, a blank type
-    becomes "query". Anything that is *present but wrong* is reported, never altered.
+    becomes "rag". Anything that is *present but wrong* is reported, never altered.
     """
     cols = {f: mapping.get(f) for f in FIELDS}
     rows: list[dict] = []
@@ -235,7 +235,7 @@ def parse_rows(df: pd.DataFrame, mapping: dict[str, str | None]) -> tuple[list[d
             "row": number,
             "chat_id": chat,
             "turn_no": turn,
-            "type": get("type") or "query",
+            "type": get("type") or "rag",
             "question": question,
             "expected_answer": get("expected_answer"),
             "expected_sources": get("expected_sources"),
@@ -256,8 +256,8 @@ def template_workbook() -> bytes:
     ws.title = "dataset"
     headers = ["chat_id", "turn_no", "type", "question", "expected_answer", "expected_sources", "groups"]
     ws.append(headers)
-    ws.append(["refund-1", 1, "query", "What is the refund window?", "Refunds are possible within 30 days.", "refund_policy.pdf", "Billing; Refunds"])
-    ws.append(["refund-1", 2, "query", "And for annual plans?", "Annual plans have a 60-day window.", "refund_policy.pdf , annual_terms.pdf", "Billing"])
+    ws.append(["refund-1", 1, "rag", "What is the refund window?", "Refunds are possible within 30 days.", "refund_policy.pdf", "Billing; Refunds"])
+    ws.append(["refund-1", 2, "rag", "And for annual plans?", "Annual plans have a 60-day window.", "refund_policy.pdf , annual_terms.pdf", "Billing"])
     for cell in ws[1]:
         cell.font = Font(bold=True)
     for letter, width in zip("ABCDEFG", (14, 10, 12, 44, 44, 34, 22)):
@@ -270,7 +270,7 @@ def template_workbook() -> bytes:
         ("expected_answer", "The answer you expect. Used to score the assistant's reply."),
         ("chat_id", "Questions that belong to one conversation share a chat_id. Leave the column out and every question becomes its own chat."),
         ("turn_no", "1 for the first message of a chat, 2 for the follow-up, and so on. Leave it out to number them in file order."),
-        ("type", "Optional label such as query or conversational. Blank becomes 'query'."),
+        ("type", "rag (the answer comes from your documents) or non-rag (a greeting or small talk, where no retrieval is expected). Blank means rag."),
         ("expected_sources", "Optional. Documents the assistant should retrieve. Use | between documents that are all required and , between acceptable alternatives."),
         ("groups", "Optional. One or more group names separated by ; — they are created if they do not exist yet."),
         ("", ""),
