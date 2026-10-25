@@ -81,6 +81,10 @@ export default function VersionDetail() {
     return filtered;
   }, [data, type, scoreTier, query, sort, group]);
   const paging = usePaging(rows, `${type}|${scoreTier}|${query}|${group}|${sort.key}${sort.dir}`, 25);
+  const shownAvg = useMemo(
+    () => ({ answer: avg(rows.map(({ r }) => r.answer_marks)), time: avg(rows.map(({ r }) => r.total_time_taken)) }),
+    [rows],
+  );
 
   if (error) return <Shell version={version}><p className="text-bad">{error}</p></Shell>;
   if (!data) return <Shell version={version}><p className="text-muted">Loading…</p></Shell>;
@@ -137,7 +141,7 @@ export default function VersionDetail() {
 
       {bands.total > 0 && (
         <div className="card mt-4 px-5 py-4">
-          <h3 className="label mb-3"><Term k="tiers" /></h3>
+          <h3 className="label mb-3"><Term k="tiers" /> <span className="mono normal-case tracking-normal">· avg {fmt(s.avg_answer_marks)}/10 over {plural(bands.total, "question")}</span></h3>
           <div className="flex h-6 overflow-hidden rounded text-xs font-medium text-white">
             {bands.high > 0 && <div style={{ width: `${(bands.high / bands.total) * 100}%` }} className="flex items-center justify-center bg-good">{bands.high}</div>}
             {bands.mid > 0 && <div style={{ width: `${(bands.mid / bands.total) * 100}%` }} className="flex items-center justify-center bg-warn">{bands.mid}</div>}
@@ -202,6 +206,11 @@ export default function VersionDetail() {
         <div className="flex flex-wrap items-center gap-3 border-b border-line px-5 py-4">
           <h2 className="mr-auto font-serif text-xl font-medium">
             Results <span className="mono text-xs text-muted">{rows.length}{filtering ? ` of ${data.rows.length}` : ""}</span>
+            {rows.length > 0 && (
+              <span className="mono ml-3 text-xs font-normal text-muted">
+                · avg answer {fmt(shownAvg.answer)}/10 · avg time {fmtSeconds(shownAvg.time)}
+              </span>
+            )}
             <span className="ml-3 text-xs font-normal text-muted">· click a row for full details</span>
           </h2>
           <div className="relative">

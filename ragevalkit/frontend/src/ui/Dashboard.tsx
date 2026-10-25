@@ -273,7 +273,9 @@ export default function Dashboard() {
       {activeVersions.length > 0 && (
         <section className="mt-3 grid gap-3 lg:grid-cols-2">
           <div className="card p-5">
-            <h3 className="label">Quality trend</h3>
+            <h3 className="label">Quality trend{latest && (
+              <> <span className="mono normal-case tracking-normal">· latest v{latest.version} · answer {fmt(scoreOf(latest, "avg_answer_marks"))} · context {fmt(scoreOf(latest, "avg_material_marks"))}</span></>
+            )}</h3>
             <p className="mb-3 mt-1 text-xs text-muted">Average score out of 10 for each version</p>
             <div className="h-56">
               <ResponsiveContainer>
@@ -290,7 +292,9 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="card p-5">
-            <h3 className="label">Where the time goes</h3>
+            <h3 className="label">Where the time goes{latest && (
+              <> <span className="mono normal-case tracking-normal">· latest v{latest.version} · avg {fmtSeconds(scoreOf(latest, "avg_total_time"))} per question</span></>
+            )}</h3>
             <p className="mb-3 mt-1 text-xs text-muted">Average seconds each step of the assistant takes</p>
             <div className="h-56">
               <ResponsiveContainer>
