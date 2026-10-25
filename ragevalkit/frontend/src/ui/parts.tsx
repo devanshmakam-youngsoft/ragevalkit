@@ -65,42 +65,64 @@ export function NodeTimings({ v, compact = false }: { v: VersionSummary; compact
   );
 }
 
+const REST_KEY = "__rest";
+
 /**
- * Timing of steps as one wide bar, like the score bar: each step's share of the time spent in steps, written
- * inside its segment, with the seconds in the legend. A step records how long it took, not when, so steps that
- * run side by side cannot be placed on a timeline; shares are of their combined time and a note says so.
+ * The pieces of a question's response time: each step, plus whatever time was spent outside any step.
+ * Percentages are shares of the whole response time, so a single tracked step that took half of it says 50%,
+ * not 100%. A step records how long it took, not when, so steps running side by side can add up to more than
+ * the response time; their percentages then add up to more than 100% and `overlapping` says so.
+ */
+function stepPieces(v: VersionSummary) {
+  const steps = v.nodes.filter((n) => n.avg > 0);
+  const sum = steps.reduce((t, n) => t + n.avg, 0);
+  const total = v.avg_total_time != null && v.avg_total_time > 0 ? v.avg_total_time : sum;   // no total recorded: the steps are all we know
+  const pct = (secs: number) => (secs / total) * 100;
+  const pieces = steps.map((n) => ({ key: n.name, label: nodeMeta(n.name).label, secs: n.avg, pct: pct(n.avg), color: nodeShade(n.name), rest: false }));
+  const rest = total - sum;
+  if (rest > total * 0.02) pieces.push({ key: REST_KEY, label: "Not in a step", secs: rest, pct: pct(rest), color: "", rest: true });
+  const span = pieces.reduce((t, p) => t + p.pct, 0) || 1;      // 100, or more when steps overlap: the bar then shows each piece's size relative to the others
+  return { pieces: pieces.map((p) => ({ ...p, width: (p.pct / span) * 100 })), total, overlapping: sum > total * 1.05 };
+}
+
+/**
+ * Timing of steps as one wide bar, like the score bar: each step's share of the whole response time is written
+ * inside its segment and the legend gives the seconds. Time outside any step is its own grey segment.
  */
 export function StepTimeBar({ v }: { v: VersionSummary }) {
-  const items = v.nodes.filter((n) => n.avg > 0);
-  const sum = items.reduce((s, n) => s + n.avg, 0);
-  if (items.length === 0 || sum <= 0) return null;
-  const slowest = items.reduce((a, b) => (b.avg > a.avg ? b : a));
-  const share = (secs: number) => (secs / sum) * 100;
-  const overlapping = v.avg_total_time != null && sum > v.avg_total_time * 1.1;
+  const { pieces, total, overlapping } = stepPieces(v);
+  const steps = pieces.filter((p) => !p.rest);
+  if (steps.length === 0) return null;
+  const slowest = steps.reduce((a, b) => (b.secs > a.secs ? b : a));
   return (
     <>
       <div className="flex h-6 gap-px overflow-hidden rounded text-xs font-medium text-white">
-        {items.map((n) => (
-          <div key={n.name} title={`${nodeMeta(n.name).label}: ${fmtSeconds(n.avg)} (${share(n.avg).toFixed(0)}%)`}
-            style={{ width: `${share(n.avg)}%`, background: nodeShade(n.name) }}
-            className="flex items-center justify-center overflow-hidden whitespace-nowrap">
-            {share(n.avg) >= 6 && `${share(n.avg).toFixed(0)}%`}
+        {pieces.map((p) => (
+          <div key={p.key} title={`${p.label}: ${fmtSeconds(p.secs)} (${p.pct.toFixed(0)}% of the response time)`}
+            style={{ width: `${p.width}%`, ...(p.rest ? {} : { background: p.color }) }}
+            className={`flex items-center justify-center overflow-hidden whitespace-nowrap ${p.rest ? "bg-line text-muted" : ""}`}>
+            {p.width >= 6 && `${p.pct.toFixed(0)}%`}
           </div>
         ))}
       </div>
       <p className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted">
-        {items.map((n) => (
-          <span key={n.name} className="inline-flex items-center gap-1.5">
-            <span className="inline-block h-2 w-2" style={{ background: nodeShade(n.name) }} />
-            {nodeMeta(n.name).label}
-            <span className={`mono ${n.name === slowest.name ? "hl font-medium text-fg" : "text-fg"}`}>{fmtSeconds(n.avg)}</span>
-            <span className="mono">· {share(n.avg).toFixed(0)}%</span>
+        {pieces.map((p) => (
+          <span key={p.key} className="inline-flex items-center gap-1.5">
+            <span className={`inline-block h-2 w-2 ${p.rest ? "bg-line" : ""}`} style={p.rest ? undefined : { background: p.color }} />
+            {p.label}
+            <span className={`mono ${p.key === slowest.key ? "hl font-medium text-fg" : "text-fg"}`}>{fmtSeconds(p.secs)}</span>
+            <span className="mono">· {p.pct.toFixed(0)}%</span>
           </span>
         ))}
       </p>
+      {pieces.some((p) => p.rest) && (
+        <p className="mt-2 text-xs text-muted">
+          “Not in a step” is time spent outside the steps above, such as code that is not wrapped in a step.
+        </p>
+      )}
       {overlapping && (
         <p className="mt-2 text-xs text-muted">
-          Some steps run at the same time, so the percentages are shares of the steps' combined {fmtSeconds(sum)}, which is longer than the {fmtSeconds(v.avg_total_time)} a question takes.
+          Some steps run at the same time, so their percentages add up to more than 100% of the {fmtSeconds(total)} a question takes.
         </p>
       )}
     </>

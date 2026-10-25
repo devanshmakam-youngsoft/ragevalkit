@@ -19,7 +19,7 @@ export const GLOSSARY = {
   },
   steps: {
     label: "Timing of steps",
-    hint: "Where the time goes: every stage the assistant goes through (for example searching documents, then writing the answer), with the average seconds each takes and its share of the time spent in steps. Steps that run at the same time add up to more than a question's total.",
+    hint: "Where the time goes: every stage the assistant goes through (for example searching documents, then writing the answer), with the average seconds each takes and its share of the whole response time. Time outside any step shows as “Not in a step”, and steps that run at the same time can add up to more than 100%.",
   },
   keywords: {
     label: "Key facts found",
