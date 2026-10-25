@@ -275,3 +275,33 @@ def test_markdown_headings_lists_tables_and_abbreviations_are_numbered_sensibly(
         "Escalation rules", "Calls longer than 10 minutes are escalated to a human agent",
         "Plan Minutes Basic 500", "Billing is monthly.", "Overage is charged at $0.10 per minute, e.g. Basic plans pay more.",
     ]
+
+
+def test_writer_threads_share_one_locked_import_of_litellm(monkeypatch):
+    import sys
+    import threading
+    import types
+
+    from ragevalkit.generator import llm as llm_module
+
+    entered, overlap = [], []
+    fake = types.ModuleType("litellm")
+    fake.completion = lambda **kw: types.SimpleNamespace(choices=[types.SimpleNamespace(message=types.SimpleNamespace(content="{}"))])
+    monkeypatch.setitem(sys.modules, "litellm", fake)
+    real_lock = llm_module._import_lock
+
+    class Watching:
+        def __enter__(self):
+            real_lock.acquire()
+            entered.append(1)
+            overlap.append(len(entered) - len(overlap) - 1)
+
+        def __exit__(self, *exc):
+            real_lock.release()
+
+    monkeypatch.setattr(llm_module, "_import_lock", Watching())
+    model = llm_module.LiteLLM(Config(store_path="x", judge_model="m"))
+    threads = [threading.Thread(target=model, args=([{"role": "user", "content": "hi"}],)) for _ in range(6)]
+    [t.start() for t in threads]
+    [t.join() for t in threads]
+    assert len(entered) == 6 and not any(overlap)
