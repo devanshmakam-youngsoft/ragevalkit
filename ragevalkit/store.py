@@ -272,7 +272,11 @@ def stats_for_llm(summary: dict, rows: list[dict]) -> str:
         f"- [{r['answer_marks']}/10] {r['question'][:100]} :: {str(r.get('answer_remarks'))[:160]}"
         for r in worst
     )
-    nodes = ", ".join(f"{n['name']}={n['avg']}s" for n in summary_nodes(summary))
+    total_time = summary.get("avg_total_time") or 0
+    nodes = ", ".join(
+        f"{n['name']}={n['avg']}s" + (f" ({n['avg'] / total_time:.0%} of the response time)" if total_time else "")
+        for n in summary_nodes(summary)
+    )
     group_line = ", ".join(
         f"{g}: answer {st['avg_answer_marks']}, context {st['avg_material_marks']} over {st['total_rows']} rows"
         for g, st in (summary.get("group_stats") or {}).items()
@@ -292,6 +296,31 @@ def stats_for_llm(summary: dict, rows: list[dict]) -> str:
         f"Avg end-to-end time: {summary['avg_total_time']}s; avg node timings: {nodes}\n"
         f"Answer marks by type: {type_line}\nLowest scoring rows:\n{worst_lines}"
     )
+
+
+def default_suggestions(summary: dict, rows: list[dict]) -> list[str]:
+    """Next steps read straight from the run's numbers, for when the model's summary came back without any.
+    Never empty: a clean run is told how to test harder."""
+    out: list[str] = []
+    failed = summary.get("failed_rows") or 0
+    if failed:
+        out.append(f"Open the {failed} failed question{'s' if failed != 1 else ''} in the results to see what went wrong before comparing versions.")
+    low = ((summary.get("scores") or {}).get("tiers") or {}).get("low", 0)
+    if low:
+        out.append("Open the weak answers (filter the results by Weak) and compare each with the expected answer to see what is missing.")
+    sources = (summary.get("scores") or {}).get("sources") or {}
+    if sources.get("checked") and sources.get("matched", 0) < sources["checked"]:
+        out.append("Some expected documents were not retrieved: check that they are indexed and that the search finds them.")
+    material = summary.get("avg_material_marks")
+    if material is not None and material < 7:
+        out.append("Context quality is low, so the right passages are often not found: review how documents are split and how the search is set up.")
+    total = summary.get("avg_total_time") or 0
+    slow = max(summary_nodes(summary), key=lambda n: n["avg"], default=None)
+    if slow and total and slow["avg"] >= 0.5 * total:
+        out.append(f"{slow['name'].replace('_', ' ').capitalize()} takes {slow['avg'] / total:.0%} of the response time: start there to make answers faster.")
+    if not out:
+        out.append("Keep this version as the baseline and add harder test cases (indirect and multi-turn questions) to find where it breaks.")
+    return out[:3]
 
 
 def _cell(v):

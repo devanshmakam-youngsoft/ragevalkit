@@ -52,16 +52,22 @@ The reader already sees the headline averages (answer quality, context quality, 
 them and do not open with an overall verdict. Point out what needs attention and what to do about it, using the numbers
 provided only as evidence.
 
-pitfalls: 2-5 short items. Concrete weaknesses: which question types or groups scored lowest, which questions failed or
-scored poorly and why, which step is slow, failed rows, expected documents that were not retrieved. If there is genuinely
-nothing wrong, return one item saying so.
-suggestions: 2-4 short items. One concrete next step each, tied to a pitfall.
+pitfalls (the watch-outs): 2-5 items, the most important first. Each names ONE concrete weakness and the evidence for
+it: which group or question type scored lowest, which questions scored poorly and what their answers were missing,
+which step takes most of the response time, questions that failed, expected documents that were not found. Name the
+actual group or question when you can. If nothing is really wrong, give one item saying so plainly.
 
-Use plain everyday language; avoid jargon such as BM25, embeddings or recall. No markdown."""
+suggestions: 2-4 items, never empty. Each is one concrete action someone can take next, tied to a watch-out, and starts
+with a verb ("Add ...", "Check ...", "Rewrite ..."). If nothing is wrong, suggest how to test the assistant harder or
+what to keep an eye on.
+
+Rules: plain everyday language, no jargon (do not write BM25, embeddings, recall, semantic similarity or retrieval;
+say "key words" or "meaning" instead). One sentence per item, with at most one number in it. No markdown. Use only the
+facts provided and do not invent causes the data does not show."""
 
 # Appended to the summary prompt whether or not the developer replaced the wording above, so the
 # dashboard can always show the result as bullet lists.
 SUMMARY_FORMAT = """
 
 Respond ONLY with a JSON object of exactly this shape: {"pitfalls": ["..."], "suggestions": ["..."]}.
-Each item is a single sentence."""
+Both lists must have at least one item. Each item is a single sentence."""

@@ -353,15 +353,23 @@ function Insights({ summary }: { summary: VersionSummary }) {
     <div className="card p-5">
       <h3 className="label">Watch-outs &amp; suggestions</h3>
       {ins ? (
-        <div className="mt-3 grid gap-5 sm:grid-cols-2">
-          <div>
-            <div className="text-sm font-semibold" style={{ color: "var(--warn)" }}>Watch-outs</div>
-            {ins.pitfalls.length ? list(ins.pitfalls, "var(--warn)") : <p className="mt-2 text-sm text-muted">Nothing stood out.</p>}
-          </div>
-          <div>
-            <div className="text-sm font-semibold text-brand">Suggestions</div>
-            {ins.suggestions.length ? list(ins.suggestions, "var(--brand)") : <p className="mt-2 text-sm text-muted">None.</p>}
-          </div>
+        // a column with nothing in it is left out rather than printed as "None."
+        <div className={`mt-3 grid gap-5 ${ins.pitfalls.length > 0 && ins.suggestions.length > 0 ? "sm:grid-cols-2" : ""}`}>
+          {ins.pitfalls.length > 0 && (
+            <div>
+              <div className="text-sm font-semibold" style={{ color: "var(--warn)" }}>Watch-outs</div>
+              {list(ins.pitfalls, "var(--warn)")}
+            </div>
+          )}
+          {ins.suggestions.length > 0 && (
+            <div>
+              <div className="text-sm font-semibold text-brand">Suggestions</div>
+              {list(ins.suggestions, "var(--brand)")}
+            </div>
+          )}
+          {ins.pitfalls.length === 0 && ins.suggestions.length === 0 && (
+            <p className="text-sm text-muted">No watch-outs or suggestions were written for this run.</p>
+          )}
         </div>
       ) : (
         <>

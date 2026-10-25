@@ -87,8 +87,28 @@ def test_a_json_mode_rejection_is_logged_once_in_our_words_and_the_retry_still_a
         return types.SimpleNamespace(choices=[types.SimpleNamespace(message=types.SimpleNamespace(content='{"ok": 1}'))])
 
     module.completion = completion
-    with caplog.at_level("INFO", logger="ragevalkit.generator.llm"):
+    with caplog.at_level("INFO", logger="ragevalkit.litellm_loader"):
         reply = LiteLLM(Config(store_path="x", judge_model="groq/m"))([{"role": "user", "content": "hi"}])
     assert reply == '{"ok": 1}' and seen == [True, False]
     assert [r.getMessage() for r in caplog.records if "rejected JSON mode" in r.getMessage()] == [
         "groq/m rejected JSON mode (GroqException - json_validate_failed: Failed to validate JSON); asking again without it"]
+
+
+def test_the_judge_also_falls_back_from_json_mode_instead_of_failing(monkeypatch):
+    from ragevalkit.judge import Judge
+
+    module = fake_litellm(monkeypatch)
+    seen = []
+
+    def completion(**kw):
+        seen.append("response_format" in kw)
+        if "response_format" in kw:
+            raise RuntimeError("json_validate_failed: Failed to validate JSON")
+        return types.SimpleNamespace(choices=[types.SimpleNamespace(message=types.SimpleNamespace(content="{}"))])
+
+    module.completion = completion
+    assert Judge(Config(store_path="x", judge_model="groq/m"))._call([{"role": "user", "content": "hi"}], json_mode=True) == "{}"
+    assert seen == [True, False]
+    seen.clear()
+    Judge(Config(store_path="x", judge_model="groq/m"))._call([{"role": "user", "content": "hi"}])      # no JSON mode asked: none used
+    assert seen == [False]

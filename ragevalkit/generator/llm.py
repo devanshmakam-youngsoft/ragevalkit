@@ -2,14 +2,8 @@
 from __future__ import annotations
 
 import json
-import logging
 
 from ragevalkit import litellm_loader
-
-logger = logging.getLogger(__name__)
-
-# errors that mean "this provider's JSON mode does not like this", after which asking without it is worth a try
-_JSON_MODE_ERRORS = ("response_format", "json_validate_failed", "failed to validate json", "json mode", "json_object")
 
 
 class LiteLLM:
@@ -23,21 +17,7 @@ class LiteLLM:
         return self.config.generator_model or self.config.judge_model
 
     def __call__(self, messages: list[dict]) -> str:
-        litellm = litellm_loader.load()
-        kwargs: dict = dict(model=self.model, messages=messages, response_format={"type": "json_object"})
-        if self.config.judge_api_key:
-            kwargs["api_key"] = self.config.judge_api_key
-        try:
-            resp = litellm.completion(**kwargs)
-        except Exception as e:
-            if not any(key in str(e).lower() for key in _JSON_MODE_ERRORS):
-                raise
-            # this provider has no JSON mode, or its JSON mode rejected the output (Groq: "Failed to validate JSON"):
-            # ask again without it. The prompt already requires JSON and the reply is parsed leniently.
-            logger.info("%s rejected JSON mode (%s); asking again without it", self.model, str(e).splitlines()[0][:160])
-            kwargs.pop("response_format")
-            resp = litellm.completion(**kwargs)
-        return resp.choices[0].message.content
+        return litellm_loader.complete(messages, model=self.model, api_key=self.config.judge_api_key, json_mode=True)
 
 
 def parse_reply(raw: str | None) -> dict | None:

@@ -46,13 +46,29 @@ class SourceCheckResult(BaseModel):
     source_comment: str = ""
 
 
+_ITEM_TEXT_KEYS = ("text", "suggestion", "pitfall", "watch_out", "issue", "action", "title", "description", "summary")
+_NO_ITEM = {"none", "none.", "n/a", "na", "nothing", "-"}
+# models rename keys now and then; each list is read under any of these names
+_LIST_NAMES = {
+    "pitfalls": ("pitfalls", "watch_outs", "watchouts", "issues", "risks", "problems"),
+    "suggestions": ("suggestions", "suggestion", "recommendations", "next_steps", "actions", "improvements"),
+}
+
+
 def _clean_items(value, limit: int = 6) -> list[str]:
-    if isinstance(value, str):
+    """Short plain-text items from whatever shape the model used: a list of strings, one string, or objects."""
+    if isinstance(value, (str, dict)):
         value = [value]
     if not isinstance(value, list):
         return []
-    items = [str(v).strip().lstrip("-•* ").strip() for v in value if str(v).strip()]
-    return [i[:400] for i in items][:limit]
+    items: list[str] = []
+    for v in value:
+        if isinstance(v, dict):
+            v = next((v[k] for k in _ITEM_TEXT_KEYS if isinstance(v.get(k), str) and v[k].strip()), "")
+        text = str(v).strip().lstrip("-•* ").strip()
+        if text and text.lower() not in _NO_ITEM and text[:400] not in items:
+            items.append(text[:400])
+    return items[:limit]
 
 
 def parse_insights(raw: str | None) -> dict | None:
@@ -74,10 +90,22 @@ def parse_insights(raw: str | None) -> dict | None:
             return None
     if not isinstance(data, dict):
         return None
-    pitfalls, suggestions = _clean_items(data.get("pitfalls")), _clean_items(data.get("suggestions"))
-    if not pitfalls and not suggestions:
-        return None
-    return {"pitfalls": pitfalls, "suggestions": suggestions}
+    data = {str(k).lower().replace("-", "_").replace(" ", "_"): v for k, v in data.items()}
+    found = {key: next((items for items in (_clean_items(data.get(name)) for name in names) if items), []) for key, names in _LIST_NAMES.items()}
+    return found if found["pitfalls"] or found["suggestions"] else None
+
+
+def check_insights(raw: str | None) -> tuple[dict | None, str]:
+    """A summary reply that has both lists filled in, or the reason it does not (worded so it can be sent back)."""
+    found = parse_insights(raw)
+    if found is None:
+        return None, 'it was not a JSON object with a "pitfalls" list and a "suggestions" list'
+    if not found["pitfalls"]:
+        return None, '"pitfalls" was empty: list 1 to 5 watch-outs, or one item saying nothing is wrong'
+    if not found["suggestions"]:
+        return None, ('"suggestions" was empty: give 2 to 4 concrete next steps, one for each watch-out. '
+                      "If nothing is wrong, suggest how to test the assistant harder or what to keep an eye on")
+    return found, ""
 
 
 class Judge:
@@ -86,23 +114,10 @@ class Judge:
         self._grader_prompt = config.judge_prompt_override or _prompts.GRADER_PROMPT
 
     def _call(self, messages: list[dict], json_mode: bool = False) -> str:
-        litellm = litellm_loader.load()
-
-        kwargs: dict = dict(
-            model=self.config.judge_model,
-            messages=messages,
+        return litellm_loader.complete(
+            messages, model=self.config.judge_model, api_key=self.config.judge_api_key,
+            temperature=self.config.judge_temperature, json_mode=json_mode,
         )
-        if self.config.judge_temperature is not None:
-            kwargs["temperature"] = self.config.judge_temperature
-        if self.config.judge_api_key:
-            kwargs["api_key"] = self.config.judge_api_key
-        if json_mode:
-            try:
-                kwargs["response_format"] = {"type": "json_object"}
-            except Exception:
-                pass  # provider may not support it; prompt-level instruction serves as fallback
-        resp = litellm.completion(**kwargs)
-        return resp.choices[0].message.content
 
     def _with_retries(self, fn):
         last = None
@@ -180,22 +195,35 @@ class Judge:
         )
 
     def summarize_run(self, stats: str) -> dict | None:
-        """Pitfalls and suggestions for a finished run: ``{"pitfalls": [...], "suggestions": [...]}``,
-        or None if the summary could not be generated."""
+        """Pitfalls and suggestions for a finished run: ``{"pitfalls": [...], "suggestions": [...]}``.
+
+        A reply that is not usable (not JSON, or one of the lists empty) is sent back with the reason so the model
+        can fix it, up to ``judge_retries`` times (at least twice). If the model never fills both lists, what it did
+        give is returned (the caller can add the missing suggestions); None only when nothing usable came back."""
         system = (self.config.summary_prompt or _prompts.SUMMARY_PROMPT) + _prompts.SUMMARY_FORMAT
-
-        def _invoke():
-            raw = self._call(
-                [{"role": "system", "content": system}, {"role": "user", "content": stats}],
-                json_mode=True,
-            )
-            insights = parse_insights(raw)
-            if insights is None:
-                raise ValueError("summary was not valid JSON with pitfalls / suggestions")
-            return insights
-
-        try:
-            return self._with_retries(_invoke)
-        except Exception as e:
-            logger.error("Run summary generation failed: %s", e)
-            return None
+        messages = [{"role": "system", "content": system}, {"role": "user", "content": stats}]
+        attempts = max(2, self.config.judge_retries)
+        partial: dict | None = None
+        problem = "no reply"
+        for attempt in range(attempts):
+            try:
+                raw = self._call(messages, json_mode=True)
+            except Exception as e:  # network, rate limit, provider error
+                problem = f"the model could not be reached: {e}"
+                logger.warning("Run summary call failed (attempt %d): %s", attempt + 1, e)
+                time.sleep(2 * (attempt + 1))
+                continue
+            insights, problem = check_insights(raw)
+            if insights is not None:
+                return insights
+            partial = parse_insights(raw) or partial
+            logger.warning("Run summary reply rejected (attempt %d): %s", attempt + 1, problem)
+            messages = messages + [
+                {"role": "assistant", "content": raw or ""},
+                {"role": "user", "content": f"That reply was rejected: {problem}. Reply again with JSON only, in the required shape."},
+            ]
+        if partial is not None:
+            logger.warning("Run summary incomplete after %d attempts (%s); using what the model gave", attempts, problem)
+            return partial
+        logger.error("Run summary generation failed: %s", problem)
+        return None

@@ -123,3 +123,79 @@ def test_a_custom_summary_prompt_still_gets_the_json_format_appended():
     judge._call = lambda messages, json_mode=False: (seen.update(system=messages[0]["content"]), '{"pitfalls": ["x"]}')[1]
     judge.summarize_run("stats")
     assert seen["system"].startswith("Focus on speed.") and '"pitfalls"' in seen["system"]
+
+
+# ---- summaries that must have both lists -------------------------------------------------------------------
+
+def make_judge(retries=3):
+    return Judge(SimpleNamespace(judge_prompt_override="", judge_retries=retries, summary_prompt=""))
+
+
+def test_a_summary_without_suggestions_is_sent_back_with_the_reason_until_it_has_them(monkeypatch):
+    monkeypatch.setattr("ragevalkit.judge.time.sleep", lambda s: None)
+    judge = make_judge()
+    replies = iter([json.dumps({"pitfalls": ["Slow search."], "suggestions": []}),
+                    json.dumps({"pitfalls": ["Slow search."], "suggestions": ["Check the search index."]})])
+    sent = []
+    judge._call = lambda messages, json_mode=False: (sent.append(messages), next(replies))[1]
+    assert judge.summarize_run("stats") == {"pitfalls": ["Slow search."], "suggestions": ["Check the search index."]}
+    assert len(sent) == 2
+    feedback = sent[1][-1]["content"]
+    assert sent[1][-2]["role"] == "assistant" and '"suggestions" was empty' in feedback and "one for each watch-out" in feedback
+
+
+def test_when_the_model_never_gives_suggestions_what_it_did_give_is_kept(monkeypatch):
+    monkeypatch.setattr("ragevalkit.judge.time.sleep", lambda s: None)
+    judge = make_judge(retries=2)
+    judge._call = lambda messages, json_mode=False: json.dumps({"pitfalls": ["Slow search."]})
+    assert judge.summarize_run("stats") == {"pitfalls": ["Slow search."], "suggestions": []}      # the runner fills the gap
+
+
+def test_a_failing_call_is_retried_then_the_summary_gives_up_cleanly(monkeypatch):
+    monkeypatch.setattr("ragevalkit.judge.time.sleep", lambda s: None)
+    judge = make_judge(retries=2)
+    calls = []
+
+    def boom(messages, json_mode=False):
+        calls.append(1)
+        raise ConnectionError("network down")
+
+    judge._call = boom
+    assert judge.summarize_run("stats") is None and len(calls) == 2
+
+
+@pytest.mark.parametrize("reply, expected", [
+    ({"watch_outs": ["a slow step"], "recommendations": ["speed it up"]}, ({"pitfalls": ["a slow step"], "suggestions": ["speed it up"]})),
+    ({"Pitfalls": [{"text": "a slow step"}], "Next Steps": [{"title": "speed it up", "detail": "x"}]}, ({"pitfalls": ["a slow step"], "suggestions": ["speed it up"]})),
+    ({"pitfalls": ["a slow step", "a slow step", "None."], "suggestions": "- speed it up"}, ({"pitfalls": ["a slow step"], "suggestions": ["speed it up"]})),
+])
+def test_summary_replies_are_read_whatever_names_and_shapes_the_model_used(reply, expected):
+    from ragevalkit.judge import check_insights
+    found, problem = check_insights(json.dumps(reply))
+    assert problem == "" and found == expected
+
+
+def test_the_summary_prompt_asks_for_actions_never_empty_and_no_jargon():
+    from ragevalkit import prompts
+    text = prompts.SUMMARY_PROMPT + prompts.SUMMARY_FORMAT
+    for needle in ("do NOT restate", "never empty", "starts\nwith a verb", "no jargon", "Both lists must have at least one item"):
+        assert needle in text
+
+
+def test_suggestions_read_from_the_numbers_are_never_empty_and_fit_the_run():
+    from ragevalkit.store import default_suggestions
+    clean = {"failed_rows": 0, "avg_material_marks": 9.5, "avg_total_time": 2.0, "scores": {"tiers": {"low": 0}}}
+    assert default_suggestions(clean, []) == ["Keep this version as the baseline and add harder test cases (indirect and multi-turn questions) to find where it breaks."]
+    troubled = {"failed_rows": 2, "avg_material_marks": 5.0, "avg_total_time": 4.0, "avg_retrieval": 3.0, "avg_llm": 0.5,
+                "scores": {"tiers": {"low": 3}, "sources": {"checked": 4, "matched": 2}}}
+    out = default_suggestions(troubled, [])
+    assert len(out) == 3 and out[0].startswith("Open the 2 failed questions") and any("weak answers" in t for t in out)
+    slow = default_suggestions({"failed_rows": 0, "avg_material_marks": 9, "avg_total_time": 4.0, "avg_retrieval": 3.0, "avg_llm": 0.5, "scores": {}}, [])
+    assert slow == ["Retrieval takes 75% of the response time: start there to make answers faster."]
+
+
+def test_the_model_is_told_each_steps_share_of_the_response_time():
+    from ragevalkit.store import stats_for_llm
+    summary = {"total_rows": 2, "failed_rows": 0, "avg_answer_marks": 9, "avg_material_marks": 9, "avg_keyword_recall": 0.5,
+               "avg_semantic_similarity": 0.5, "avg_total_time": 4.0, "avg_retrieval": 3.0, "scores": {}}
+    assert "retrieval=3.0s (75% of the response time)" in stats_for_llm(summary, [])
