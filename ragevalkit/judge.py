@@ -23,6 +23,7 @@ import time
 
 from pydantic import BaseModel, Field
 
+from ragevalkit import litellm_loader
 from ragevalkit import prompts as _prompts
 from ragevalkit.exceptions import JudgeError
 
@@ -85,7 +86,7 @@ class Judge:
         self._grader_prompt = config.judge_prompt_override or _prompts.GRADER_PROMPT
 
     def _call(self, messages: list[dict], json_mode: bool = False) -> str:
-        import litellm
+        litellm = litellm_loader.load()
 
         kwargs: dict = dict(
             model=self.config.judge_model,

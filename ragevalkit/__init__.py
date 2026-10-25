@@ -19,6 +19,7 @@ With step recording::
         answer = llm.generate(query)
         s.material = retrieved_context
 """
+import logging
 import os
 import secrets
 import threading
@@ -45,6 +46,7 @@ def _load_dotenv(path: str = ".env") -> None:
     except Exception:
         pass
 
+from ragevalkit import litellm_loader
 from ragevalkit.recording import step, note
 from ragevalkit.config import Config
 from ragevalkit.server import create_app
@@ -290,6 +292,11 @@ def serve(
         history_format=history_format,
         **cfg_extra,
     )
+    if config.eval_env != "prod":
+        try:
+            litellm_loader.load()   # once, here, before the server and its worker threads exist (see litellm_loader)
+        except ImportError:
+            logging.getLogger(__name__).warning("litellm is not installed: judging and test case generation will not work.")
     app = create_app(
         config, fn=fn,
         judge_fn=judge_fn,

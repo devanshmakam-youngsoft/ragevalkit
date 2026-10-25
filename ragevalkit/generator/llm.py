@@ -2,21 +2,11 @@
 from __future__ import annotations
 
 import json
-import threading
+
+from ragevalkit import litellm_loader
 
 # errors that mean "this provider's JSON mode does not like this", after which asking without it is worth a try
 _JSON_MODE_ERRORS = ("response_format", "json_validate_failed", "failed to validate json", "json mode", "json_object")
-
-
-_import_lock = threading.Lock()
-
-
-def _litellm():
-    """The litellm module. Importing it takes seconds, and several writer threads asking at once deadlock on the
-    half-loaded module ("no attribute 'completion'"), so the first import happens under a lock."""
-    with _import_lock:
-        import litellm
-    return litellm
 
 
 class LiteLLM:
@@ -30,7 +20,7 @@ class LiteLLM:
         return self.config.generator_model or self.config.judge_model
 
     def __call__(self, messages: list[dict]) -> str:
-        litellm = _litellm()
+        litellm = litellm_loader.load()
         kwargs: dict = dict(model=self.model, messages=messages, response_format={"type": "json_object"})
         if self.config.judge_api_key:
             kwargs["api_key"] = self.config.judge_api_key
