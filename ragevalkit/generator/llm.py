@@ -2,8 +2,11 @@
 from __future__ import annotations
 
 import json
+import logging
 
 from ragevalkit import litellm_loader
+
+logger = logging.getLogger(__name__)
 
 # errors that mean "this provider's JSON mode does not like this", after which asking without it is worth a try
 _JSON_MODE_ERRORS = ("response_format", "json_validate_failed", "failed to validate json", "json mode", "json_object")
@@ -31,6 +34,7 @@ class LiteLLM:
                 raise
             # this provider has no JSON mode, or its JSON mode rejected the output (Groq: "Failed to validate JSON"):
             # ask again without it. The prompt already requires JSON and the reply is parsed leniently.
+            logger.info("%s rejected JSON mode (%s); asking again without it", self.model, str(e).splitlines()[0][:160])
             kwargs.pop("response_format")
             resp = litellm.completion(**kwargs)
         return resp.choices[0].message.content

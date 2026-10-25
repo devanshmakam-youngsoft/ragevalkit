@@ -25,4 +25,5 @@ def load():
                 importlib.import_module(name)
             except Exception:       # not every litellm version has these parts
                 pass
+        litellm.suppress_debug_info = True     # no "Give Feedback / Get Help" banner on every handled error; failures are logged by us
     return litellm
