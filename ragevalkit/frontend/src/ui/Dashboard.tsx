@@ -333,7 +333,7 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1000px] text-left text-sm">
+          <table className="w-full min-w-[860px] text-left text-sm">
             <thead className="bg-surface-2 text-[11px] uppercase tracking-[0.08em] text-muted">
               <tr>
                 {compareMode && <th className="w-10 px-3 py-3" />}
@@ -344,16 +344,15 @@ export default function Dashboard() {
                 <SortTh k="material" cur={sort} onSort={toggleSort}><Term k="context" /></SortTh>
                 <SortTh k="time" cur={sort} onSort={toggleSort}><Term k="time" /></SortTh>
                 <th className="px-3 py-3 font-medium"><Term k="steps" /></th>
-                <th className="px-3 py-3 font-medium">Watch-outs</th>
                 <th className="px-3 py-3 font-medium">Actions</th>
                 <th className="w-8" />
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
-              {!versions && !error && <tr><td colSpan={10} className="px-5 py-12 text-center text-muted">Loading…</td></tr>}
-              {error && <tr><td colSpan={10} className="px-5 py-12 text-center text-bad">Could not reach the evaluator backend: {error}</td></tr>}
+              {!versions && !error && <tr><td colSpan={9} className="px-5 py-12 text-center text-muted">Loading…</td></tr>}
+              {error && <tr><td colSpan={9} className="px-5 py-12 text-center text-bad">Could not reach the evaluator backend: {error}</td></tr>}
               {versions && activeVersions.length === 0 && !run && (
-                <tr><td colSpan={10} className="px-5 py-16 text-center">
+                <tr><td colSpan={9} className="px-5 py-16 text-center">
                   <div className="font-serif text-lg">{versions.length === 0 ? "No runs yet" : "All versions are archived"}</div>
                   <div className="mt-1 text-sm text-muted">
                     {versions.length === 0 ? "Execute a session to record the first baseline." : "Unarchive one below, or execute a new session."}
@@ -393,7 +392,6 @@ export default function Dashboard() {
                     <td className="px-3 py-4"><div className="flex flex-col items-start gap-1"><ScorePill value={scoreOf(v, "avg_material_marks")} /><Delta {...deltaProps(v, "material", "avg_material_marks")} />{sharedNote(v, "material", isBestFor(v, "material", "avg_material_marks", bests.material))}{!partialOf(v) && isBestFor(v, "material", "avg_material_marks", bests.material) && <BestTag />}</div></td>
                     <td className="px-3 py-4"><div className="flex flex-col items-start gap-1"><div className="mono">{fmtSeconds(scoreOf(v, "avg_total_time"))}</div><Delta {...deltaProps(v, "time", "avg_total_time")} invert digits={2} unit="s" />{sharedNote(v, "time", isBestFor(v, "time", "avg_total_time", bests.time))}{!partialOf(v) && isBestFor(v, "time", "avg_total_time", bests.time) && <BestTag />}</div></td>
                     <td className="px-3 py-4"><NodeTimings v={v} compact /></td>
-                    <td className="max-w-[340px] px-3 py-4 text-[13px] leading-relaxed text-muted"><WatchOuts v={v} /></td>
                     <td className="px-3 py-4 align-middle" onClick={(e) => e.stopPropagation()}>
                       {confirmDelete === v.run_id ? (
                         <span className="inline-flex items-center gap-1 text-xs">
@@ -456,7 +454,7 @@ export default function Dashboard() {
           {showArchived && (
             <div className="card overflow-hidden opacity-60">
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[1000px] text-left text-sm">
+                <table className="w-full min-w-[860px] text-left text-sm">
                   <thead className="bg-surface-2 text-[11px] uppercase tracking-[0.08em] text-muted">
                     <tr>
                       <th className="px-5 py-3 font-medium">Version</th>
@@ -466,7 +464,6 @@ export default function Dashboard() {
                       <th className="px-3 py-3 font-medium"><Term k="context" /></th>
                       <th className="px-3 py-3 font-medium"><Term k="time" /></th>
                       <th className="px-3 py-3 font-medium"><Term k="steps" /></th>
-                      <th className="px-3 py-3 font-medium">Watch-outs</th>
                       <th className="px-3 py-3 font-medium">Actions</th>
                     </tr>
                   </thead>
@@ -482,7 +479,6 @@ export default function Dashboard() {
                         <td className="px-3 py-4"><ScorePill value={v.avg_material_marks} /></td>
                         <td className="px-3 py-4"><div className="mono">{fmtSeconds(v.avg_total_time)}</div></td>
                         <td className="px-3 py-4"><NodeTimings v={v} compact /></td>
-                        <td className="max-w-[340px] px-3 py-4 text-[13px] leading-relaxed text-muted"><WatchOuts v={v} /></td>
                         <td className="px-3 py-4 align-middle" onClick={(e) => e.stopPropagation()}>
                           <button
                             title="Restore to dashboard"
@@ -505,17 +501,6 @@ export default function Dashboard() {
 
     </div>
     </>
-  );
-}
-
-/** The first couple of watch-outs for a version, so the table says what needs attention rather than repeating the scores. */
-function WatchOuts({ v }: { v: VersionSummary }) {
-  const items = v.insights?.pitfalls?.slice(0, 2) ?? [];
-  if (items.length === 0) return <p className="clamp-4">{v.comment}</p>;
-  return (
-    <ul className="list-disc space-y-1 pl-4">
-      {items.map((t, i) => <li key={i} className="line-clamp-3">{t}</li>)}
-    </ul>
   );
 }
 
