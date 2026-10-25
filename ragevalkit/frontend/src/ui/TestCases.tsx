@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { api } from "../api";
+import { ActionMenu } from "./ActionMenu";
+import { AddExistingModal } from "./AddExistingModal";
 import { AddToGroupModal } from "./AddToGroupModal";
 import type { Crumb } from "./Breadcrumbs";
 import { ExecuteModal } from "./ExecuteModal";
@@ -43,6 +45,7 @@ export default function TestCases() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const [showNew, setShowNew] = useState(false);
+  const [showExisting, setShowExisting] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [showRun, setShowRun] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -167,20 +170,29 @@ export default function TestCases() {
             </p>
           </div>
           <div className="ml-auto flex items-center gap-2">
-            <button onClick={() => setGenerate({})}
-              className="rounded border border-line bg-surface px-4 py-2 text-sm font-medium hover:bg-surface-2">
-              Generate from documents
-            </button>
-            <button onClick={() => setShowImport(true)}
-              className="rounded border border-line bg-surface px-4 py-2 text-sm font-medium hover:bg-surface-2">
-              Import
-            </button>
-            <button
-              onClick={() => setShowNew(true)}
-              className="rounded bg-brand px-4 py-2 text-sm font-medium text-white hover:brightness-110"
-            >
-              + New test case
-            </button>
+            {realGroupId ? (
+              <ActionMenu primary label="Add test cases" items={[
+                { label: "Add existing test cases…", hint: "Pick from the ones you already have", onSelect: () => setShowExisting(true) },
+                { label: "Create a new test case…", hint: `It is added to ${groupName ?? "this group"}`, onSelect: () => setShowNew(true) },
+              ]} />
+            ) : (
+              <>
+                <button onClick={() => setGenerate({})}
+                  className="rounded border border-line bg-surface px-4 py-2 text-sm font-medium hover:bg-surface-2">
+                  Generate from documents
+                </button>
+                <button onClick={() => setShowImport(true)}
+                  className="rounded border border-line bg-surface px-4 py-2 text-sm font-medium hover:bg-surface-2">
+                  Import
+                </button>
+                <button
+                  onClick={() => setShowNew(true)}
+                  className="rounded bg-brand px-4 py-2 text-sm font-medium text-white hover:brightness-110"
+                >
+                  + New test case
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -277,9 +289,11 @@ export default function TestCases() {
             <div className="px-5 py-16 text-center">
               <div className="font-serif text-lg">No test cases found</div>
               <div className="mt-1 text-sm text-muted">
-                {cases.length === 0 && !realGroupId && statusFilter === "active"
-                  ? "Add one with “New test case”, bring many in with Import, or write them from a document with “Generate from documents”."
-                  : "Nothing matches the current filters."}
+                {cases.length === 0 && realGroupId && statusFilter === "active"
+                  ? "This group is empty. Use “Add test cases” to put existing ones in it, or to create a new one."
+                  : cases.length === 0 && statusFilter === "active"
+                    ? "Add one with “New test case”, bring many in with Import, or write them from a document with “Generate from documents”."
+                    : "Nothing matches the current filters."}
               </div>
             </div>
           )}
@@ -351,6 +365,14 @@ export default function TestCases() {
             defaultGroupId={realGroupId}
             onClose={() => setShowNew(false)}
             onSaved={() => { load(); loadGroups(); setShowNew(false); }}
+          />
+        )}
+        {showExisting && realGroupId && (
+          <AddExistingModal
+            groupId={realGroupId}
+            groupName={groupName ?? "this group"}
+            onClose={() => setShowExisting(false)}
+            onDone={(message) => { setShowExisting(false); setNotice(message); load(); loadGroups(); }}
           />
         )}
         {showAdd && (

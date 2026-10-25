@@ -184,7 +184,7 @@ export interface TestCase {
   expected_answer: string;
   expected_sources?: string;
   type: string;
-  status: "active" | "inactive" | "deleted";
+  status: "active" | "inactive";
   version: number;
   created_at: string;
   updated_at?: string;

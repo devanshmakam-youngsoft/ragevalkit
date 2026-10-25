@@ -8,6 +8,7 @@ import { ImportDialog } from "./ImportDialog";
 import { SectionTabs } from "./SectionTabs";
 import { TopBar } from "./TopBar";
 import { fmt, fmtDate } from "../lib";
+import { ActionMenu } from "./ActionMenu";
 import { Pager, usePaging } from "./Pager";
 import type { Group, GroupRunStat } from "../types";
 
@@ -161,39 +162,26 @@ export default function Groups() {
                     <td className="px-3 py-4"><RunCell run={g.last_run ?? null} when /></td>
                     <td className="px-3 py-4"><RunCell run={g.best_run ?? null} /></td>
                     <td className="px-3 py-4" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center gap-3">
-                        <button
-                          onClick={() => setRunGroupId(g.group_id)}
-                          disabled={g.member_count === 0}
-                          className="text-xs font-medium text-brand hover:underline disabled:cursor-not-allowed disabled:opacity-40"
-                        >Run</button>
-                        <button
-                          onClick={() => setRenaming({ id: g.group_id, name: g.name })}
-                          className="text-xs font-medium text-muted hover:text-brand"
-                        >Rename</button>
-                        <button
-                          onClick={() => setImportFor({ groupId: g.group_id })}
-                          className="text-xs font-medium text-muted hover:text-brand"
-                        >Import into…</button>
-                        {pendingDelete === g.group_id ? (
-                          <span className="flex items-center gap-1">
-                            <span className="text-xs text-bad">Sure?</span>
-                            <button
-                              onClick={() => handleDelete(g.group_id)}
-                              className="text-xs text-bad hover:underline"
-                            >Yes</button>
-                            <button
-                              onClick={() => setPendingDelete(null)}
-                              className="text-xs text-muted hover:underline"
-                            >No</button>
-                          </span>
-                        ) : (
-                          <button
-                            onClick={() => setPendingDelete(g.group_id)}
-                            className="text-xs text-bad hover:underline"
-                          >Delete</button>
-                        )}
-                      </div>
+                      {pendingDelete === g.group_id ? (
+                        <div className="flex flex-wrap items-center gap-2 text-xs">
+                          <span className="text-bad">Delete this group? Its test cases are kept.</span>
+                          <button onClick={() => handleDelete(g.group_id)}
+                            className="rounded bg-bad px-2.5 py-1 font-semibold text-white hover:brightness-110">Delete</button>
+                          <button onClick={() => setPendingDelete(null)} className="text-muted hover:text-fg">Cancel</button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5">
+                          <button onClick={() => setRunGroupId(g.group_id)} disabled={g.member_count === 0}
+                            className="rounded border border-brand px-3 py-1 text-xs font-medium text-brand hover:bg-brand-soft disabled:cursor-not-allowed disabled:opacity-40">
+                            Run
+                          </button>
+                          <ActionMenu ariaLabel={`More actions for ${g.name}`} items={[
+                            { label: "Rename", onSelect: () => setRenaming({ id: g.group_id, name: g.name }) },
+                            { label: "Import test cases…", hint: "From a spreadsheet, into this group", onSelect: () => setImportFor({ groupId: g.group_id }) },
+                            { label: "Delete group", danger: true, onSelect: () => setPendingDelete(g.group_id) },
+                          ]} />
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}
