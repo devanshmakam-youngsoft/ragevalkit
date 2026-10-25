@@ -95,7 +95,7 @@ You can run:
 
 Follow-up questions need the turns before them, so by default a run also includes the earlier turns of each selected case's conversation; the Execute dialog shows exactly how many cases will run and lets you turn this off. Chat ID and turn number can be edited on any test case.
 
-**Deleting a test case or a group only hides it.** Nothing is removed, so past versions that used it still read correctly; filter by *Deleted* (test cases) or open *Deleted groups* (Groups page) to restore one. *Delete forever* is offered only for things that are already deleted. Deleting a **version** removes it and its results from the store for good. To take a test case out of runs without hiding it, mark it *inactive*.
+**Deleting a test case removes it for good**, with all its versions and group labels. Past versions keep their own copy of the question and the answer, and mark that row *Test case deleted*. **Deleting a group** only hides it (its labels stay, so past versions still read correctly); open *Deleted groups* on the Groups page to restore or remove one. Deleting a **version** removes it and its results from the store for good. To take a test case out of runs without deleting it, mark it *inactive*.
 
 ## Generating test cases from documents
 
@@ -126,7 +126,7 @@ Each test case has a type. **`rag`** (the default) means the answer has to come 
 - **Check first.** You see how many rows are new, will be updated, are already there, or can't be imported — with the row number and reason for each one that can't — before anything is saved. Nothing is silently corrected: a turn of "abc" is reported, not turned into 1.
 - **Only the question column is required.** Without a chat column every question becomes its own chat; without a turn column turns are numbered in file order within each chat. Common header names (`query`, `gold_answer`, `tags`…) are recognised, and the dialog lets you point any column at the right field.
 - **Groups are optional.** The default is *No group*. Pick existing groups or a new one for the whole file, and/or add a `groups` column (`Billing; Refunds`) to label rows individually — missing groups are created.
-- **Safe to repeat.** Importing the same file again changes nothing; an edited answer becomes a new version of the existing case; cases you deleted earlier are left alone. If a row has the same chat and turn as an existing case but a different question you can add it as a new case or update the existing one.
+- **Safe to repeat.** Importing the same file again changes nothing; an edited answer becomes a new version of the existing case. If a row has the same chat and turn as an existing case but a different question you can add it as a new case or update the existing one.
 - **Fix and re-import.** The rows that couldn't be imported can be downloaded with the reason next to each. A template (with a short guide) is available in the dialog.
 
 ## Which version should ship?

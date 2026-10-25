@@ -313,10 +313,16 @@ def list_versions(request: Request) -> list[dict]:
 
 @router.get("/versions/{version}")
 def get_version(version: str, request: Request) -> dict:
+    store = request.app.state.store
     try:
-        return request.app.state.store.get(version)
+        data = store.get(version)
     except VersionNotFound:
         raise HTTPException(404, "Version not found")
+    alive = store.existing_tc_ids()
+    for row in data.get("rows", []):
+        if row.get("tc_id") and row["tc_id"] not in alive:
+            row["case_deleted"] = True          # the test case was deleted after this version ran
+    return data
 
 
 @router.get("/versions/{version}/download")
@@ -377,7 +383,7 @@ class TestCaseUpdate(BaseModel):
 
 
 class TestCaseStatusUpdate(BaseModel):
-    status: str  # "active" | "inactive" | "deleted"
+    status: str  # "active" | "inactive"
 
 
 @router.get("/test-cases")
@@ -387,7 +393,7 @@ def list_test_cases(
     dataset_id: str | None = None,
     status: str | None = None,
 ) -> list[dict]:
-    """List test cases. Optionally filter by group_id/dataset_id or status (active/inactive/deleted)."""
+    """List test cases. Optionally filter by group_id/dataset_id or status (active/inactive)."""
     return request.app.state.store.list_test_cases(group_id=group_id, dataset_id=dataset_id, status=status)
 
 
@@ -424,14 +430,13 @@ def update_test_case(tc_id: str, body: TestCaseUpdate, request: Request) -> dict
 
 class BulkStatusUpdate(BaseModel):
     tc_ids: list[str]
-    status: str  # "active" | "inactive" | "deleted"
+    status: str  # "active" | "inactive"
 
 
 @router.post("/test-cases/status")
 def set_test_cases_status(body: BulkStatusUpdate, request: Request) -> dict:
-    """Activate, deactivate or delete (hide, keeping the data) several test cases at once.
-    Setting a deleted case back to 'active' restores it."""
-    if body.status not in ("active", "inactive", "deleted"):
+    """Activate or deactivate several test cases at once (inactive cases do not run). To remove them use /test-cases/delete."""
+    if body.status not in ("active", "inactive"):
         raise HTTPException(422, f"Invalid status '{body.status}'")
     updated = request.app.state.store.update_status_bulk(body.tc_ids, body.status)
     return {"updated": updated, "status": body.status}
@@ -441,11 +446,11 @@ class TcIdList(BaseModel):
     tc_ids: list[str]
 
 
-@router.post("/test-cases/purge")
-def purge_test_cases(body: TcIdList, request: Request) -> dict:
-    """Permanently remove test cases that are already deleted (all versions and group labels).
-    Past run results are kept. Cases that are not deleted are ignored."""
-    return {"purged": request.app.state.store.purge_deleted_test_cases(body.tc_ids)}
+@router.post("/test-cases/delete")
+def delete_test_cases(body: TcIdList, request: Request) -> dict:
+    """Permanently delete test cases: every version and their group labels. Past run results keep their own
+    copy of the question and answer, and show that the test case has since been deleted."""
+    return {"deleted": request.app.state.store.delete_test_cases(body.tc_ids)}
 
 
 class TestCaseGroups(BaseModel):
@@ -466,7 +471,7 @@ def set_test_case_groups(tc_id: str, body: TestCaseGroups, request: Request) -> 
 
 @router.patch("/test-cases/{tc_id}/status")
 def set_test_case_status(tc_id: str, body: TestCaseStatusUpdate, request: Request) -> dict:
-    """Activate, deactivate or delete (hide) a test case."""
+    """Activate or deactivate a test case."""
     ok = request.app.state.store.update_test_case_status(tc_id, body.status)
     if not ok:
         raise HTTPException(404, f"Test case not found or invalid status '{body.status}'")

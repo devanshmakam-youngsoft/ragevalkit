@@ -127,7 +127,7 @@ def test_api_recommendation_uses_serve_weights_and_skips_archived(client):
     assert client.get("/api/recommendation", params={"tolerance": -1}).status_code == 422
 
 
-def test_api_groups_list_has_last_and_best_and_deleting_cases_is_soft(client):
+def test_api_groups_list_has_last_and_best_and_deleting_cases_is_for_good(client):
     gid = client.post("/api/groups", json={"name": "G"}).json()["group_id"]
     tc = client.post("/api/test-cases", json={
         "chat_id": "c", "turn_no": 1, "question": "q", "expected_answer": "a", "group_id": gid,
@@ -138,11 +138,24 @@ def test_api_groups_list_has_last_and_best_and_deleting_cases_is_soft(client):
     assert listed["last_run"]["version"] == "1" and listed["best_run"]["version"] == "1" and listed["run_count"] == 1
     history = client.get(f"/api/groups/{gid}/runs").json()
     assert history["best"]["version"] == "1" and len(history["runs"]) == 1
-    # deleting hides a case but keeps it; only a deleted case can be purged
-    assert client.post("/api/test-cases/purge", json={"tc_ids": [tc["tc_id"]]}).json() == {"purged": 0}
-    assert client.post("/api/test-cases/status", json={"tc_ids": [tc["tc_id"]], "status": "deleted"}).json()["updated"] == 1
+    # deleting is for good; "deleted" is not a status any more
+    assert client.post("/api/test-cases/status", json={"tc_ids": [tc["tc_id"]], "status": "deleted"}).status_code == 422
+    assert client.post("/api/test-cases/delete", json={"tc_ids": [tc["tc_id"]]}).json() == {"deleted": 1}
     assert client.get("/api/groups").json()[0]["member_count"] == 0
-    assert client.get("/api/test-cases").json()[0]["status"] == "deleted"
-    assert client.post("/api/test-cases/purge", json={"tc_ids": [tc["tc_id"]]}).json() == {"purged": 1}
     assert client.get("/api/test-cases").json() == []
+    assert client.post("/api/test-cases/delete", json={"tc_ids": [tc["tc_id"]]}).json() == {"deleted": 0}
     assert client.post("/api/test-cases/status", json={"tc_ids": [], "status": "bogus"}).status_code == 422
+
+
+def test_results_of_a_version_say_which_test_cases_were_deleted_since(client):
+    kept = client.post("/api/test-cases", json={"chat_id": "c1", "turn_no": 1, "question": "q1", "expected_answer": "a"}).json()
+    gone = client.post("/api/test-cases", json={"chat_id": "c2", "turn_no": 1, "question": "q2", "expected_answer": "a"}).json()
+    rows = [{"chat_id": "c1", "turn_no": 1, "question": "q1", "tc_id": kept["tc_id"], "generated_answer": "x"},
+            {"chat_id": "c2", "turn_no": 1, "question": "q2", "tc_id": gone["tc_id"], "generated_answer": "y"},
+            {"chat_id": "c3", "turn_no": 1, "question": "uploaded, never a library case", "generated_answer": "z"}]
+    client.app.state.store.write("1", run(1, 5, 5, 1, rows=3), rows)
+    assert not any(r.get("case_deleted") for r in client.get("/api/versions/1").json()["rows"])
+    client.post("/api/test-cases/delete", json={"tc_ids": [gone["tc_id"]]})
+    shown = {r["chat_id"]: r for r in client.get("/api/versions/1").json()["rows"]}
+    assert shown["c2"]["case_deleted"] is True and shown["c2"]["generated_answer"] == "y"     # the answer is still there
+    assert "case_deleted" not in shown["c1"] and "case_deleted" not in shown["c3"]

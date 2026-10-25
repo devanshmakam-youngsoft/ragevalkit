@@ -258,6 +258,7 @@ export default function VersionDetail() {
                   <td className="max-w-[360px] px-3 py-3.5">
                     <div className="line-clamp-2 font-medium">{r.question}</div>
                     <div className="mt-1 line-clamp-1 text-xs text-muted">{r.generated_answer ?? "No answer generated"}</div>
+                    {r.case_deleted && <div className="mt-1 text-[11px] text-bad">Test case deleted</div>}
                   </td>
                   <td className="px-3 py-3.5"><GroupChips groups={(r.groups ?? []).map((name) => ({ group_id: name, name }))} max={2} /></td>
                   <td className="px-3 py-3.5"><span className="mono text-[11px] text-muted">{r.type}</span></td>
@@ -393,6 +394,7 @@ function RowDrawer({ row, onClose }: { row: ResultRow; onClose: () => void }) {
             <div className="flex flex-wrap items-end gap-4 text-xs font-medium text-muted">
               <ChatTurn chatId={row.chat_id} turnNo={row.turn_no} />
               <span className="pb-0.5">{row.type}</span>
+              {row.case_deleted && <span className="pb-0.5 text-bad" title="This test case was deleted after the version ran. The question and answers below are kept.">Test case deleted</span>}
               {(row.groups?.length ?? 0) > 0 && (
                 <span className="pb-0.5"><GroupChips groups={row.groups!.map((name) => ({ group_id: name, name }))} max={4} /></span>
               )}

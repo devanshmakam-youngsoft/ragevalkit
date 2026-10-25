@@ -70,6 +70,7 @@ export function Recommendation({ reco, versions, archivedCount, overrides, onCha
   const bestScores = own ? { answer: shared?.answer ?? own.answer, material: shared ? shared.material : own.material, time: shared?.time ?? own.time } : null;
   const ranCases = best ? (groupName ? best.group_stats?.[groupName]?.total_rows ?? best.total_rows : best.total_rows) : 0;
   const ranGroups = best && !groupName ? best.group_names ?? [] : [];
+  const alone = !reco?.runner_up;     // the only version that could be compared
   const list = (ids: string[]) => ids.map((id) => `v${id}`).join(", ");
 
   const weightsText = !reco ? "" : reco.basis === "answer_only"
@@ -85,7 +86,8 @@ export function Recommendation({ reco, versions, archivedCount, overrides, onCha
             <>
               <div className="num mt-1.5 text-[56px] leading-none"><Mark>v{best.version}</Mark></div>
               <div className="mt-2 text-xs text-muted">
-                {plural(ranCases, "test case")} ran{ranGroups.length > 0 && <> · {ranGroups.join(", ")}</>}
+                <div>{plural(ranCases, "test case")} ran</div>
+                {ranGroups.length > 0 && <div className="mt-0.5">{ranGroups.join(", ")}</div>}
               </div>
               <Link to={`/v/${best.version}`} className="mono mt-1 inline-block text-xs text-brand hover:underline">open full results ›</Link>
             </>
@@ -101,13 +103,16 @@ export function Recommendation({ reco, versions, archivedCount, overrides, onCha
               {reco.basis === "weighted" && figure(<Term k="context" />, fmt(bestScores.material), "/10", "var(--hl)")}
               {figure(<Term k="time" />, fmtSeconds(bestScores.time), "", "var(--hl-bad)")}
             </div>
-            <p className="mt-3 text-[13px] text-muted">
-              {reco.reason} <span className="mono">overall score {quality?.toFixed(2)}</span>
-            </p>
-            {reco.compared_cases != null && (
+            {/* with nothing to compare against there is nothing to explain */}
+            {!alone && (
+              <p className="mt-3 text-[13px] text-muted">
+                {reco.reason} <span className="mono">overall score {quality?.toFixed(2)}</span>
+              </p>
+            )}
+            {/* only worth saying when versions ran different test cases, so the comparison used the ones they share */}
+            {!alone && reco.compared_cases != null && reco.partial.length > 0 && (
               <p className="mt-1 text-xs text-muted">
-                Compared on the {plural(reco.compared_cases, "test case")} every compared version ran.
-                {reco.partial.length > 0 && <> {reco.partial.map((p) => `v${p.version} ran ${p.ran}`).join(", ")} — judged on the shared {reco.compared_cases} only.</>}
+                Compared on the {plural(reco.compared_cases, "test case")} every version ran ({reco.partial.map((p) => `v${p.version} ran ${p.ran}`).join(", ")}).
               </p>
             )}
             {reco.basis_note && <p className="mt-1 text-xs text-warn">{reco.basis_note}</p>}

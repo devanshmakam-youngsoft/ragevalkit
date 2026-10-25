@@ -99,13 +99,13 @@ def row(n, chat, turn, question, answer="a", groups=(), sources="", type_="rag")
 
 
 def counts(r):
-    return (r["new"], r["updated"], r["unchanged"], r["skipped_deleted"])
+    return (r["new"], r["updated"], r["unchanged"])
 
 
 def test_a_dry_run_saves_and_creates_nothing_and_matches_the_real_import(store):
     rows = [row(2, "c1", 1, "q1", groups=["Billing"]), row(3, "c2", 1, "q2")]
     preview = store.import_cases(rows, new_group_name="Fresh", dry_run=True)
-    assert counts(preview) == (2, 0, 0, 0) and preview["groups_created"] == ["Fresh", "Billing"]
+    assert counts(preview) == (2, 0, 0) and preview["groups_created"] == ["Fresh", "Billing"]
     assert store.list_test_cases() == [] and store.list_groups() == []
     real = store.import_cases(rows, new_group_name="Fresh")
     assert counts(real) == counts(preview) and real["labelled"] == preview["labelled"] == 3
@@ -121,7 +121,7 @@ def test_importing_twice_changes_nothing_the_second_time(store):
     rows = [row(2, "c1", 1, "q1", groups=["G"]), row(3, "c1", 2, "q2", groups=["G"])]
     store.import_cases(rows)
     again = store.import_cases(rows)
-    assert counts(again) == (0, 0, 2, 0) and again["labelled"] == 0
+    assert counts(again) == (0, 0, 2) and again["labelled"] == 0
     assert all(len(store.get_test_case_history(c["tc_id"])) == 1 for c in store.list_test_cases())
 
 
@@ -130,24 +130,24 @@ def test_an_edited_answer_becomes_a_new_version_keeping_status_and_labels(store)
     tc = store.list_test_cases()[0]["tc_id"]
     store.update_status_bulk([tc], "inactive")
     changed = store.import_cases([row(2, "c1", 1, "q1", answer="new", groups=["G"])])
-    assert counts(changed) == (0, 1, 0, 0)
+    assert counts(changed) == (0, 1, 0)
     case = store.list_test_cases()[0]
     assert (case["expected_answer"], case["version"], case["status"]) == ("new", 2, "inactive")
 
 
-def test_deleted_cases_are_left_alone_not_resurrected(store):
-    store.import_cases([row(2, "c1", 1, "q1")])
+def test_a_deleted_case_is_gone_so_importing_it_again_makes_a_new_one(store):
+    store.import_cases([row(2, "c1", 1, "q1", groups=["G"])])
     tc = store.list_test_cases()[0]["tc_id"]
-    store.update_status_bulk([tc], "deleted")
-    result = store.import_cases([row(2, "c1", 1, "q1", answer="changed", groups=["G"])])
-    assert counts(result) == (0, 0, 0, 1)
-    assert store.list_test_cases(status="deleted")[0]["groups"] == []
+    assert store.delete_test_cases([tc]) == 1 and store.list_test_cases() == []
+    result = store.import_cases([row(2, "c1", 1, "q1", answer="changed")])
+    case = store.list_test_cases()[0]
+    assert counts(result) == (1, 0, 0) and (case["expected_answer"], case["version"], case["groups"]) == ("changed", 1, [])
 
 
 def test_same_chat_and_turn_with_a_different_question_is_reported_and_added_by_default(store):
     store.import_cases([row(2, "c1", 1, "old question")])
     result = store.import_cases([row(2, "c1", 1, "reworded question")])
-    assert result["slot_conflicts"] == 1 and counts(result) == (1, 0, 0, 0)
+    assert result["slot_conflicts"] == 1 and counts(result) == (1, 0, 0)
     assert len(store.list_test_cases()) == 2
 
 
@@ -155,14 +155,14 @@ def test_update_by_slot_rewrites_the_existing_case_and_stays_idempotent(store):
     store.import_cases([row(2, "c1", 1, "old question", groups=["G"])])
     original = store.list_test_cases()[0]["tc_id"]
     result = store.import_cases([row(2, "c1", 1, "reworded question", answer="b")], update_by_slot=True)
-    assert counts(result) == (0, 1, 0, 0) and result["slot_conflicts"] == 1
+    assert counts(result) == (0, 1, 0) and result["slot_conflicts"] == 1
     cases = store.list_test_cases()
     assert len(cases) == 1 and cases[0]["tc_id"] == original and cases[0]["question"] == "reworded question"
     assert cases[0]["version"] == 2 and [g["name"] for g in cases[0]["groups"]] == ["G"]
     # importing that file again, with or without the option, finds the case by its content
     for option in (True, False):
         again = store.import_cases([row(2, "c1", 1, "reworded question", answer="b")], update_by_slot=option)
-        assert counts(again) == (0, 0, 1, 0) and again["slot_conflicts"] == 0
+        assert counts(again) == (0, 0, 1) and again["slot_conflicts"] == 0
 
 
 def test_an_unknown_group_id_is_rejected(store):
@@ -188,7 +188,7 @@ def test_api_preview_then_import_a_pasted_tab_separated_table(client):
     pasted = "User Query\tGold Answer\tTags\nWhat is X?\tX is 1\tBilling; FAQ\nWhat is Y?\tY is 2\t\n\t\t\n"
     preview = client.post("/api/test-cases/import/preview", files=csv_file(pasted, "pasted.tsv")).json()
     assert preview["mapping"]["question"] == "User Query" and preview["mapping"]["groups"] == "Tags"
-    assert preview["counts"] == {"new": 2, "update": 0, "unchanged": 0, "skipped_deleted": 0, "problem": 0}
+    assert preview["counts"] == {"new": 2, "update": 0, "unchanged": 0, "problem": 0}
     assert preview["group_names_in_file"] == ["Billing", "FAQ"] and preview["new_group_names"] == ["Billing", "FAQ"]
     assert preview["auto_chat"] and preview["auto_turn"]
     assert client.get("/api/test-cases").json() == []                    # preview saved nothing

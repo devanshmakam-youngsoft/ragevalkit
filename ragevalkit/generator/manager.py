@@ -217,7 +217,7 @@ class GenerationManager:
 
     def _chat_ids(self, items: list[dict]) -> dict[str, str]:
         """A short chat id for each item: ``direct-1``, ``multiturn-2``, ... Numbering carries on after the highest one
-        already in the store (deleted cases included, since they keep their slot), so ids never collide."""
+        already in the store, so ids never collide with a case that exists."""
         highest: dict[str, int] = {}
         for case in self.store.list_test_cases():
             found = re.fullmatch(r"([a-z]+)-(\d+)", str(case.get("chat_id", "")))

@@ -477,9 +477,8 @@ def test_generated_chat_ids_are_short_and_carry_on_across_approvals(make_client)
     assert {c["chat_id"] for c in cases if c["origin"]["category"] == "multiturn"} == {"multiturn-1", "multiturn-2"}
     assert sorted(c["turn_no"] for c in cases if c["chat_id"] == "multiturn-1") == [1, 2]      # one chat, both turns
 
-    # a second approval continues the numbering, even though everything before was deleted
-    client.post("/api/test-cases/status", json={"tc_ids": [c["tc_id"] for c in cases], "status": "deleted"})
+    # a second approval continues the numbering
     second = wait(client, upload(client, [TXT], per_category=1, turns=2).json()["batch_id"])
     client.post(f"/api/generate/{second['batch_id']}/approve", json={})
-    fresh = {c["chat_id"] for c in client.get("/api/test-cases", params={"status": "active"}).json()}
-    assert fresh == {"direct-3", "indirect-3", "multipart-3", "multiturn-3"}
+    everything = {c["chat_id"] for c in client.get("/api/test-cases").json()}
+    assert everything - set(chats) == {"direct-3", "indirect-3", "multipart-3", "multiturn-3"}

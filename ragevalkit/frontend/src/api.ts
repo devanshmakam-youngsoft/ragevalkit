@@ -190,12 +190,12 @@ export const api = {
     fd.append("update_by_slot", String(o.updateBySlot ?? false));
     return fetch(apiPath("test-cases/import"), { method: "POST", body: fd }).then((r) => json<ImportResult>(r));
   },
-  /** Permanently removes test cases that are already deleted. Past run results are kept. */
-  purgeTestCases: (tcIds: string[]) =>
-    fetch(apiPath("test-cases/purge"), {
+  /** Permanently deletes test cases. Past run results keep their own copy and are marked as deleted. */
+  deleteTestCases: (tcIds: string[]) =>
+    fetch(apiPath("test-cases/delete"), {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tc_ids: tcIds }),
-    }).then((r) => json<{ purged: number }>(r)),
-  updateTestCaseStatus: (tcIds: string[], status: "active" | "inactive" | "deleted") =>
+    }).then((r) => json<{ deleted: number }>(r)),
+  updateTestCaseStatus: (tcIds: string[], status: "active" | "inactive") =>
     fetch(apiPath("test-cases/status"), {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tc_ids: tcIds, status }),
     }).then((r) => json<{ updated: number; status: string }>(r)),

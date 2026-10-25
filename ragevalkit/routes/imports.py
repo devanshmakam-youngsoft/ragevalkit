@@ -92,7 +92,7 @@ async def preview_import(
         **info,
         "counts": {
             "new": result["new"], "update": result["updated"], "unchanged": result["unchanged"],
-            "skipped_deleted": result["skipped_deleted"], "problem": len(problems),
+            "problem": len(problems),
         },
         "slot_conflicts": result["slot_conflicts"],
         "sample": [{**r, "outcome": outcome_of.get(r["row"])} for r in rows[:PREVIEW_SAMPLE]],

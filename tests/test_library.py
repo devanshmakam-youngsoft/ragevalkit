@@ -76,24 +76,38 @@ def test_status_filter_applies_to_groups_but_not_to_picked_cases(store):
     assert store.resolve_selection(tc_ids=[cases["q4"]]).total == 1
 
 
-def test_deleted_cases_are_hidden_but_kept_and_never_run(store):
+def test_deleting_a_case_removes_it_everywhere_and_it_can_no_longer_run(store):
     billing, _, cases = _seed(store)
-    assert store.update_status_bulk([cases["q4"]], "deleted") == 1
-    assert store.list_groups()[0]["member_count"] == 3              # deleted cases are not counted
-    assert len(store.get_test_case_history(cases["q4"])) == 1       # ...but their data is still there
+    assert store.delete_test_cases([cases["q4"], "tc_nope"]) == 1   # unknown ids are ignored
+    assert store.get_test_case_history(cases["q4"]) == []           # every version is gone
+    assert cases["q4"] not in {m["tc_id"] for m in store.group_members.all()}
+    assert cases["q4"] not in store.existing_tc_ids()
+    assert store.list_groups()[0]["member_count"] == 3
     sel = store.resolve_selection(group_ids=[billing], status="all", tc_ids=[cases["q4"], "tc_nope"])
     assert sel.total == 3 and sel.missing == 2
-    store.update_status_bulk([cases["q4"]], "active")               # restore
-    assert store.list_groups()[0]["member_count"] == 4
 
 
-def test_only_deleted_cases_can_be_purged_and_it_removes_everything(store):
-    billing, _, cases = _seed(store)
-    assert store.purge_deleted_test_cases([cases["q4"]]) == 0       # not deleted yet: refused
-    store.update_status_bulk([cases["q4"]], "deleted")
-    assert store.purge_deleted_test_cases([cases["q4"], "tc_nope"]) == 1
-    assert store.get_test_case_history(cases["q4"]) == []
-    assert cases["q4"] not in {m["tc_id"] for m in store.group_members.all()}
+def test_a_case_can_only_be_active_or_inactive(store):
+    _, _, cases = _seed(store)
+    assert store.update_status_bulk([cases["q4"]], "deleted") == 0   # deleting is delete_test_cases
+    assert store.update_status_bulk([cases["q4"]], "inactive") == 1
+
+
+def test_cases_an_older_version_only_hid_are_removed_when_the_store_opens(tmp_path):
+    from tinydb import Query
+
+    from ragevalkit.store import EvalStore
+    path = tmp_path / "old.json"
+    first = EvalStore(path)
+    first.import_cases([{"row": 2, "chat_id": "c1", "turn_no": 1, "type": "rag", "question": "q1", "expected_answer": "a",
+                         "expected_sources": "", "groups": ["G"]},
+                        {"row": 3, "chat_id": "c2", "turn_no": 1, "type": "rag", "question": "q2", "expected_answer": "a",
+                         "expected_sources": "", "groups": ["G"]}])
+    hidden = first.list_test_cases()[0]["tc_id"]
+    first.test_cases.update({"status": "deleted"}, Query().tc_id == hidden)       # how an older version deleted a case
+    first.db.close()
+    again = EvalStore(path)
+    assert [c["question"] for c in again.list_test_cases()] == ["q2"] and hidden not in {m["tc_id"] for m in again.group_members.all()}
 
 
 def test_deleted_groups_are_hidden_kept_restorable_and_purgeable(store):

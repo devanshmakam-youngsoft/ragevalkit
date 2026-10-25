@@ -340,7 +340,7 @@ class RunSelection:
     df: "pd.DataFrame"
     selected: int          # distinct cases the caller asked for (via groups and/or ids)
     context: int           # earlier turns added so multi-turn chats keep their history
-    missing: int           # requested tc_ids that were unknown or deleted
+    missing: int           # requested tc_ids that do not exist
     group_names: list[str] = field(default_factory=list)
     collisions: list[dict] = field(default_factory=list)  # distinct cases sharing a chat + turn
 
@@ -401,6 +401,7 @@ class EvalStore:
         self.group_members = self.db.table("group_members")
         self.batches = self.db.table("gen_batches")  # generated test cases waiting for review
         self._lock = threading.Lock()
+        self._drop_legacy_deleted()
 
     # ------------------------------------------------------------------
     # Eval runs
@@ -710,17 +711,13 @@ class EvalStore:
         return sorted(versions, key=lambda r: r.get("version", 1))
 
     def update_test_case_status(self, tc_id: str, status: str, dataset_id: str | None = None) -> bool:
-        """Set status of all versions of a test case to active / inactive / deleted."""
+        """Set status of all versions of a test case to active / inactive."""
         return bool(self.update_status_bulk([tc_id], status))
 
     def update_status_bulk(self, tc_ids: list[str], status: str) -> int:
-        """Set the status of several test cases at once: ``active``, ``inactive`` or ``deleted``.
-
-        ``deleted`` only hides a case (it never runs and is left out of group counts) — it stays in
-        the store so its history, and anything that referred to it, is still there; set it back to
-        ``active`` to restore it. Removing it for good is a separate step: purge_deleted_test_cases.
-        Returns how many cases were found."""
-        if status not in ("active", "inactive", "deleted"):
+        """Set the status of several test cases at once: ``active`` or ``inactive`` (inactive cases do not run).
+        Removing a case is ``delete_test_cases``. Returns how many cases were found."""
+        if status not in ("active", "inactive"):
             return 0
         now = datetime.now(timezone.utc).isoformat()
         with self._lock:
@@ -730,22 +727,35 @@ class EvalStore:
                 self.test_cases.update({"status": status, "updated_at": now}, Q.tc_id.one_of(list(known)))
         return len(known)
 
-    def purge_deleted_test_cases(self, tc_ids: list[str]) -> int:
-        """Permanently remove test cases that are already in the deleted state: every version, and
-        their group labels. Cases that are not deleted are left alone. Returns how many were removed.
-        Results of past runs are untouched (each receipt keeps its own copy of the question)."""
+    def delete_test_cases(self, tc_ids: list[str]) -> int:
+        """Permanently remove test cases: every version, and their group labels. Returns how many existed.
+        Results of past runs are untouched (each receipt keeps its own copy of the question and answer)."""
         if not tc_ids:
             return 0
         with self._lock:
             Q = Query()
-            found = {
-                r["tc_id"] for r in
-                self.test_cases.search(Q.tc_id.one_of(list(tc_ids)) & (Q.status == "deleted"))
-            }
+            found = {r["tc_id"] for r in self.test_cases.search(Q.tc_id.one_of(list(tc_ids)))}
             if found:
                 self.test_cases.remove(Q.tc_id.one_of(list(found)))
                 self.group_members.remove(Q.tc_id.one_of(list(found)))
         return len(found)
+
+    def existing_tc_ids(self) -> set[str]:
+        """The ids of every test case that still exists (past results use this to tell which were deleted since)."""
+        with self._lock:
+            return {r["tc_id"] for r in self.test_cases.all()}
+
+    def _drop_legacy_deleted(self) -> None:
+        """Test cases are deleted for good now. Ones an older version only hid (status "deleted") are removed here."""
+        with self._lock:
+            latest = _latest_versions(list(self.test_cases.all()))
+            gone = [tid for tid, tc in latest.items() if tc.get("status") == "deleted"]
+            if gone:
+                Q = Query()
+                self.test_cases.remove(Q.tc_id.one_of(gone))
+                self.group_members.remove(Q.tc_id.one_of(gone))
+        if gone:
+            logger.info("removed %d test case(s) that had been deleted earlier", len(gone))
 
     def edit_test_case(self, tc_id: str, updates: dict, dataset_id: str | None = None) -> dict | None:
         """Create a new version of a test case with the given field updates.
@@ -803,7 +813,7 @@ class EvalStore:
         """Work out exactly which test cases a run would execute.
 
         ``group_ids`` pulls in every case carrying one of those labels, filtered by ``status``
-        (``active`` | ``inactive`` | ``all`` — deleted cases never run). ``tc_ids`` adds
+        (``active`` | ``inactive`` | ``all``). ``tc_ids`` adds
         individual cases regardless of their active/inactive state. A case in several of the
         chosen groups runs once.
 
@@ -838,7 +848,7 @@ class EvalStore:
         for gid in group_ids:
             for tid in tcs_of_group.get(gid, ()):
                 tc = latest.get(tid)
-                if tc is None or tc.get("status") == "deleted":
+                if tc is None:
                     continue
                 if status != "all" and tc.get("status") != status:
                     continue
@@ -846,7 +856,7 @@ class EvalStore:
         missing = 0
         for tid in tc_ids:
             tc = latest.get(tid)
-            if tc is None or tc.get("status") == "deleted":
+            if tc is None:
                 missing += 1
             else:
                 chosen[tid] = tc
@@ -1031,7 +1041,7 @@ class EvalStore:
             self.runs.update(changes, doc_ids=[run.doc_id])
 
     def list_groups(self, include_deleted: bool = False) -> list[dict]:
-        """Return groups with member_count (test cases that are not deleted). Deleted groups are
+        """Return groups with member_count. Deleted groups are
         left out unless ``include_deleted``; they carry a ``deleted_at`` timestamp."""
         with self._lock:
             all_groups = [dict(g) for g in self.groups.all()]
@@ -1040,7 +1050,7 @@ class EvalStore:
         counts: dict[str, int] = {}
         for m in all_members:
             tc = latest.get(m["tc_id"])
-            if tc is not None and tc.get("status") != "deleted":
+            if tc is not None:
                 counts[m["group_id"]] = counts.get(m["group_id"], 0) + 1
         out = []
         for g in all_groups:
@@ -1081,8 +1091,8 @@ class EvalStore:
 
         Each row is one of: ``new``; ``update`` (a case with the same chat, turn and question exists but its
         answer, sources or type differ: saved as a new version, keeping the case's chat/turn and status);
-        ``unchanged``; or ``skipped_deleted`` (the case was deleted earlier: it is left alone, importing is
-        not a restore). Importing the same file twice therefore changes nothing the second time.
+        ``unchanged``. Importing the same file twice therefore changes nothing the second time. A case that
+        was deleted is simply gone, so a row for it is new again.
 
         Every row is labelled with ``group_ids`` and ``new_group_name`` (created if needed), and with the group
         names in its own ``groups`` list (created if needed). Names match existing groups case-insensitively.
@@ -1122,7 +1132,7 @@ class EvalStore:
         ))
 
         result = {
-            "new": 0, "updated": 0, "unchanged": 0, "skipped_deleted": 0,
+            "new": 0, "updated": 0, "unchanged": 0,
             "slot_conflicts": 0, "labelled": 0, "groups_created": groups_created, "outcomes": [],
         }
         with self._lock:
@@ -1131,8 +1141,7 @@ class EvalStore:
             linked = {(m["group_id"], m["tc_id"]) for m in self.group_members.all()}
             slots: dict[tuple[str, int], list[str]] = {}
             for tc in latest.values():
-                if tc.get("status") != "deleted":
-                    slots.setdefault((str(tc["chat_id"]), int(tc["turn_no"])), []).append(tc["tc_id"])
+                slots.setdefault((str(tc["chat_id"]), int(tc["turn_no"])), []).append(tc["tc_id"])
             inserts: list[dict] = []
             links: list[dict] = []
             touched: set[str] = set()
@@ -1158,9 +1167,7 @@ class EvalStore:
                         if update_by_slot and len(candidates) == 1:
                             target, existing = candidates[0], latest[candidates[0]]
 
-                if existing is not None and existing.get("status") == "deleted":
-                    outcome, target = "skipped_deleted", None
-                elif existing is not None:
+                if existing is not None:
                     changed = any(existing.get(k, "") != v for k, v in fields.items())
                     outcome = "update" if changed else "unchanged"
                     if changed:
@@ -1182,7 +1189,7 @@ class EvalStore:
                     latest[tc_id] = record
                     slots.setdefault((r["chat_id"], r["turn_no"]), []).append(tc_id)
 
-                result[{"new": "new", "update": "updated", "unchanged": "unchanged", "skipped_deleted": "skipped_deleted"}[outcome]] += 1
+                result[{"new": "new", "update": "updated", "unchanged": "unchanged"}[outcome]] += 1
                 result["outcomes"].append({"row": r["row"], "outcome": outcome, "tc_id": target})
                 if target is None:
                     continue

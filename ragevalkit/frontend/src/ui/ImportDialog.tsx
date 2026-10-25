@@ -15,7 +15,6 @@ const OUTCOME: Record<string, { label: string; cls: string }> = {
   new: { label: "new", cls: "text-good" },
   update: { label: "update", cls: "text-warn" },
   unchanged: { label: "unchanged", cls: "text-muted" },
-  skipped_deleted: { label: "deleted — skipped", cls: "text-muted" },
 };
 
 /** Download the rows that could not be imported, with the reason, ready to fix and upload again. */
@@ -203,7 +202,6 @@ export function ImportDialog({ groups, initialGroupId, onClose, onDone }: {
                 {chip("new", c.new, "text-good")}
                 {chip("will be updated", c.update, "text-warn")}
                 {chip("already there", c.unchanged, "text-muted")}
-                {c.skipped_deleted > 0 && chip("deleted earlier — left alone", c.skipped_deleted, "text-muted")}
                 {chip("can't be imported", c.problem, c.problem ? "text-bad" : "text-muted")}
               </div>
 
@@ -267,7 +265,7 @@ export function ImportDialog({ groups, initialGroupId, onClose, onDone }: {
                       ))}
                     </tbody>
                   </table>
-                  {c.new + c.update + c.unchanged + c.skipped_deleted > preview.sample.length && (
+                  {c.new + c.update + c.unchanged > preview.sample.length && (
                     <p className="border-t border-line bg-surface-2 px-3 py-1.5 text-[11px] text-muted">
                       Showing the first {preview.sample.length} usable rows.
                     </p>
@@ -373,7 +371,6 @@ export function ImportDialog({ groups, initialGroupId, onClose, onDone }: {
                 <li><b className="text-good">{result.new}</b> new test case{result.new !== 1 ? "s" : ""} added</li>
                 {result.updated > 0 && <li><b className="text-warn">{result.updated}</b> updated (a new version was saved)</li>}
                 {result.unchanged > 0 && <li><b>{result.unchanged}</b> already in the library, unchanged</li>}
-                {result.skipped_deleted > 0 && <li><b>{result.skipped_deleted}</b> were deleted earlier and left alone</li>}
                 {result.labelled > 0 && <li><b>{result.labelled}</b> group label{result.labelled !== 1 ? "s" : ""} added</li>}
                 {result.groups_created.length > 0 && <li>New group{result.groups_created.length !== 1 ? "s" : ""}: <b>{result.groups_created.join(", ")}</b></li>}
               </ul>
@@ -399,7 +396,7 @@ export function ImportDialog({ groups, initialGroupId, onClose, onDone }: {
           {step === "done" && <span />}
           <div className="flex gap-2">
             {step === "check" && (
-              <button onClick={() => setStep("options")} disabled={busy || importable + (c?.skipped_deleted ?? 0) === 0 || preview?.question_missing}
+              <button onClick={() => setStep("options")} disabled={busy || importable === 0 || preview?.question_missing}
                 className="rounded bg-brand px-5 py-2 text-sm font-medium text-white disabled:opacity-40 enabled:hover:brightness-110">
                 Next
               </button>

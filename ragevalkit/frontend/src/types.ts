@@ -120,6 +120,8 @@ export interface ResultRow {
   semantic_similarity: number | null;
   /** Groups this test case belonged to when it ran. */
   groups?: string[];
+  /** Set when the test case has been deleted since this version ran (the question and answer here are kept). */
+  case_deleted?: boolean;
   /** Free-form notes attached via ragevalkit.note() during the pipeline run. */
   flags?: Record<string, string>;
   /** Whether recorded sources matched expected_sources from the dataset. */
@@ -252,7 +254,7 @@ export interface ImportPreview {
   auto_chat: boolean;
   auto_turn: boolean;
   total_rows: number;
-  counts: { new: number; update: number; unchanged: number; skipped_deleted: number; problem: number };
+  counts: { new: number; update: number; unchanged: number; problem: number };
   slot_conflicts: number;
   sample: { row: number; chat_id: string; turn_no: number; question: string; expected_answer: string; groups: string[]; outcome: string }[];
   problems: ImportProblem[];
@@ -264,7 +266,6 @@ export interface ImportResult {
   new: number;
   updated: number;
   unchanged: number;
-  skipped_deleted: number;
   slot_conflicts: number;
   labelled: number;
   groups_created: string[];
