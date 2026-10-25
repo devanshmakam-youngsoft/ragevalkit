@@ -28,7 +28,9 @@ dependencies = [
     "pydantic>=2.7",
     "pydantic-settings>=2.4",
     "tinydb>=4.8",
-    "litellm>=1.43",
+    # 1.107.0 (21 Oct 2026) and 1.82.7/1.82.8 (Mar 2026) were published with credential-stealing malware. This range holds
+    # versions we have tested; raise the upper bound only after checking a newer release is clean.
+    "litellm>=1.104,<1.107",
     "pandas>=2.2",
     "openpyxl>=3.1",
     "sentence-transformers>=3.0",
