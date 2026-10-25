@@ -5,7 +5,7 @@ A *review batch* (stored in ``store.batches``) looks like::
     {batch_id, status: running|ready|failed|cancelled|interrupted, created_at, expires_at,
      options: {per_category, categories, turns}, model, files: [{name, pages, passages, error}],
      total_tasks, done_tasks, errors: [{category, file, reason}], error,
-     items: [{item_id, category, file, number, chat_id,
+     items: [{item_id, category, file, number,
               turns: [{question, expected_answer, evidence: [{quote, file, page, passage}], needs_context}]}]}
 
 It is saved after every item, so nothing is lost if the browser goes away; it only becomes test cases when approved.
@@ -13,6 +13,7 @@ It is saved after every item, so nothing is lost if the browser goes away; it on
 from __future__ import annotations
 
 import logging
+import re
 import shutil
 import threading
 import time
@@ -162,7 +163,6 @@ class GenerationManager:
                         item = future.result()
                         if item:
                             item["item_id"] = uuid.uuid4().hex[:8]
-                            item["chat_id"] = f"gen-{batch_id[:6]}-{item['category']}-{item['number']}"
                             batch["items"].append(item)
                     except Exception as e:
                         batch["errors"].append({"category": task.category, "file": task.doc, "reason": str(e)})
@@ -215,6 +215,20 @@ class GenerationManager:
         batch["items"] = remaining
         self.store.save_batch(batch)
 
+    def _chat_ids(self, items: list[dict]) -> dict[str, str]:
+        """A short chat id for each item: ``direct-1``, ``multiturn-2``, ... Numbering carries on after the highest one
+        already in the store (deleted cases included, since they keep their slot), so ids never collide."""
+        highest: dict[str, int] = {}
+        for case in self.store.list_test_cases():
+            found = re.fullmatch(r"([a-z]+)-(\d+)", str(case.get("chat_id", "")))
+            if found and found.group(1) in CATEGORIES:
+                highest[found.group(1)] = max(highest.get(found.group(1), 0), int(found.group(2)))
+        ids = {}
+        for item in items:
+            highest[item["category"]] = highest.get(item["category"], 0) + 1
+            ids[item["item_id"]] = f"{item['category']}-{highest[item['category']]}"
+        return ids
+
     def approve(self, batch_id: str, item_ids: list[str] | None = None) -> dict:
         """Turn the chosen items (all by default) into test cases, labelled by category, and delete the batch.
         Anything not chosen is discarded with it."""
@@ -228,11 +242,12 @@ class GenerationManager:
         if not chosen:
             raise ValueError("There is nothing to approve")
 
+        chat_ids = self._chat_ids(chosen)
         rows = []
         for item in chosen:
             for turn_no, turn in enumerate(item["turns"], start=1):
                 rows.append({
-                    "row": len(rows) + 2, "chat_id": item["chat_id"], "turn_no": turn_no, "type": CASE_TYPE,
+                    "row": len(rows) + 2, "chat_id": chat_ids[item["item_id"]], "turn_no": turn_no, "type": CASE_TYPE,
                     "question": turn["question"], "expected_answer": turn["expected_answer"],
                     "expected_sources": item["file"], "groups": [CATEGORY_LABELS[item["category"]]],
                     "origin": {

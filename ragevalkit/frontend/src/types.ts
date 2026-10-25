@@ -209,7 +209,7 @@ export interface GenLimits {
 
 export interface GenEvidence { quote: string; file: string; page: string; passage?: string }
 export interface GenTurn { question: string; expected_answer: string; evidence: GenEvidence[]; needs_context?: string }
-export interface GenItem { item_id: string; category: string; file: string; number: number; chat_id: string; turns: GenTurn[] }
+export interface GenItem { item_id: string; category: string; file: string; number: number; turns: GenTurn[] }
 
 export interface GenBatch {
   batch_id: string;

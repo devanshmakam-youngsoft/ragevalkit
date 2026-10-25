@@ -465,3 +465,21 @@ def test_model_failures_are_reported_per_question_and_do_not_lose_the_rest(make_
     assert batch["status"] == "failed" and batch["items"] == [] and "could not be reached" in batch["error"]
     assert len(batch["errors"]) == 4
 
+
+
+def test_generated_chat_ids_are_short_and_carry_on_across_approvals(make_client):
+    client = make_client()
+    first = wait(client, upload(client, [TXT], per_category=2, turns=2).json()["batch_id"])
+    client.post(f"/api/generate/{first['batch_id']}/approve", json={})
+    cases = client.get("/api/test-cases").json()
+    chats = sorted({c["chat_id"] for c in cases})
+    assert chats == ["direct-1", "direct-2", "indirect-1", "indirect-2", "multipart-1", "multipart-2", "multiturn-1", "multiturn-2"]
+    assert {c["chat_id"] for c in cases if c["origin"]["category"] == "multiturn"} == {"multiturn-1", "multiturn-2"}
+    assert sorted(c["turn_no"] for c in cases if c["chat_id"] == "multiturn-1") == [1, 2]      # one chat, both turns
+
+    # a second approval continues the numbering, even though everything before was deleted
+    client.post("/api/test-cases/status", json={"tc_ids": [c["tc_id"] for c in cases], "status": "deleted"})
+    second = wait(client, upload(client, [TXT], per_category=1, turns=2).json()["batch_id"])
+    client.post(f"/api/generate/{second['batch_id']}/approve", json={})
+    fresh = {c["chat_id"] for c in client.get("/api/test-cases", params={"status": "active"}).json()}
+    assert fresh == {"direct-3", "indirect-3", "multipart-3", "multiturn-3"}
