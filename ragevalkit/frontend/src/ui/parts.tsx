@@ -65,6 +65,48 @@ export function NodeTimings({ v, compact = false }: { v: VersionSummary; compact
   );
 }
 
+/**
+ * Timing of steps as one wide bar, like the score bar: each step's share of the time spent in steps, written
+ * inside its segment, with the seconds in the legend. A step records how long it took, not when, so steps that
+ * run side by side cannot be placed on a timeline; shares are of their combined time and a note says so.
+ */
+export function StepTimeBar({ v }: { v: VersionSummary }) {
+  const items = v.nodes.filter((n) => n.avg > 0);
+  const sum = items.reduce((s, n) => s + n.avg, 0);
+  if (items.length === 0 || sum <= 0) return null;
+  const slowest = items.reduce((a, b) => (b.avg > a.avg ? b : a));
+  const share = (secs: number) => (secs / sum) * 100;
+  const overlapping = v.avg_total_time != null && sum > v.avg_total_time * 1.1;
+  return (
+    <>
+      <div className="flex h-6 gap-px overflow-hidden rounded text-xs font-medium text-white">
+        {items.map((n) => (
+          <div key={n.name} title={`${nodeMeta(n.name).label}: ${fmtSeconds(n.avg)} (${share(n.avg).toFixed(0)}%)`}
+            style={{ width: `${share(n.avg)}%`, background: nodeShade(n.name) }}
+            className="flex items-center justify-center overflow-hidden whitespace-nowrap">
+            {share(n.avg) >= 6 && `${share(n.avg).toFixed(0)}%`}
+          </div>
+        ))}
+      </div>
+      <p className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted">
+        {items.map((n) => (
+          <span key={n.name} className="inline-flex items-center gap-1.5">
+            <span className="inline-block h-2 w-2" style={{ background: nodeShade(n.name) }} />
+            {nodeMeta(n.name).label}
+            <span className={`mono ${n.name === slowest.name ? "hl font-medium text-fg" : "text-fg"}`}>{fmtSeconds(n.avg)}</span>
+            <span className="mono">· {share(n.avg).toFixed(0)}%</span>
+          </span>
+        ))}
+      </p>
+      {overlapping && (
+        <p className="mt-2 text-xs text-muted">
+          Some steps run at the same time, so the percentages are shares of the steps' combined {fmtSeconds(sum)}, which is longer than the {fmtSeconds(v.avg_total_time)} a question takes.
+        </p>
+      )}
+    </>
+  );
+}
+
 /** KPI card with a coloured top edge; the figure sits on a marker highlight. */
 export function Mark({ children, color = "var(--hl)" }: { children: ReactNode; color?: string }) {
   return <span className="hl" style={{ ["--hl-c" as string]: color }}>{children}</span>;

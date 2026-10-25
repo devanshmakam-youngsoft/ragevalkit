@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "../api";
-import { Mark, NodeTimings, ScorePill, Stat } from "./parts";
+import { Mark, ScorePill, StepTimeBar, Stat } from "./parts";
 import { ChatTurn, GroupChips } from "./GroupChips";
 import { GLOSSARY, Hint, Term } from "./Hint";
 import { Pager, usePaging } from "./Pager";
@@ -151,12 +151,15 @@ export default function VersionDetail() {
         </div>
       )}
 
-      <section className="mt-4 grid gap-4 lg:grid-cols-[1fr_360px]">
-        <Insights summary={s} />
-        <div className="card p-5">
+      {s.nodes.some((n) => n.avg > 0) && (
+        <div className="card mt-4 px-5 py-4">
           <h3 className="label mb-3"><Term k="steps" /> <span className="mono normal-case tracking-normal">· avg {fmtSeconds(s.avg_total_time)} per question</span></h3>
-          <NodeTimings v={s} />
+          <StepTimeBar v={s} />
         </div>
+      )}
+
+      <section className="mt-4">
+        <Insights summary={s} />
       </section>
 
       {groupScores.length > 0 && (

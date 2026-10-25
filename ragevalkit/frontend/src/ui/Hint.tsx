@@ -18,8 +18,8 @@ export const GLOSSARY = {
     hint: "How long the assistant took to reply to one question, from asking to final answer. Lower is better.",
   },
   steps: {
-    label: "Time by step",
-    hint: "Where the time goes: every stage the assistant goes through (for example searching documents, then writing the answer) with the average seconds each one takes.",
+    label: "Timing of steps",
+    hint: "Where the time goes: every stage the assistant goes through (for example searching documents, then writing the answer), with the average seconds each takes and its share of the time spent in steps. Steps that run at the same time add up to more than a question's total.",
   },
   keywords: {
     label: "Key facts found",
