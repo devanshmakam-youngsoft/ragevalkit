@@ -87,22 +87,12 @@ export default function Groups() {
             <h1 className="font-serif text-[32px] font-medium leading-none tracking-tight">Test Cases</h1>
             <p className="mono mt-2 text-xs text-muted">Questions and expected answers tracked across eval runs</p>
           </div>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setGenerate({})}
-              className="rounded border border-line bg-surface px-4 py-2 text-sm font-medium hover:bg-surface-2">
-              Generate from documents
-            </button>
-            <button onClick={() => setImportFor({})}
-              className="rounded border border-line bg-surface px-4 py-2 text-sm font-medium hover:bg-surface-2">
-              Import
-            </button>
-            <button
-              onClick={() => setShowNew(true)}
-              className="rounded bg-brand px-4 py-2 text-sm font-medium text-white hover:brightness-110"
-            >
-              + New group
-            </button>
-          </div>
+          <button
+            onClick={() => setShowNew(true)}
+            className="rounded bg-brand px-4 py-2 text-sm font-medium text-white hover:brightness-110"
+          >
+            + New group
+          </button>
         </div>
 
         <SectionTabs active="groups" />
@@ -124,7 +114,7 @@ export default function Groups() {
           {groups?.length === 0 && (
             <div className="px-5 py-16 text-center">
               <div className="font-serif text-lg">No groups yet</div>
-              <div className="mt-1 text-sm text-muted">Click "New group", or use Import to bring in test cases and create groups from a file.</div>
+              <div className="mt-1 text-sm text-muted">Click "New group", or create groups while importing test cases from the All test cases tab.</div>
             </div>
           )}
           {groups && groups.length > 0 && (

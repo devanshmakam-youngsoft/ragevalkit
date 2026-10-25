@@ -152,11 +152,11 @@ export default function TestCases() {
     } catch (e) { setError((e as Error).message); }
   }
 
-  // Dashboard > Test Cases, or Dashboard > Test Cases > Groups > <group> on a group's page.
+  // Test Cases > All test cases, or Test Cases > Groups > <group> on a group's page.
   const groupName = groups.find((g) => g.group_id === realGroupId)?.name;
   const crumbs: Crumb[] = realGroupId
     ? [{ label: "Test Cases", to: "/test-cases" }, { label: "Groups", to: "/test-cases/groups" }, { label: groupName ?? "Group" }]
-    : [{ label: "Test Cases" }];
+    : [{ label: "Test Cases", to: "/test-cases" }, { label: "All test cases" }];
 
   // links from before groups moved under Test Cases
   if (legacyGroup && !routeGroupId) return <Navigate to={`/test-cases/groups/${encodeURIComponent(legacyGroup)}`} replace />;

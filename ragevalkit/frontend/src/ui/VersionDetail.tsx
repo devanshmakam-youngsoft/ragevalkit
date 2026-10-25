@@ -304,7 +304,7 @@ export default function VersionDetail() {
 function Shell({ version, children }: { version: string; children: React.ReactNode }) {
   return (
     <>
-      <TopBar crumbs={[{ label: `v${version}` }]} />
+      <TopBar crumbs={[{ label: "Dashboard", to: "/" }, { label: `v${version}` }]} />
       <div className="mx-auto max-w-[1280px] px-6 pb-16 pt-5">
       {children}
       </div>

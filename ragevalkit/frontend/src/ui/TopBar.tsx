@@ -9,7 +9,7 @@ import { useRun } from "../RunContext";
 /**
  * Frozen header: title on the left; Execute button, theme switch and sign-out on the right.
  * Two sections: Dashboard (runs and versions) and Test Cases (cases, groups and import).
- * Pass `crumbs` (everything after "Dashboard") on any page below the dashboard to show the location trail.
+ * Pass `crumbs` (the whole trail, starting from the page's own section) on any page below a top-level section.
  */
 export function TopBar({ action, crumbs }: { action?: ReactNode; crumbs?: Crumb[] }) {
   const { user, logout } = useAuth();

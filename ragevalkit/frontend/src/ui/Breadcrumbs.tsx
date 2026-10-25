@@ -4,11 +4,12 @@ import { Link } from "react-router-dom";
 export type Crumb = { label: string; to?: string };
 
 /**
- * Location trail shown under the header: Dashboard > Test Cases > Groups > <name>.
- * "Dashboard" is always the first crumb; the last crumb is the current page (plain text, not a link).
+ * Location trail shown under the header, e.g. Test Cases > Groups > <name> or Dashboard > v3.
+ * Dashboard and Test Cases are sibling sections of the header, so a page passes its whole trail starting from
+ * its own section. The last crumb is the current page (plain text, not a link).
  */
 export function Breadcrumbs({ items }: { items: Crumb[] }) {
-  const trail: Crumb[] = [{ label: "Dashboard", to: "/" }, ...items];
+  const trail = items;
   return (
     <nav aria-label="Breadcrumb" className="mx-auto max-w-[1280px] px-6 pb-3">
       <ol className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
