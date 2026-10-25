@@ -4,11 +4,9 @@ import { api } from "../api";
 import { ExecuteModal } from "./ExecuteModal";
 import { GenerateDialog } from "./GenerateDialog";
 import { GenerationBanner } from "./GenerationBanner";
-import { ImportDialog } from "./ImportDialog";
 import { SectionTabs } from "./SectionTabs";
 import { TopBar } from "./TopBar";
 import { fmt, fmtDate } from "../lib";
-import { ActionMenu } from "./ActionMenu";
 import { Pager, usePaging } from "./Pager";
 import type { Group, GroupRunStat } from "../types";
 
@@ -16,9 +14,8 @@ export default function Groups() {
   const [groups, setGroups] = useState<Group[] | null>(null);
   const [error, setError] = useState("");
   const [showNew, setShowNew] = useState(false);
-  const [importErr, setImportErr] = useState("");
+  const [actionErr, setActionErr] = useState("");
   const [notice, setNotice] = useState("");
-  const [importFor, setImportFor] = useState<{ groupId?: string } | null>(null);
   const [generate, setGenerate] = useState<{ resumeId?: string } | null>(null);
   const [bannerKey, setBannerKey] = useState(0);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
@@ -42,20 +39,20 @@ export default function Groups() {
     try {
       await api.renameGroup(renaming.id, renaming.name);
       setRenaming(null);
-      setImportErr("");
+      setActionErr("");
       load();
     } catch (e) {
-      setImportErr((e as Error).message);
+      setActionErr((e as Error).message);
     }
   }
 
   async function handleRestore(groupId: string) {
     try {
       await api.restoreGroup(groupId);
-      setImportErr("");
+      setActionErr("");
       load();
     } catch (e) {
-      setImportErr((e as Error).message);
+      setActionErr((e as Error).message);
     }
   }
 
@@ -65,7 +62,7 @@ export default function Groups() {
       setPendingPurge(null);
       load();
     } catch (e) {
-      setImportErr((e as Error).message);
+      setActionErr((e as Error).message);
     }
   }
 
@@ -75,7 +72,7 @@ export default function Groups() {
       setPendingDelete(null);
       load();
     } catch (e) {
-      setImportErr((e as Error).message);
+      setActionErr((e as Error).message);
     }
   }
 
@@ -107,7 +104,7 @@ export default function Groups() {
         <GenerationBanner refreshKey={bannerKey} onOpen={(id) => setGenerate({ resumeId: id })} />
 
         {notice && <p className="mb-3 text-sm text-good" role="status">{notice}</p>}
-        {importErr && <p className="mb-4 text-sm text-bad">{importErr}</p>}
+        {actionErr && <p className="mb-4 text-sm text-bad">{actionErr}</p>}
 
         <div className="card overflow-hidden">
           {error && <p className="px-5 py-6 text-sm text-bad">{error}</p>}
@@ -175,11 +172,14 @@ export default function Groups() {
                             className="rounded border border-brand px-3 py-1 text-xs font-medium text-brand hover:bg-brand-soft disabled:cursor-not-allowed disabled:opacity-40">
                             Run
                           </button>
-                          <ActionMenu ariaLabel={`More actions for ${g.name}`} items={[
-                            { label: "Rename", onSelect: () => setRenaming({ id: g.group_id, name: g.name }) },
-                            { label: "Import test cases…", hint: "From a spreadsheet, into this group", onSelect: () => setImportFor({ groupId: g.group_id }) },
-                            { label: "Delete group", danger: true, onSelect: () => setPendingDelete(g.group_id) },
-                          ]} />
+                          <button onClick={() => setRenaming({ id: g.group_id, name: g.name })}
+                            className="rounded px-2.5 py-1 text-xs font-medium text-muted transition hover:bg-surface-2 hover:text-fg">
+                            Rename
+                          </button>
+                          <button onClick={() => setPendingDelete(g.group_id)}
+                            className="rounded px-2.5 py-1 text-xs font-medium text-muted transition hover:bg-surface-2 hover:text-bad">
+                            Delete
+                          </button>
                         </div>
                       )}
                     </td>
@@ -231,14 +231,6 @@ export default function Groups() {
           resumeId={generate.resumeId}
           onClose={() => { setGenerate(null); setBannerKey((k) => k + 1); load(); }}
           onDone={(message) => { setGenerate(null); setBannerKey((k) => k + 1); setNotice(message); load(); }}
-        />
-      )}
-      {importFor && (
-        <ImportDialog
-          groups={groups ?? []}
-          initialGroupId={importFor.groupId}
-          onClose={() => setImportFor(null)}
-          onDone={(message) => { setImportFor(null); setNotice(message); load(); }}
         />
       )}
       {runGroupId && <ExecuteModal initial={{ mode: "groups", groupIds: [runGroupId] }} onClose={() => setRunGroupId(null)} />}
