@@ -340,9 +340,9 @@ export default function Dashboard() {
                 <SortTh k="version" cur={sort} onSort={toggleSort} className="px-5">Version</SortTh>
                 <SortTh k="date" cur={sort} onSort={toggleSort}>Executed</SortTh>
                 <SortTh k="questions" cur={sort} onSort={toggleSort}>Questions</SortTh>
-                <SortTh k="answer" cur={sort} onSort={toggleSort}><Term k="answer" /></SortTh>
-                <SortTh k="material" cur={sort} onSort={toggleSort}><Term k="context" /></SortTh>
-                <SortTh k="time" cur={sort} onSort={toggleSort}><Term k="time" /></SortTh>
+                <SortTh k="answer" cur={sort} onSort={toggleSort}><Term k="answer" avg /></SortTh>
+                <SortTh k="material" cur={sort} onSort={toggleSort}><Term k="context" avg /></SortTh>
+                <SortTh k="time" cur={sort} onSort={toggleSort}><Term k="time" avg /></SortTh>
                 <th className="px-3 py-3 font-medium"><Term k="steps" /></th>
                 <th className="px-3 py-3 font-medium">Actions</th>
                 <th className="w-8" />
@@ -460,9 +460,9 @@ export default function Dashboard() {
                       <th className="px-5 py-3 font-medium">Version</th>
                       <th className="px-3 py-3 font-medium">Executed</th>
                       <th className="px-3 py-3 font-medium">Questions</th>
-                      <th className="px-3 py-3 font-medium"><Term k="answer" /></th>
-                      <th className="px-3 py-3 font-medium"><Term k="context" /></th>
-                      <th className="px-3 py-3 font-medium"><Term k="time" /></th>
+                      <th className="px-3 py-3 font-medium"><Term k="answer" avg /></th>
+                      <th className="px-3 py-3 font-medium"><Term k="context" avg /></th>
+                      <th className="px-3 py-3 font-medium"><Term k="time" avg /></th>
                       <th className="px-3 py-3 font-medium"><Term k="steps" /></th>
                       <th className="px-3 py-3 font-medium">Actions</th>
                     </tr>

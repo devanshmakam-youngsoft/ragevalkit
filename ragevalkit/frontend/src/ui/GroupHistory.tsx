@@ -92,9 +92,9 @@ export function GroupHistory({ groupId, onRun }: { groupId: string; onRun: () =>
                 <th className="px-5 py-2.5 font-medium">Version</th>
                 <th className="px-3 py-2.5 font-medium">Executed</th>
                 <th className="px-3 py-2.5 font-medium">Cases</th>
-                <th className="px-3 py-2.5 font-medium"><Term k="answer" /></th>
-                <th className="px-3 py-2.5 font-medium"><Term k="context" /></th>
-                <th className="px-3 py-2.5 font-medium"><Term k="time" /></th>
+                <th className="px-3 py-2.5 font-medium"><Term k="answer" avg /></th>
+                <th className="px-3 py-2.5 font-medium"><Term k="context" avg /></th>
+                <th className="px-3 py-2.5 font-medium"><Term k="time" avg /></th>
                 <th className="px-3 py-2.5 font-medium"><Term k="overall" /></th>
               </tr>
             </thead>

@@ -96,6 +96,8 @@ export function Hint({ text }: { text: string }) {
 }
 
 /** A label followed by its explanation, for column headers and stat cards. */
-export function Term({ k }: { k: keyof typeof GLOSSARY }) {
-  return <>{GLOSSARY[k].label}<Hint text={GLOSSARY[k].hint} /></>;
+/** A glossary label with its info hint. `avg` writes it as an average ("Avg answer quality"), for columns that average many rows. */
+export function Term({ k, avg = false }: { k: keyof typeof GLOSSARY; avg?: boolean }) {
+  const label = GLOSSARY[k].label;
+  return <>{avg ? `Avg ${label.charAt(0).toLowerCase()}${label.slice(1)}` : label}<Hint text={GLOSSARY[k].hint} /></>;
 }

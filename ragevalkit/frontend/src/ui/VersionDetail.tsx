@@ -180,9 +180,9 @@ export default function VersionDetail() {
                 <tr>
                   <th className="px-5 py-2.5 font-medium">Group</th>
                   <th className="px-3 py-2.5 font-medium">Test cases</th>
-                  <th className="px-3 py-2.5 font-medium"><Term k="answer" /></th>
-                  <th className="px-3 py-2.5 font-medium"><Term k="context" /></th>
-                  <th className="px-3 py-2.5 font-medium"><Term k="time" /></th>
+                  <th className="px-3 py-2.5 font-medium"><Term k="answer" avg /></th>
+                  <th className="px-3 py-2.5 font-medium"><Term k="context" avg /></th>
+                  <th className="px-3 py-2.5 font-medium"><Term k="time" avg /></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
