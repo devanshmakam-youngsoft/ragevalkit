@@ -4,7 +4,6 @@ import { api } from "../api";
 import { ActionMenu } from "./ActionMenu";
 import { AddExistingModal } from "./AddExistingModal";
 import { AddToGroupModal } from "./AddToGroupModal";
-import type { Crumb } from "./Breadcrumbs";
 import { ExecuteModal } from "./ExecuteModal";
 import { ChatTurn, GroupChips } from "./GroupChips";
 import { GenerateDialog } from "./GenerateDialog";
@@ -149,19 +148,18 @@ export default function TestCases() {
     } catch (e) { setError((e as Error).message); }
   }
 
-  // Test Cases > All test cases, or Test Cases > Groups > <group> on a group's page.
   const groupName = groups.find((g) => g.group_id === realGroupId)?.name;
-  const crumbs: Crumb[] = realGroupId
-    ? [{ label: "Test Cases", to: "/test-cases" }, { label: "Groups", to: "/test-cases/groups" }, { label: groupName ?? "Group" }]
-    : [{ label: "Test Cases", to: "/test-cases" }, { label: "All test cases" }];
 
   // links from before groups moved under Test Cases
   if (legacyGroup && !routeGroupId) return <Navigate to={`/test-cases/groups/${encodeURIComponent(legacyGroup)}`} replace />;
 
   return (
     <>
-      <TopBar crumbs={crumbs} />
+      <TopBar />
       <div className="mx-auto max-w-[1280px] px-6 pb-16 pt-5">
+        {/* the two views come first, straight under the main menu; a group's own heading sits below them */}
+        <SectionTabs active={realGroupId ? "groups" : "all"} />
+
         <div className="mb-4 flex flex-wrap items-end gap-4">
           <div>
             <h1 className="font-serif text-[32px] font-medium leading-none tracking-tight">{realGroupId ? (groupName ?? "Group") : "Test Cases"}</h1>
@@ -195,8 +193,6 @@ export default function TestCases() {
             )}
           </div>
         </div>
-
-        <SectionTabs active={realGroupId ? "groups" : "all"} />
 
         <GenerationBanner refreshKey={bannerKey} onOpen={(id) => setGenerate({ resumeId: id })} />
 

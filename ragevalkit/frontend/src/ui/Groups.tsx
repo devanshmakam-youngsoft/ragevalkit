@@ -78,8 +78,10 @@ export default function Groups() {
 
   return (
     <>
-      <TopBar crumbs={[{ label: "Test Cases", to: "/test-cases" }, { label: "Groups" }]} />
+      <TopBar />
       <div className="mx-auto max-w-[1280px] px-6 pb-16 pt-5">
+        <SectionTabs active="groups" />
+
         <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="font-serif text-[32px] font-medium leading-none tracking-tight">Test Cases</h1>
@@ -92,8 +94,6 @@ export default function Groups() {
             + New group
           </button>
         </div>
-
-        <SectionTabs active="groups" />
 
         <div className="mb-5 rounded border border-line bg-surface-2 px-4 py-3 text-sm text-muted">
           <span className="font-medium text-fg">Groups are labels.</span> Put a label on any test cases, then run a whole
