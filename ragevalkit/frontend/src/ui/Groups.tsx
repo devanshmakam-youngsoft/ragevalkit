@@ -82,11 +82,7 @@ export default function Groups() {
       <div className="mx-auto max-w-[1280px] px-6 pb-16 pt-5">
         <SectionTabs active="groups" />
 
-        <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="font-serif text-[32px] font-medium leading-none tracking-tight">Test Cases</h1>
-            <p className="mono mt-2 text-xs text-muted">Questions and expected answers tracked across eval runs</p>
-          </div>
+        <div className="mb-4 flex justify-end">
           <button
             onClick={() => setShowNew(true)}
             className="rounded bg-brand px-4 py-2 text-sm font-medium text-white hover:brightness-110"

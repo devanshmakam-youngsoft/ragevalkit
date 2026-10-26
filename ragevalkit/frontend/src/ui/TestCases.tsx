@@ -161,12 +161,13 @@ export default function TestCases() {
         <SectionTabs active={realGroupId ? "groups" : "all"} />
 
         <div className="mb-4 flex flex-wrap items-end gap-4">
-          <div>
-            <h1 className="font-serif text-[32px] font-medium leading-none tracking-tight">{realGroupId ? (groupName ?? "Group") : "Test Cases"}</h1>
-            <p className="mono mt-2 text-xs text-muted">
-              {realGroupId ? "A group of test cases: run it, or change who is in it" : "Questions and expected answers tracked across eval runs"}
-            </p>
-          </div>
+          {/* the menu and tabs already say where you are: only a single group gets a heading of its own */}
+          {realGroupId && (
+            <div>
+              <h1 className="font-serif text-[32px] font-medium leading-none tracking-tight">{groupName ?? "Group"}</h1>
+              <p className="mono mt-2 text-xs text-muted">A group of test cases: run it, or change who is in it</p>
+            </div>
+          )}
           <div className="ml-auto flex items-center gap-2">
             {realGroupId ? (
               <ActionMenu primary label="Add test cases" items={[
