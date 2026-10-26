@@ -292,8 +292,9 @@ def stats_for_llm(summary: dict, rows: list[dict]) -> str:
         f"By group: {group_line}\nSource checks: {source_line}\n"
         f"Rows: {summary['total_rows']} (failed: {summary['failed_rows']})\n"
         f"Avg answer marks: {summary['avg_answer_marks']}/10, avg material marks: {summary['avg_material_marks']}/10\n"
-        f"Avg keyword recall: {summary['avg_keyword_recall']}, semantic similarity: {summary['avg_semantic_similarity']}\n"
-        f"Avg end-to-end time: {summary['avg_total_time']}s; avg node timings: {nodes}\n"
+        f"Key words found in answers (0 to 1): {summary['avg_keyword_recall']}; meaning match with the expected answer (0 to 1): {summary['avg_semantic_similarity']}\n"
+        f"Avg end-to-end time: {summary['avg_total_time']}s; time per step: {nodes}\n"
+        f"(Step names: retrieval and faiss_search = finding documents; llm = the AI model writing the answer.)\n"
         f"Answer marks by type: {type_line}\nLowest scoring rows:\n{worst_lines}"
     )
 
@@ -321,6 +322,28 @@ def default_suggestions(summary: dict, rows: list[dict]) -> list[str]:
     if not out:
         out.append("Keep this version as the baseline and add harder test cases (indirect and multi-turn questions) to find where it breaks.")
     return out[:3]
+
+
+_GENERIC_NEXT_STEP = "Open the related questions in the results to see what went wrong, then adjust the assistant or the test case."
+
+
+def finish_insights(insights: dict, summary: dict, rows: list[dict]) -> dict:
+    """The summary as stored: ``items`` pairing every watch-out with a suggestion, plus the two plain lists.
+
+    A watch-out the model left without a suggestion gets one read from the run's numbers (or a general next step),
+    so the page never shows a watch-out with nothing to do about it."""
+    items = [dict(i) for i in insights.get("items") or []]
+    if not items:                                   # parallel lists from an older-style reply: pair them by position
+        pits, sugs = insights.get("pitfalls") or [], insights.get("suggestions") or []
+        items = [{"watch_out": pits[i] if i < len(pits) else "", "suggestion": sugs[i] if i < len(sugs) else ""}
+                 for i in range(max(len(pits), len(sugs)))]
+    spare = [s for s in default_suggestions(summary, rows) if s not in {i["suggestion"] for i in items}]
+    for item in items:
+        if item["watch_out"] and not item["suggestion"]:
+            item["suggestion"] = spare.pop(0) if spare else _GENERIC_NEXT_STEP
+    items = [i for i in items if i["watch_out"] or i["suggestion"]]
+    return {"items": items, "pitfalls": [i["watch_out"] for i in items if i["watch_out"]],
+            "suggestions": [i["suggestion"] for i in items if i["suggestion"]]}
 
 
 def _cell(v):

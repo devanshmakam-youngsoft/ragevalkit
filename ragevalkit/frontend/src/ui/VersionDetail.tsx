@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "../api";
-import { Mark, ScorePill, StepTimeBar, Stat } from "./parts";
+import { Mark, ScorePill, SegmentBar, StepTimeBar, Stat } from "./parts";
 import { ChatTurn, GroupChips } from "./GroupChips";
 import { GLOSSARY, Hint, Term } from "./Hint";
 import { Pager, usePaging } from "./Pager";
@@ -142,16 +142,27 @@ export default function VersionDetail() {
       {bands.total > 0 && (
         <div className="card mt-4 px-5 py-4">
           <h3 className="label mb-3"><Term k="tiers" /> <span className="mono normal-case tracking-normal">· avg {fmt(s.avg_answer_marks)}/10 over {plural(bands.total, "question")}</span></h3>
-          <div className="flex h-6 overflow-hidden rounded text-xs font-medium text-white">
-            {bands.high > 0 && <div style={{ width: `${(bands.high / bands.total) * 100}%` }} className="flex items-center justify-center bg-good">{bands.high}</div>}
-            {bands.mid > 0 && <div style={{ width: `${(bands.mid / bands.total) * 100}%` }} className="flex items-center justify-center bg-warn">{bands.mid}</div>}
-            {bands.low > 0 && <div style={{ width: `${(bands.low / bands.total) * 100}%` }} className="flex items-center justify-center bg-bad">{bands.low}</div>}
-          </div>
-          <p className="mt-2 flex flex-wrap gap-x-4 text-xs text-muted">
-            <span><span className="mr-1 inline-block h-2 w-2 bg-good" />Strong (8–10): {bands.high}</span>
-            <span><span className="mr-1 inline-block h-2 w-2 bg-warn" />Fair (5–7): {bands.mid}</span>
-            <span><span className="mr-1 inline-block h-2 w-2 bg-bad" />Weak (0–4): {bands.low}</span>
-          </p>
+          {(() => {
+            const pct = (n: number) => Math.round((n / bands.total) * 100);
+            const tiers = [
+              { key: "high", label: "Strong (8–10)", n: bands.high, cls: "bg-good" },
+              { key: "mid", label: "Fair (5–7)", n: bands.mid, cls: "bg-warn" },
+              { key: "low", label: "Weak (0–4)", n: bands.low, cls: "bg-bad" },
+            ];
+            return (
+              <>
+                <SegmentBar segments={tiers.filter((t) => t.n > 0).map((t) => ({
+                  key: t.key, weight: t.n, text: `${pct(t.n)}%`, className: t.cls,
+                  title: `${t.label}: ${plural(t.n, "question")} (${pct(t.n)}%)`,
+                }))} />
+                <p className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted">
+                  {tiers.map((t) => (
+                    <span key={t.key}><span className={`mr-1 inline-block h-2 w-2 ${t.cls}`} />{t.label}: {t.n} <span className="mono">· {pct(t.n)}%</span></span>
+                  ))}
+                </p>
+              </>
+            );
+          })()}
         </div>
       )}
 
@@ -349,10 +360,39 @@ function Insights({ summary }: { summary: VersionSummary }) {
       ))}
     </ul>
   );
+  const pairs = ins?.items ?? [];
   return (
     <div className="card p-5">
       <h3 className="label">Watch-outs &amp; suggestions</h3>
-      {ins ? (
+      {ins && pairs.length > 0 ? (
+        // each watch-out is shown with the suggestion that answers it, joined by an arrow
+        <div className="mt-3">
+          <div className="hidden grid-cols-[1fr_32px_1fr] gap-x-4 pb-2 text-sm font-semibold md:grid">
+            <div style={{ color: "var(--warn)" }}>Watch-out</div><div /><div className="text-brand">Suggestion</div>
+          </div>
+          <ul className="divide-y divide-line border-t border-line">
+            {pairs.map((p, i) => (
+              <li key={i} className="grid gap-x-4 gap-y-1.5 py-3 text-sm leading-relaxed md:grid-cols-[1fr_32px_1fr]">
+                <div className="flex gap-2.5">
+                  <span className="mt-[9px] h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: "var(--warn)" }} />
+                  <span>{p.watch_out}</span>
+                </div>
+                <div aria-hidden="true" className="flex items-start text-brand md:justify-center md:pt-[3px]">
+                  {p.watch_out && p.suggestion && (
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="rotate-90 md:rotate-0">
+                      <path d="M4 10h11M11 5.5 15.5 10 11 14.5" />
+                    </svg>
+                  )}
+                </div>
+                <div className="flex gap-2.5">
+                  <span className="mt-[9px] h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: "var(--brand)" }} />
+                  <span>{p.suggestion}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : ins ? (
         // a column with nothing in it is left out rather than printed as "None."
         <div className={`mt-3 grid gap-5 ${ins.pitfalls.length > 0 && ins.suggestions.length > 0 ? "sm:grid-cols-2" : ""}`}>
           {ins.pitfalls.length > 0 && (

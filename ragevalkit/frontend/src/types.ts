@@ -25,7 +25,7 @@ export interface VersionSummary {
   /** The run was stopped early; it is never recommended or compared as a finished run. */
   stopped?: boolean;
   /** What needs attention and what to try next, written for a non-technical reader. */
-  insights?: { pitfalls: string[]; suggestions: string[] };
+  insights?: { pitfalls: string[]; suggestions: string[]; items?: { watch_out: string; suggestion: string }[] };
   /** Short "what changed?" note entered when the run was started. */
   notes?: string;
   /** Names of the test case groups used in this run. */

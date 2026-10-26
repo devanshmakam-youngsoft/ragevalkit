@@ -110,8 +110,8 @@ def test_summarize_run_returns_bullets_retries_bad_replies_and_gives_up_cleanly(
     replies = iter(["garbage", json.dumps({"pitfalls": ["a"], "suggestions": ["b"]})])
     sent = []
     judge._call = lambda messages, json_mode=False: (sent.append(messages), next(replies))[1]
-    assert judge.summarize_run("stats") == {"pitfalls": ["a"], "suggestions": ["b"]}
-    assert '"pitfalls"' in sent[0][0]["content"] and "do NOT restate" in sent[0][0]["content"]
+    assert judge.summarize_run("stats") == {"pitfalls": ["a"], "suggestions": ["b"], "items": [{"watch_out": "a", "suggestion": "b"}]}
+    assert '"items"' in sent[0][0]["content"] and "do NOT restate" in sent[0][0]["content"]
 
     judge._call = lambda messages, json_mode=False: "still garbage"
     assert judge.summarize_run("stats") is None
@@ -122,7 +122,7 @@ def test_a_custom_summary_prompt_still_gets_the_json_format_appended():
     seen = {}
     judge._call = lambda messages, json_mode=False: (seen.update(system=messages[0]["content"]), '{"pitfalls": ["x"]}')[1]
     judge.summarize_run("stats")
-    assert seen["system"].startswith("Focus on speed.") and '"pitfalls"' in seen["system"]
+    assert seen["system"].startswith("Focus on speed.") and '"items"' in seen["system"]
 
 
 # ---- summaries that must have both lists -------------------------------------------------------------------
@@ -138,10 +138,11 @@ def test_a_summary_without_suggestions_is_sent_back_with_the_reason_until_it_has
                     json.dumps({"pitfalls": ["Slow search."], "suggestions": ["Check the search index."]})])
     sent = []
     judge._call = lambda messages, json_mode=False: (sent.append(messages), next(replies))[1]
-    assert judge.summarize_run("stats") == {"pitfalls": ["Slow search."], "suggestions": ["Check the search index."]}
+    assert judge.summarize_run("stats") == {"pitfalls": ["Slow search."], "suggestions": ["Check the search index."],
+                                            "items": [{"watch_out": "Slow search.", "suggestion": "Check the search index."}]}
     assert len(sent) == 2
     feedback = sent[1][-1]["content"]
-    assert sent[1][-2]["role"] == "assistant" and '"suggestions" was empty' in feedback and "one for each watch-out" in feedback
+    assert sent[1][-2]["role"] == "assistant" and '"suggestions" was empty' in feedback and "for each watch-out" in feedback
 
 
 def test_when_the_model_never_gives_suggestions_what_it_did_give_is_kept(monkeypatch):
@@ -164,10 +165,13 @@ def test_a_failing_call_is_retried_then_the_summary_gives_up_cleanly(monkeypatch
     assert judge.summarize_run("stats") is None and len(calls) == 2
 
 
+PAIR = {"pitfalls": ["a slow step"], "suggestions": ["speed it up"], "items": [{"watch_out": "a slow step", "suggestion": "speed it up"}]}
+
+
 @pytest.mark.parametrize("reply, expected", [
-    ({"watch_outs": ["a slow step"], "recommendations": ["speed it up"]}, ({"pitfalls": ["a slow step"], "suggestions": ["speed it up"]})),
-    ({"Pitfalls": [{"text": "a slow step"}], "Next Steps": [{"title": "speed it up", "detail": "x"}]}, ({"pitfalls": ["a slow step"], "suggestions": ["speed it up"]})),
-    ({"pitfalls": ["a slow step", "a slow step", "None."], "suggestions": "- speed it up"}, ({"pitfalls": ["a slow step"], "suggestions": ["speed it up"]})),
+    ({"watch_outs": ["a slow step"], "recommendations": ["speed it up"]}, PAIR),
+    ({"Pitfalls": [{"text": "a slow step"}], "Next Steps": [{"title": "speed it up", "detail": "x"}]}, PAIR),
+    ({"pitfalls": ["a slow step", "a slow step", "None."], "suggestions": "- speed it up"}, PAIR),
 ])
 def test_summary_replies_are_read_whatever_names_and_shapes_the_model_used(reply, expected):
     from ragevalkit.judge import check_insights
@@ -178,7 +182,8 @@ def test_summary_replies_are_read_whatever_names_and_shapes_the_model_used(reply
 def test_the_summary_prompt_asks_for_actions_never_empty_and_no_jargon():
     from ragevalkit import prompts
     text = prompts.SUMMARY_PROMPT + prompts.SUMMARY_FORMAT
-    for needle in ("do NOT restate", "never empty", "starts\nwith a verb", "no jargon", "Both lists must have at least one item"):
+    for needle in ("do NOT restate", "never empty", "starting with a verb", "no jargon", "every item needs both parts", "THAT watch-out",
+                   "Never write BM25", "Example of one finding"):
         assert needle in text
 
 
@@ -199,3 +204,57 @@ def test_the_model_is_told_each_steps_share_of_the_response_time():
     summary = {"total_rows": 2, "failed_rows": 0, "avg_answer_marks": 9, "avg_material_marks": 9, "avg_keyword_recall": 0.5,
                "avg_semantic_similarity": 0.5, "avg_total_time": 4.0, "avg_retrieval": 3.0, "scores": {}}
     assert "retrieval=3.0s (75% of the response time)" in stats_for_llm(summary, [])
+
+
+# ---- every watch-out paired with the suggestion that answers it ----------------------------------------------
+
+PAIRED = {"items": [{"watch_out": "The multi-turn group scores lowest.", "suggestion": "Pass the earlier answer into each follow-up."},
+                    {"watch_out": "Finding documents takes most of the time.", "suggestion": "Check why the document search is slow."}]}
+
+
+def test_paired_findings_are_accepted_and_keep_their_pairing():
+    from ragevalkit.judge import check_insights
+    found, problem = check_insights(json.dumps(PAIRED))
+    assert problem == "" and found["items"] == PAIRED["items"]
+    assert found["pitfalls"] == [i["watch_out"] for i in PAIRED["items"]] and found["suggestions"] == [i["suggestion"] for i in PAIRED["items"]]
+
+
+def test_a_finding_without_its_suggestion_is_sent_back_naming_the_item(monkeypatch):
+    monkeypatch.setattr("ragevalkit.judge.time.sleep", lambda s: None)
+    judge = make_judge()
+    broken = {"items": [PAIRED["items"][0], {"watch_out": "Finding documents takes most of the time.", "suggestion": ""}]}
+    replies = iter([json.dumps(broken), json.dumps(PAIRED)])
+    sent = []
+    judge._call = lambda messages, json_mode=False: (sent.append(messages), next(replies))[1]
+    assert judge.summarize_run("stats")["items"] == PAIRED["items"]
+    assert 'item 2 has no "suggestion"' in sent[1][-1]["content"]
+
+
+def test_unequal_parallel_lists_are_asked_to_use_the_paired_shape():
+    from ragevalkit.judge import check_insights
+    found, problem = check_insights(json.dumps({"pitfalls": ["a", "b"], "suggestions": ["c"]}))
+    assert found is None and '"items"' in problem and "its own suggestion" in problem
+
+
+def test_a_watch_out_left_without_a_suggestion_gets_one_from_the_numbers():
+    from ragevalkit.store import finish_insights
+    summary = {"failed_rows": 2, "avg_material_marks": 9, "avg_total_time": 2.0, "scores": {"tiers": {"low": 0}}}
+    half = {"items": [{"watch_out": "Some questions failed.", "suggestion": ""}, {"watch_out": "Slow.", "suggestion": "Look at the slowest step."}],
+            "pitfalls": ["Some questions failed.", "Slow."], "suggestions": ["Look at the slowest step."]}
+    done = finish_insights(half, summary, [])
+    assert done["items"][0]["suggestion"].startswith("Open the 2 failed questions") and done["items"][1]["suggestion"] == "Look at the slowest step."
+    assert len(done["pitfalls"]) == len(done["suggestions"]) == 2
+
+
+def test_older_style_lists_are_paired_by_position_and_never_left_blank():
+    from ragevalkit.store import finish_insights
+    done = finish_insights({"pitfalls": ["One.", "Two."], "suggestions": ["Fix one."]}, {"failed_rows": 0, "scores": {}}, [])
+    assert done["items"][0] == {"watch_out": "One.", "suggestion": "Fix one."}
+    assert done["items"][1]["watch_out"] == "Two." and done["items"][1]["suggestion"]
+
+
+def test_the_model_is_told_the_figures_in_plain_words():
+    from ragevalkit.store import stats_for_llm
+    text = stats_for_llm({"total_rows": 1, "failed_rows": 0, "avg_answer_marks": 9, "avg_material_marks": 9, "avg_keyword_recall": 0.5,
+                          "avg_semantic_similarity": 0.4, "avg_total_time": 2.0, "scores": {}}, [])
+    assert "semantic" not in text.lower() and "recall" not in text.lower() and "meaning match" in text and "Step names" in text

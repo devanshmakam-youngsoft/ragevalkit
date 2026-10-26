@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { type ReactNode, useLayoutEffect, useRef, useState } from "react";
 import { fmt, fmtSeconds, nodeMeta, scoreTone } from "../lib";
 import { type VersionSummary } from "../types";
 
@@ -65,6 +65,53 @@ export function NodeTimings({ v, compact = false }: { v: VersionSummary; compact
   );
 }
 
+export type Segment = {
+  key: string;
+  /** Relative size; the bar is divided in proportion to these. */
+  weight: number;
+  /** Written inside the segment when it is wide enough to show it. */
+  text: string;
+  /** Shown on hover. */
+  title: string;
+  /** Fill colour, or a class (for example "bg-good") when the colour comes from the theme. */
+  color?: string;
+  className?: string;
+};
+
+/**
+ * One wide bar divided into segments, each with its text (a percentage) inside it. The text is shown whenever it
+ * physically fits: the bar's width is measured, so a 5% segment on a wide screen still gets its label and a
+ * narrow screen drops only the ones that would be cut off.
+ */
+export function SegmentBar({ segments }: { segments: Segment[] }) {
+  const box = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(0);
+  useLayoutEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const measure = () => setWidth(el.clientWidth);
+    measure();
+    const watcher = new ResizeObserver(measure);
+    watcher.observe(el);
+    return () => watcher.disconnect();
+  }, []);
+  const total = segments.reduce((t, s) => t + s.weight, 0) || 1;
+  return (
+    <div ref={box} className="flex h-6 gap-px overflow-hidden rounded text-xs font-medium text-white">
+      {segments.map((seg) => {
+        const share = (seg.weight / total) * 100;
+        const fits = (share / 100) * width >= seg.text.length * 7.5 + 12;     // about 7.5px a character at this size, plus padding
+        return (
+          <div key={seg.key} title={seg.title} style={{ width: `${share}%`, ...(seg.color ? { background: seg.color } : {}) }}
+            className={`flex items-center justify-center overflow-hidden whitespace-nowrap ${seg.className ?? ""}`}>
+            {fits && seg.text}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 const REST_KEY = "__rest";
 
 /**
@@ -96,15 +143,11 @@ export function StepTimeBar({ v }: { v: VersionSummary }) {
   const slowest = steps.reduce((a, b) => (b.secs > a.secs ? b : a));
   return (
     <>
-      <div className="flex h-6 gap-px overflow-hidden rounded text-xs font-medium text-white">
-        {pieces.map((p) => (
-          <div key={p.key} title={`${p.label}: ${fmtSeconds(p.secs)} (${p.pct.toFixed(0)}% of the response time)`}
-            style={{ width: `${p.width}%`, ...(p.rest ? {} : { background: p.color }) }}
-            className={`flex items-center justify-center overflow-hidden whitespace-nowrap ${p.rest ? "bg-line text-muted" : ""}`}>
-            {p.width >= 6 && `${p.pct.toFixed(0)}%`}
-          </div>
-        ))}
-      </div>
+      <SegmentBar segments={pieces.map((p) => ({
+        key: p.key, weight: p.width, text: `${p.pct.toFixed(0)}%`,
+        title: `${p.label}: ${fmtSeconds(p.secs)} (${p.pct.toFixed(0)}% of the response time)`,
+        ...(p.rest ? { className: "bg-line text-muted" } : { color: p.color }),
+      }))} />
       <p className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted">
         {pieces.map((p) => (
           <span key={p.key} className="inline-flex items-center gap-1.5">

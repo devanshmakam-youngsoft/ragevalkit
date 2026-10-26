@@ -65,7 +65,7 @@ from ragevalkit.config import Config
 from ragevalkit.dataset import parse_source_groups
 from ragevalkit.exceptions import RunBusy
 from ragevalkit.judge import Judge
-from ragevalkit.store import EvalStore, build_group_stats, build_summary, default_suggestions, stats_for_llm
+from ragevalkit.store import EvalStore, build_group_stats, build_summary, finish_insights, stats_for_llm
 
 logger = logging.getLogger(__name__)
 
@@ -619,11 +619,12 @@ class RunManager:
             summary["group_stats"] = build_group_stats(self.store, run.group_names, rows)
             insights = self.judge.summarize_run(stats_for_llm(summary, rows))
             if insights:
-                if not insights["suggestions"]:       # the model gave watch-outs but no next steps: derive some from the numbers
-                    insights["suggestions"] = default_suggestions(summary, rows)
+                insights = finish_insights(insights, summary, rows)      # every watch-out gets its suggestion
                 summary["insights"] = insights
                 # plain-text version for anything that only reads `comment` (xlsx, on_complete hooks)
-                summary["comment"] = "\n".join(f"• {t}" for t in insights["pitfalls"] + insights["suggestions"])
+                summary["comment"] = "\n".join(
+                    f"• {i['watch_out']} → {i['suggestion']}" if i["watch_out"] and i["suggestion"] else f"• {i['watch_out'] or i['suggestion']}"
+                    for i in insights["items"])
             else:
                 summary["comment"] = "Summary could not be generated for this run."
 
