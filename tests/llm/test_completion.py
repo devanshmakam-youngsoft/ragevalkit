@@ -4,7 +4,7 @@ import types
 
 from ragevalkit.config import Config
 from ragevalkit.generator.llm import LiteLLM
-from ragevalkit.judge import Judge
+from ragevalkit.judging.judge import Judge
 from ragevalkit.llm import completion
 
 

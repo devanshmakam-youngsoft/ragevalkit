@@ -64,7 +64,7 @@ from ragevalkit.casetypes import is_non_rag
 from ragevalkit.config import Config
 from ragevalkit.dataset import parse_source_groups
 from ragevalkit.evaluation.exceptions import RunBusy
-from ragevalkit.judge import Judge
+from ragevalkit.judging.judge import Judge
 from ragevalkit.store import EvalStore, build_group_stats, build_summary, finish_insights, stats_for_llm
 
 logger = logging.getLogger(__name__)

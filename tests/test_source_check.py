@@ -4,7 +4,7 @@ from types import SimpleNamespace
 import pytest
 
 from ragevalkit.dataset import parse_source_groups
-from ragevalkit.judge import Judge
+from ragevalkit.judging.judge import Judge
 from ragevalkit.runner import _source_check
 
 

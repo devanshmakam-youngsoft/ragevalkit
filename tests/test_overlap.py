@@ -7,7 +7,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from ragevalkit.config import Config
-from ragevalkit.judge import Judge, parse_insights
+from ragevalkit.judging.judge import Judge
+from ragevalkit.judging.insights import parse_insights
 from ragevalkit.server import create_app
 from ragevalkit.store import EvalStore, build_group_stats
 
@@ -105,7 +106,7 @@ def test_parse_insights_rejects_replies_with_nothing_usable(raw):
 
 
 def test_summarize_run_returns_bullets_retries_bad_replies_and_gives_up_cleanly(monkeypatch):
-    monkeypatch.setattr("ragevalkit.judge.time.sleep", lambda s: None)
+    monkeypatch.setattr("ragevalkit.judging.judge.time.sleep", lambda s: None)
     judge = Judge(SimpleNamespace(judge_prompt_override="", judge_retries=2, summary_prompt=""))
     replies = iter(["garbage", json.dumps({"pitfalls": ["a"], "suggestions": ["b"]})])
     sent = []
@@ -132,7 +133,7 @@ def make_judge(retries=3):
 
 
 def test_a_summary_without_suggestions_is_sent_back_with_the_reason_until_it_has_them(monkeypatch):
-    monkeypatch.setattr("ragevalkit.judge.time.sleep", lambda s: None)
+    monkeypatch.setattr("ragevalkit.judging.judge.time.sleep", lambda s: None)
     judge = make_judge()
     replies = iter([json.dumps({"pitfalls": ["Slow search."], "suggestions": []}),
                     json.dumps({"pitfalls": ["Slow search."], "suggestions": ["Check the search index."]})])
@@ -146,14 +147,14 @@ def test_a_summary_without_suggestions_is_sent_back_with_the_reason_until_it_has
 
 
 def test_when_the_model_never_gives_suggestions_what_it_did_give_is_kept(monkeypatch):
-    monkeypatch.setattr("ragevalkit.judge.time.sleep", lambda s: None)
+    monkeypatch.setattr("ragevalkit.judging.judge.time.sleep", lambda s: None)
     judge = make_judge(retries=2)
     judge._call = lambda messages, json_mode=False: json.dumps({"pitfalls": ["Slow search."]})
     assert judge.summarize_run("stats") == {"pitfalls": ["Slow search."], "suggestions": []}      # the runner fills the gap
 
 
 def test_a_failing_call_is_retried_then_the_summary_gives_up_cleanly(monkeypatch):
-    monkeypatch.setattr("ragevalkit.judge.time.sleep", lambda s: None)
+    monkeypatch.setattr("ragevalkit.judging.judge.time.sleep", lambda s: None)
     judge = make_judge(retries=2)
     calls = []
 
@@ -174,14 +175,14 @@ PAIR = {"pitfalls": ["a slow step"], "suggestions": ["speed it up"], "items": [{
     ({"pitfalls": ["a slow step", "a slow step", "None."], "suggestions": "- speed it up"}, PAIR),
 ])
 def test_summary_replies_are_read_whatever_names_and_shapes_the_model_used(reply, expected):
-    from ragevalkit.judge import check_insights
+    from ragevalkit.judging.insights import check_insights
     found, problem = check_insights(json.dumps(reply))
     assert problem == "" and found == expected
 
 
 def test_the_summary_prompt_asks_for_actions_never_empty_and_no_jargon():
-    from ragevalkit import prompts
-    text = prompts.SUMMARY_PROMPT + prompts.SUMMARY_FORMAT
+    from ragevalkit.judging.prompts import run_summary_format, run_summary_prompt
+    text = run_summary_prompt + run_summary_format
     for needle in ("do NOT restate", "never empty", "starting with a verb", "no jargon", "every item needs both parts", "THAT watch-out",
                    "Never write BM25", "Example of one finding"):
         assert needle in text
@@ -213,14 +214,14 @@ PAIRED = {"items": [{"watch_out": "The multi-turn group scores lowest.", "sugges
 
 
 def test_paired_findings_are_accepted_and_keep_their_pairing():
-    from ragevalkit.judge import check_insights
+    from ragevalkit.judging.insights import check_insights
     found, problem = check_insights(json.dumps(PAIRED))
     assert problem == "" and found["items"] == PAIRED["items"]
     assert found["pitfalls"] == [i["watch_out"] for i in PAIRED["items"]] and found["suggestions"] == [i["suggestion"] for i in PAIRED["items"]]
 
 
 def test_a_finding_without_its_suggestion_is_sent_back_naming_the_item(monkeypatch):
-    monkeypatch.setattr("ragevalkit.judge.time.sleep", lambda s: None)
+    monkeypatch.setattr("ragevalkit.judging.judge.time.sleep", lambda s: None)
     judge = make_judge()
     broken = {"items": [PAIRED["items"][0], {"watch_out": "Finding documents takes most of the time.", "suggestion": ""}]}
     replies = iter([json.dumps(broken), json.dumps(PAIRED)])
@@ -231,7 +232,7 @@ def test_a_finding_without_its_suggestion_is_sent_back_naming_the_item(monkeypat
 
 
 def test_unequal_parallel_lists_are_asked_to_use_the_paired_shape():
-    from ragevalkit.judge import check_insights
+    from ragevalkit.judging.insights import check_insights
     found, problem = check_insights(json.dumps({"pitfalls": ["a", "b"], "suggestions": ["c"]}))
     assert found is None and '"items"' in problem and "its own suggestion" in problem
 
