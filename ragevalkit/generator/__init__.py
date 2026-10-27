@@ -6,8 +6,9 @@ FLOW
 2. ``planning.plan_tasks`` decides which passages each question is written from: passages are taken in a spread
    order so they sample the whole document, and questions are shared out across the uploaded files.
 3. ``writer.generate_item`` asks the model for ONE item of a category (a question, or a whole conversation).
-   ``checks.validate`` rejects anything that breaks the rules — most importantly, every piece of evidence must
-   really be in the passages — and the item is retried with the reason spelled out.
+   ``checks.validate`` rejects anything that breaks the rules — most importantly, the evidence (sentence numbers
+   such as A3, or a quoted sentence) must point at real sentences of the passages — and the item is retried with the
+   reason spelled out.
 4. ``manager.GenerationManager`` runs this in the background, saving every finished item to a *review batch*
    so closing the browser or losing the network loses nothing. Items become test cases only when approved;
    batches never approved are deleted after ``batch_ttl_hours``.
@@ -21,7 +22,7 @@ CATEGORIES (see ``categories``; each becomes a group)
 Every generated test case has the type ``rag``: its answer has to come from the documents.
 
 Modules: ``prompts`` (what the model is told) · ``evidence`` (quotes are really in the document) ·
-``checks`` (the rules) · ``llm`` (the model client) · ``writer`` · ``planning`` · ``manager``.
+``checks`` (the rules) · ``llm`` (the model client; the call itself is ``litellm_loader.complete``) · ``writer`` · ``planning`` · ``manager``.
 """
 from ragevalkit.exceptions import GenerationBusy, GenerationError
 from ragevalkit.generator.categories import CASE_TYPE, CATEGORIES, CATEGORY_LABELS

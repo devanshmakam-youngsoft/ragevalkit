@@ -149,25 +149,43 @@ ragevalkit.serve(my_rag)                 # opens http://localhost:8001</code></p
 <h3>Package root</h3>
 <table>
   <tr><th>File</th><th>What it does</th></tr>
-  <tr><td><code>pyproject.toml</code></td><td>Version 0.1.3, Python 3.10 or newer. Dependencies: FastAPI, uvicorn, TinyDB, LiteLLM, pandas, openpyxl, sentence-transformers. It also packages the compiled dashboard (<code>static/</code>) into the wheel.</td></tr>
-  <tr><td><code>ragevalkit/__init__.py</code></td><td>The public entry point. Exports <code>serve</code>, <code>step</code>, <code>note</code> and all exceptions. Contains a tiny <code>.env</code> loader.</td></tr>
-  <tr><td><code>config.py</code></td><td>A <code>Config</code> class (pydantic-settings) holding every setting: login, judge model, which metrics run, column names, signature aliases.</td></tr>
-  <tr><td><code>server.py</code></td><td><code>create_app()</code> builds the FastAPI app.</td></tr>
+  <tr><td><code>pyproject.toml</code></td><td>Version 0.1.3, Python 3.10 or newer. Dependencies: FastAPI, uvicorn, TinyDB, LiteLLM (pinned <code>&gt;=1.104,&lt;1.107</code> after the October 2026 supply-chain compromise), pandas, openpyxl, sentence-transformers, pypdf, python-docx. It also packages the compiled dashboard (<code>static/</code>) into the wheel.</td></tr>
+  <tr><td><code>ragevalkit/__init__.py</code></td><td>The public entry point. Exports <code>serve</code>, <code>step</code>, <code>note</code> and all exceptions. Contains a tiny <code>.env</code> loader, and loads LiteLLM once at start-up (see <code>litellm_loader.py</code>).</td></tr>
+  <tr><td><code>config.py</code></td><td>A <code>Config</code> class (pydantic-settings) holding every setting: login, judge and generator models, which metrics run, recommendation weights, column names, signature aliases.</td></tr>
+  <tr><td><code>server.py</code></td><td><code>create_app()</code> builds the FastAPI app and wires the routers, the run manager and the generation manager.</td></tr>
   <tr><td><code>runner.py</code></td><td>The evaluation engine, <code>RunManager</code>.</td></tr>
   <tr><td><code>recording.py</code></td><td><code>step()</code> and <code>note()</code>, which record what happens inside your function.</td></tr>
-  <tr><td><code>judge.py</code></td><td>The LLM grader. It uses LiteLLM, so changing one string (<code>"groq/..."</code> to <code>"openai/gpt-4o"</code>) switches provider.</td></tr>
+  <tr><td><code>judge.py</code></td><td>The LLM grader and the run summary. Reads the model's JSON tolerantly, checks that every watch-out has a suggestion and sends a bad reply back with the reason.</td></tr>
   <tr><td><code>prompts.py</code></td><td>The three prompts: grading rubric, source-check rubric, run-summary prompt.</td></tr>
+  <tr><td><code>litellm_loader.py</code></td><td>Loads LiteLLM completely, once, under a lock (threads racing its lazy imports deadlocked), and holds <code>complete()</code>, the one model call shared by the judge and the test case writer, which retries without JSON mode when a provider rejects it.</td></tr>
   <tr><td><code>lexical.py</code></td><td>Non-LLM scores: keyword recall, BM25 and embedding similarity.</td></tr>
   <tr><td><code>dataset.py</code></td><td>Loads and validates xlsx/csv test files.</td></tr>
-  <tr><td><code>store.py</code></td><td>All saving and loading, the summary maths and the Excel export.</td></tr>
+  <tr><td><code>importing.py</code></td><td>Reads an Excel/CSV/pasted table into test case rows for the bulk import: header recognition, column mapping, row-by-row problems. Only the question is required.</td></tr>
+  <tr><td><code>casetypes.py</code></td><td>The case types: <code>rag</code> and <code>non-rag</code> (older spellings such as <code>query</code> count as rag).</td></tr>
+  <tr><td><code>docs.py</code></td><td>Reads PDF, Word, TXT and Markdown files into passages (and numbered sentences) for test case generation. The upload is deleted once read.</td></tr>
+  <tr><td><code>recommend.py</code></td><td>Which version to ship: compares versions on the test cases they share, weights answer and context quality, breaks ties by speed, and builds the per-group history.</td></tr>
+  <tr><td><code>store.py</code></td><td>All saving and loading: runs, receipts, versioned test cases, groups, generation batches, the summary maths and the Excel export.</td></tr>
   <tr><td><code>auth.py</code></td><td>Login helpers: user parsing, password check, signed session tokens.</td></tr>
-  <tr><td><code>exceptions.py</code></td><td>Every error inherits from <code>RagevalError</code>: <code>ConfigError</code>, <code>DatasetError</code>, <code>VersionNotFound</code>, <code>RunBusy</code>, <code>JudgeError</code>.</td></tr>
-  <tr><td><code>static/</code></td><td>The React dashboard, already compiled. Its source code is not in this repository.</td></tr>
+  <tr><td><code>exceptions.py</code></td><td>Every error inherits from <code>RagevalError</code>: <code>ConfigError</code>, <code>DatasetError</code>, <code>VersionNotFound</code>, <code>RunBusy</code>, <code>JudgeError</code>, and the generation and import errors.</td></tr>
+  <tr><td><code>static/</code></td><td>The compiled React dashboard that the server serves.</td></tr>
+  <tr><td><code>frontend/</code></td><td>The dashboard's source (React, Vite, Tailwind, TypeScript). <code>npm run build</code> there, then copy <code>dist/*</code> into <code>static/</code>.</td></tr>
+</table>
+<h3>generator/ (test cases written from documents)</h3>
+<table>
+  <tr><th>File</th><th>What it does</th></tr>
+  <tr><td><code>planning.py</code></td><td>Picks the passages each question is written from, spread across the whole document.</td></tr>
+  <tr><td><code>prompts.py</code></td><td>What the model is told for each category (direct, indirect, multi-part, multi-turn).</td></tr>
+  <tr><td><code>writer.py</code></td><td>Asks the model for one item and re-asks with the reason whenever <code>checks.py</code> rejects it.</td></tr>
+  <tr><td><code>checks.py</code> and <code>evidence.py</code></td><td>The rules (length, no "the document", indirect questions must not copy the wording, follow-ups must refer back) and evidence checking: the model cites numbered sentences, and the stored evidence is always the document's own text.</td></tr>
+  <tr><td><code>llm.py</code></td><td>The model client and a tolerant reader for its JSON.</td></tr>
+  <tr><td><code>manager.py</code></td><td>Runs the writing in the background, saves a review batch after every item, approves a batch into test cases, deletes unapproved batches after 24 hours.</td></tr>
 </table>
 <h3>routes/</h3>
 <table>
   <tr><th>File</th><th>What it does</th></tr>
-  <tr><td><code>routes/runs.py</code></td><td>Almost the whole REST API (section 11).</td></tr>
+  <tr><td><code>routes/runs.py</code></td><td>Runs, versions, the recommendation, test cases and groups (section 11).</td></tr>
+  <tr><td><code>routes/imports.py</code></td><td>The bulk import: template, preview (what would happen) and the import itself.</td></tr>
+  <tr><td><code>routes/generate.py</code></td><td>Generate from documents: start, poll, edit or remove an item, approve, cancel, discard.</td></tr>
   <tr><td><code>routes/auth.py</code></td><td><code>/login</code>, <code>/logout</code>, <code>/me</code>.</td></tr>
   <tr><td><code>routes/deps.py</code></td><td><code>require_user</code>, a gate used on every <code>/api/*</code> route.</td></tr>
   <tr><td><code>routes/health.py</code></td><td><code>/api/health</code> returns <code>{"status": "ok"}</code>.</td></tr>
@@ -198,13 +216,13 @@ ragevalkit.serve(my_rag)                 # opens http://localhost:8001</code></p
     <div class="flow">
       <div class="box gray wide"><b>Dashboard: click Run</b><span>POST /api/runs</span></div>
       <div class="arrow">&#8595;</div>
-      <div class="box teal wide"><b>start_run() in routes/runs.py</b><span>check version, build the test-case table</span></div>
+      <div class="box teal wide"><b>start_run() in routes/runs.py</b><span>check version, work out which test cases run</span></div>
       <div class="arrow">&#8595;</div>
       <div class="box teal wide"><b>RunManager.start()</b><span>daemon thread, replies 202 at once</span></div>
       <div class="arrow">&#8595;</div>
       <div class="box teal wide"><b>_execute(): loop over rows</b><span>_process_row() for each question</span></div>
       <div class="arrow">&#8595;</div>
-      <div class="box teal wide"><b>Summarise the run</b><span>averages, group stats, AI comment</span></div>
+      <div class="box teal wide"><b>Summarise the run</b><span>averages, per-case scores, group stats, AI findings</span></div>
       <div class="arrow">&#8595;</div>
       <div class="box teal wide"><b>store.write()</b><span>runs and receipts tables</span></div>
     </div>
@@ -213,7 +231,7 @@ ragevalkit.serve(my_rag)                 # opens http://localhost:8001</code></p
   <figcaption>Figure 2. From the Run button to saved results. The stream feeds the live progress bar.</figcaption>
 </figure>
 <h3>Choosing the test data</h3>
-<p><code>start_run()</code> uses the first of these that applies: several selected groups (merged, duplicates removed by <code>chat_id</code> + <code>turn_no</code>), one group, an uploaded file saved as a new group, an uploaded file used once, or the configured <code>default_dataset</code>. It rejects bad version names, and existing ones unless <code>overwrite</code> is set.</p>
+<p><code>start_run()</code> runs what you pick in the Execute dialog: groups and/or individually picked test cases, worked out by <code>store.resolve_selection()</code>. A case in several selected groups runs once, and the earlier turns of each chat are added so follow-up questions have their context (you can turn that off). <code>POST /runs/preview</code> returns the exact count first, and two different cases claiming the same chat and turn are reported as a conflict. It can also run an uploaded file (imported into the library as a group first) or the configured <code>default_dataset</code>. It rejects bad version names, and existing ones unless <code>overwrite</code> is set.</p>
 <h3>The row loop</h3>
 <ul>
   <li>Only <strong>one run</strong> can be active at a time, otherwise you get <code>RunBusy</code> (HTTP 409).</li>
@@ -317,20 +335,23 @@ ragevalkit.serve(my_rag)                 # opens http://localhost:8001</code></p
 <p><code>store.py</code> uses TinyDB, so everything lives in one readable JSON file (<code>eval_store.json</code> by default). No database server, no migrations.</p>
 <figure>
   <div class="tables">
-    <div class="tbl"><h4>runs</h4><ul><li><b>version</b></li><li>avg_answer_marks</li><li>avg_material_marks</li><li>avg_&lt;node&gt; timings</li><li>comment (AI summary)</li><li>group_stats</li><li>archived</li></ul></div>
-    <div class="tbl"><h4>receipts</h4><ul><li><b>version</b> (links to runs)</li><li>chat_id, turn_no</li><li>generated_answer</li><li>answer_marks, material_marks</li><li>node_timings, sources</li><li>status</li></ul></div>
-    <div class="tbl"><h4>test_cases</h4><ul><li><b>tc_id</b>, <b>version</b></li><li>question</li><li>expected_answer</li><li>expected_sources</li><li>status</li></ul></div>
-    <div class="tbl"><h4>groups</h4><ul><li><b>group_id</b></li><li>name</li></ul></div>
+    <div class="tbl"><h4>runs</h4><ul><li><b>version</b></li><li>avg_answer_marks, avg_material_marks</li><li>avg_&lt;node&gt; timings</li><li>scores (tiers, per type)</li><li>case_scores (one entry per test case)</li><li>group_stats</li><li>insights (paired findings)</li><li>archived</li></ul></div>
+    <div class="tbl"><h4>receipts</h4><ul><li><b>version</b> (links to runs)</li><li>chat_id, turn_no, tc_id</li><li>groups it was run under</li><li>generated_answer</li><li>answer_marks, material_marks</li><li>node_timings, sources</li><li>status</li></ul></div>
+    <div class="tbl"><h4>test_cases</h4><ul><li><b>tc_id</b>, <b>version</b></li><li>chat_id, turn_no, type</li><li>question, expected_answer</li><li>expected_sources</li><li>status (active / inactive)</li><li>origin (if generated)</li></ul></div>
+    <div class="tbl"><h4>groups</h4><ul><li><b>group_id</b></li><li>name</li><li>deleted_at</li></ul></div>
     <div class="tbl"><h4>group_members</h4><ul><li>group_id</li><li>tc_id</li></ul></div>
+    <div class="tbl"><h4>gen_batches</h4><ul><li><b>batch_id</b></li><li>status, expires_at</li><li>items (questions awaiting your approval)</li></ul></div>
   </div>
-  <figcaption>Figure 5. TinyDB tables. <code>runs</code> to <code>receipts</code> is one to many by version; <code>groups</code> to <code>test_cases</code> is many to many through <code>group_members</code>.</figcaption>
+  <figcaption>Figure 5. TinyDB tables. <code>runs</code> to <code>receipts</code> is one to many by version; <code>groups</code> to <code>test_cases</code> is many to many through <code>group_members</code>; <code>gen_batches</code> holds generated questions until you approve them.</figcaption>
 </figure>
 <ul>
   <li><strong>Two result tables.</strong> The dashboard list only needs the small <code>runs</code> table. The big <code>receipts</code> table is read only when you open a version or download it.</li>
-  <li><strong>Stable test-case IDs.</strong> <code>tc_id</code> is a hash of <code>chat_id|turn_no|question</code>, so re-uploading the same question gives the same ID. Editing a case adds a new version row and keeps the old ones.</li>
-  <li><strong>Groups.</strong> A group is a named set of test cases, and a case can belong to several groups. Deleting a group does not delete its cases.</li>
+  <li><strong>Stable test-case IDs.</strong> <code>tc_id</code> is a hash of <code>chat_id|turn_no|question</code>, so re-importing the same question gives the same ID. Editing a case adds a new version row and keeps the old ones; the <code>tc_id</code> follows the case when its chat or turn is edited.</li>
+  <li><strong>Per-case scores.</strong> Each run saves a score per test case (<code>case_scores</code>, keyed by a hash of chat, turn, question and expected answer). That is how versions that ran different test cases are still compared fairly, on the cases they share.</li>
+  <li><strong>Groups are labels.</strong> A case can carry any number of them, and a receipt remembers the labels it ran under, so history survives later changes.</li>
+  <li><strong>Deleting.</strong> A test case is removed for good (all versions and labels); old receipts keep their own copy of the question and answer and are marked as deleted. A group is only hidden (<code>deleted_at</code>) so it can be restored. A version is removed for good.</li>
   <li><strong>Excel export.</strong> <code>export_xlsx()</code> writes a Summary sheet and a Results sheet with readable column order, wrapped text and coloured headers.</li>
-  <li><strong>Thread safety.</strong> One lock protects all access, because the runner thread and the web threads share the file.</li>
+  <li><strong>Thread safety.</strong> One lock protects all access, because the runner thread, the generator threads and the web threads share the file.</li>
 </ul>
 
 <h2>11. Login and the REST API</h2>
@@ -344,11 +365,13 @@ ragevalkit.serve(my_rag)                 # opens http://localhost:8001</code></p
 <h3>Endpoints (all under <code>/api</code>)</h3>
 <table>
   <tr><th>Area</th><th>Endpoints</th></tr>
-  <tr><td>Datasets</td><td><code>GET /dataset/default</code>, <code>POST /dataset/validate</code>, <code>POST /datasets/upload</code>, <code>GET /datasets</code></td></tr>
-  <tr><td>Runs</td><td><code>POST /runs</code>, <code>POST /runs/{id}/stop</code>, <code>GET /runs</code>, <code>GET /runs/{id}/stream</code>, <code>DELETE /runs/{id}</code>, <code>PATCH /runs/{id}/archive</code>, <code>PATCH /runs/{id}/unarchive</code></td></tr>
-  <tr><td>Results</td><td><code>GET /versions</code>, <code>GET /versions/{v}</code>, <code>GET /versions/{v}/download</code></td></tr>
-  <tr><td>Test cases</td><td><code>GET</code>, <code>POST</code> and <code>PATCH /test-cases</code>, <code>GET /test-cases/{id}/history</code>, <code>PATCH /test-cases/{id}/status</code></td></tr>
-  <tr><td>Groups</td><td><code>GET</code> and <code>POST /groups</code>, <code>POST /groups/{id}/import</code>, <code>GET /groups/{id}/test-cases</code>, <code>POST</code> and <code>DELETE /groups/{id}/members/{tc}</code>, <code>DELETE /groups/{id}</code></td></tr>
+  <tr><td>Runs</td><td><code>POST /runs/preview</code>, <code>POST /runs</code>, <code>POST /runs/{id}/stop</code>, <code>GET /runs</code>, <code>GET /runs/{id}/stream</code>, <code>DELETE /runs/{id}</code>, <code>PATCH /runs/{id}/archive</code>, <code>PATCH /runs/{id}/unarchive</code></td></tr>
+  <tr><td>Results</td><td><code>GET /versions</code>, <code>GET /versions/{v}</code>, <code>GET /versions/{v}/download</code>, <code>GET /recommendation</code></td></tr>
+  <tr><td>Test cases</td><td><code>GET</code> and <code>POST /test-cases</code>, <code>GET</code> and <code>PATCH /test-cases/{id}</code>, <code>GET /test-cases/{id}/history</code>, <code>POST /test-cases/status</code> (activate / deactivate), <code>POST /test-cases/delete</code>, <code>PUT /test-cases/{id}/groups</code></td></tr>
+  <tr><td>Bulk import</td><td><code>GET /test-cases/import/template</code>, <code>POST /test-cases/import/preview</code>, <code>POST /test-cases/import</code></td></tr>
+  <tr><td>Groups</td><td><code>GET</code> and <code>POST /groups</code>, <code>PATCH /groups/{id}</code> (rename), <code>GET /groups/{id}/runs</code> (last and best), <code>GET /groups/{id}/test-cases</code>, <code>POST /groups/{id}/members</code> and <code>/members/remove</code>, <code>DELETE /groups/{id}</code>, <code>POST /groups/{id}/restore</code> and <code>/purge</code></td></tr>
+  <tr><td>Generate from documents</td><td><code>GET /generate/limits</code>, <code>POST /generate</code>, <code>GET /generate</code>, <code>GET /generate/{batch}</code>, <code>PATCH</code> and <code>DELETE /generate/{batch}/items/{item}</code>, <code>POST /generate/{batch}/approve</code> and <code>/cancel</code>, <code>DELETE /generate/{batch}</code></td></tr>
+  <tr><td>Datasets (older)</td><td><code>GET /dataset/default</code>, <code>POST /dataset/validate</code>, <code>POST /datasets/upload</code>, <code>GET /datasets</code></td></tr>
   <tr><td>Auth and health</td><td><code>POST /auth/login</code>, <code>POST /auth/logout</code>, <code>GET /auth/me</code>, <code>GET /health</code></td></tr>
 </table>
 
@@ -368,24 +391,20 @@ ragevalkit.serve(my_rag)                 # opens http://localhost:8001</code></p
 </table>
 
 <h2>13. Things worth knowing</h2>
-<p>These come from reading the code. I did not run the library, so treat them as findings to confirm.</p>
-<div class="callout warn">
-  <p><strong>The README is out of date.</strong> It documents <code>serve(host=..., rag_chat_path=...)</code>, port 8002, <code>require_login=False</code> and a <code>gpt-4o</code> judge. The real signature is <code>serve(fn, port=8001, require_login=True, judge_model="groq/openai/gpt-oss-120b", ...)</code>. Its install command is also pinned to <code>v0.1.0</code>. <code>docs/guide.html</code> is the better reference.</p>
-</div>
-<div class="callout warn">
-  <p><strong>LLM source check differs from keyword mode.</strong> In <code>runner.py</code> the LLM mode splits expected sources only on <code>|</code>, so the <code>,</code> (OR) syntax is not applied. It also sets <code>source_match</code> to true if <em>any</em> source matched, while the README says true only when <em>every</em> required group was retrieved.</p>
-</div>
-<div class="callout warn">
-  <p><strong>Some options look unused.</strong> Nothing in the Python code reads <code>answer_weight</code>, <code>material_weight</code>, <code>recommendation_tolerance</code> or <code>max_response_time</code>. They are validated and stored but have no visible effect. The dashboard's "recommended" pin might compute something itself, but the config is never sent to it.</p>
-</div>
 <div class="callout">
+  <p><strong>The recommendation works on shared test cases.</strong> <code>recommend.py</code> compares versions on the cases they all ran, using <code>answer_weight</code>, <code>material_weight</code>, <code>recommendation_tolerance</code> and <code>max_response_time</code> from <code>serve()</code>. A version that shares too little with the others (under half a typical version's size), was stopped early, or failed on a shared case is left out, and the dashboard says why.</p>
+  <p><strong>The summary is checked.</strong> The AI findings must pair every watch-out with a suggestion. A reply that does not is sent back with the reason; a watch-out still left without a suggestion gets one written from the run's own numbers.</p>
+  <p><strong>Dependencies are pinned for safety.</strong> LiteLLM is limited to <code>&gt;=1.104,&lt;1.107</code>; version 1.107.0 and 1.82.7 / 1.82.8 were published with malware.</p>
+</div>
+<div class="callout warn">
   <p><strong><code>eval_env="uat"</code> only logs a line.</strong> Comments in <code>config.py</code> mention an <code>/api/uat/ask</code> endpoint, and that route does not exist.</p>
-  <p><strong><code>judge_fn</code> still needs an LLM key for the summary.</strong> The end-of-run commentary always calls the LLM. Without a key it retries for about 12 seconds, then saves "Summary could not be generated".</p>
-  <p><strong>Limits.</strong> Run progress lives in memory only (finished results survive a restart, a run in progress does not). The server binds to <code>127.0.0.1</code>, so other machines cannot reach it. Only one run can be active at a time.</p>
+  <p><strong><code>judge_fn</code> still needs an LLM key for the summary.</strong> The end-of-run findings always call the judge model. Without a key it retries, then saves "Summary could not be generated for this run".</p>
+  <p><strong>The document text goes to a model.</strong> Generating test cases sends your documents' text to <code>generator_model</code> (default: the judge model). Pick one you are allowed to send them to, such as a local <code>ollama/...</code> model.</p>
+  <p><strong>Limits.</strong> Run progress lives in memory only (finished results and saved generation batches survive a restart, a run in progress does not). The server binds to <code>127.0.0.1</code>, so other machines cannot reach it. Only one run can be active at a time.</p>
 </div>
 
 <h2>14. Summary</h2>
-<p>ragevalkit is small and self-contained. <code>serve(fn)</code> starts a FastAPI server. A background thread replays your test questions through <code>fn</code>, while <code>@step</code> quietly records the pipeline internals. Each answer is scored by an LLM judge plus three text metrics, and the results land in one JSON file and a React dashboard. Everything else (login, groups, versioned test cases, Excel export, hooks) exists to make that loop easy to repeat after every change to your RAG system.</p>
+<p>ragevalkit is small and self-contained. <code>serve(fn)</code> starts a FastAPI server. A background thread replays your test questions through <code>fn</code>, while <code>@step</code> quietly records the pipeline internals. Each answer is scored by an LLM judge plus three text metrics, and the results land in one JSON file and a React dashboard. Everything else (login, groups, importing and generating test cases, versioned test cases, the shipping recommendation, Excel export, hooks) exists to make that loop easy to repeat after every change to your RAG system.</p>
 
 </main>
 </body>

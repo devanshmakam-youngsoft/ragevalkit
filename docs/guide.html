@@ -466,19 +466,23 @@ pre code {
     <!-- Installation -->
     <section class="section" id="install">
       <h2 class="section-title">Installation</h2>
-      <p class="section-intro">Install directly from GitHub. No PyPI package yet — pin to a release tag.</p>
+      <p class="section-intro">Install directly from GitHub. No PyPI package yet. Install the latest, or pin a release tag (<code>v0.1.0</code> to <code>v0.1.3</code>) for repeatable installs. Document-based test case generation, bulk import and the paired findings are newer than <code>v0.1.3</code>, so use the latest until the next tag.</p>
 
       <div class="sub">
         <div class="sub-title">Direct install</div>
-        <pre><code><span class="kw">pip install</span> git+https://github.com/devanshmakam-youngsoft/ragevalkit.git<span class="st">@v0.1.0</span></code></pre>
+        <pre><code><span class="kw">pip install</span> git+https://github.com/devanshmakam-youngsoft/ragevalkit.git</code></pre>
       </div>
 
       <div class="sub">
         <div class="sub-title">In requirements.txt</div>
-        <pre><code>git+https://github.com/devanshmakam-youngsoft/ragevalkit.git@v0.1.0</code></pre>
+        <pre><code>git+https://github.com/devanshmakam-youngsoft/ragevalkit.git</code></pre>
         <div class="callout callout-info">
           <div class="callout-icon">ℹ️</div>
           <p>Run <code>pip install -r requirements.txt</code> from Git Bash on Windows if <code>git</code> is not in your PowerShell PATH.</p>
+        </div>
+        <div class="callout callout-info">
+          <div class="callout-icon">ℹ️</div>
+          <p><strong>Dependencies are pinned for safety.</strong> <code>litellm</code> is held to <code>&gt;=1.104,&lt;1.107</code> because 1.107.0 (21 Oct 2026) and 1.82.7 / 1.82.8 (Mar 2026) shipped credential-stealing malware. Raise the upper bound only after checking that a newer release is clean.</p>
         </div>
       </div>
     </section>
@@ -714,6 +718,7 @@ ragevalkit.<span class="fn">note</span>(<span class="st">"sub_queries"</span>, s
           <tr><td class="param-name">judge_model</td><td class="param-default">"groq/openai/gpt-oss-120b"</td><td class="param-desc">Any LiteLLM model string. Examples below.</td></tr>
           <tr><td class="param-name">judge_api_key</td><td class="param-default">None</td><td class="param-desc">Explicit API key. If omitted, LiteLLM reads <code>GROQ_API_KEY</code>, <code>OPENAI_API_KEY</code>, etc. from env.</td></tr>
           <tr><td class="param-name">judge_retries</td><td class="param-default">3</td><td class="param-desc">Retries on transient LLM failures before a row is marked failed.</td></tr>
+          <tr><td class="param-name">generator_model</td><td class="param-default">None</td><td class="param-desc">LiteLLM model that writes test cases from uploaded documents (<strong>Test Cases → Generate from documents</strong>). Defaults to <code>judge_model</code>. The text of your documents is sent to it, so pick one you are allowed to send them to (a local <code>ollama/…</code> model works).</td></tr>
         </tbody>
       </table>
       <pre><code><span class="cm"># Model examples (set matching env var)</span>
@@ -795,35 +800,69 @@ ragevalkit.<span class="fn">serve</span>(
     <!-- Test cases & groups -->
     <section class="section" id="test-cases">
       <h2 class="section-title">Test cases & groups</h2>
-      <p class="section-intro">Manage test cases and groups from the dashboard UI. No code needed.</p>
+      <p class="section-intro">Everything about test cases is done from the <strong>Test Cases</strong> page of the dashboard. It has two tabs: <strong>All test cases</strong> and <strong>Groups</strong>.</p>
 
       <div class="step-flow">
         <div class="step-row">
           <div class="step-num">1</div>
           <div class="step-body">
             <div class="step-title">Add test cases</div>
-            <div class="step-desc">Go to <strong>Test Cases</strong> in the dashboard. Add individual cases with question + expected answer, or upload a <code>.xlsx</code> / <code>.csv</code> file.</div>
+            <div class="step-desc">Three ways, all on <strong>All test cases</strong>: <strong>+ New test case</strong> for one, <strong>Import</strong> for an Excel / CSV file or rows pasted from a spreadsheet, and <strong>Generate from documents</strong> to have them written from your own PDF, Word, TXT or Markdown files.</div>
           </div>
         </div>
         <div class="step-row">
           <div class="step-num">2</div>
           <div class="step-body">
             <div class="step-title">Organise into groups</div>
-            <div class="step-desc">Create groups (e.g. "billing", "technical", "greetings") and assign test cases to them. A test case can belong to multiple groups.</div>
+            <div class="step-desc">A group is just a label (e.g. "billing", "greetings"). A test case can carry any number of labels. Create groups on the <strong>Groups</strong> tab, tick rows and choose <em>Add to group…</em>, or open a group and use <strong>Add test cases</strong> to add existing cases or create a new one in it.</div>
           </div>
         </div>
         <div class="step-row">
           <div class="step-num">3</div>
           <div class="step-body">
-            <div class="step-title">Select groups when running</div>
-            <div class="step-desc">The Execute modal lets you pick any combination of groups. Cases from multiple groups are merged and deduplicated automatically.</div>
+            <div class="step-title">Run groups and/or picked cases</div>
+            <div class="step-desc">The Execute dialog takes any number of groups and any hand-picked test cases. A case in several selected groups runs once. Follow-up turns need the turns before them, so a run also includes the earlier turns of each selected conversation (you can turn this off); the dialog shows exactly how many cases will run.</div>
           </div>
         </div>
       </div>
 
+      <div class="sub"><div class="sub-title">Importing in bulk</div>
+        <p>Three steps: pick the file, check what will happen, choose where the cases go. <strong>Nothing is saved until the last step.</strong> The check shows how many rows are new, will be updated, are already there, or cannot be imported (with the row number and reason; a turn of "abc" is reported, not turned into 1).</p>
+        <ul>
+          <li>Only the <code>question</code> column is required. Without <code>chat_id</code> each question is its own chat; without <code>turn_no</code> turns are numbered in file order within each chat. Common header names (<code>query</code>, <code>gold_answer</code>, <code>tags</code>…) are recognised and the dialog lets you point any column at the right field.</li>
+          <li>Groups are optional. Pick groups for the whole file, and/or add a <code>groups</code> column (<code>Billing; Refunds</code>) to label rows individually. Missing groups are created.</li>
+          <li>Safe to repeat: importing the same file again changes nothing; an edited answer becomes a new version of the same case. Rows that could not be imported can be downloaded with the reason next to each. A template is available in the dialog.</li>
+        </ul>
+      </div>
+
+      <div class="sub"><div class="sub-title">Generating from documents</div>
+        <p>Upload up to 5 files (50 MB each). By default 3 questions are written in each of four categories, each category becoming a group:</p>
+        <table class="param-table">
+          <thead><tr><th>Category</th><th>What it is</th></tr></thead>
+          <tbody>
+            <tr><td class="param-name">Direct</td><td class="param-desc">The answer is stated plainly in one place.</td></tr>
+            <tr><td class="param-name">Indirect</td><td class="param-desc">The answer is in the document, but the question uses everyday words or describes a situation.</td></tr>
+            <tr><td class="param-name">Multi-part</td><td class="param-desc">One question with several parts answered from different places.</td></tr>
+            <tr><td class="param-name">Multi-turn</td><td class="param-desc">A short conversation. Each follow-up refers back to the earlier answer ("and what if I miss that?") and cannot be understood alone; what it builds on is shown during review.</td></tr>
+          </tbody>
+        </table>
+        <ul>
+          <li><strong>Evidence.</strong> The writer sees each passage as numbered sentences and cites the ones that prove its answer; the document's own wording is stored with file and page. A question whose evidence does not point at real sentences is rejected and rewritten.</li>
+          <li><strong>Saved as it goes, approved by you.</strong> Questions are saved on the server while they are written, so closing the browser loses nothing. They become test cases only when you press <em>Add</em>; anything not added within 24 hours (<code>batch_ttl_hours</code>) is deleted. Nothing of the upload itself is kept.</li>
+          <li>The model is <code>generator_model</code> (defaults to <code>judge_model</code>).</li>
+        </ul>
+      </div>
+
+      <div class="sub"><div class="sub-title">Types and deleting</div>
+        <ul>
+          <li><strong>Type</strong> is <code>rag</code> (default: the answer must come from your documents, so retrieved context is scored too) or <code>non-rag</code> (greetings and small talk: graded on the answer only, like <code>conversational</code>). Older values such as <code>query</code> keep working and count as rag.</li>
+          <li><strong>Deleting a test case removes it for good</strong>, with its versions and group labels. Past versions keep their own copy of the question and answer and mark the row <em>Test case deleted</em>. Deleting a <strong>group</strong> only hides it (restore it from <em>Deleted groups</em>). Deleting a <strong>version</strong> removes it for good. To keep a case but stop running it, mark it <em>inactive</em>.</li>
+        </ul>
+      </div>
+
       <div class="callout callout-tip">
         <div class="callout-icon">💡</div>
-        <p>xlsx columns: <code>question</code>, <code>expected_answer</code>, <code>chat_id</code> (groups multi-turn conversations), <code>turn_no</code>, <code>type</code> (set <code>"conversational"</code> to skip material scoring).</p>
+        <p>Columns: <code>question</code> (required), <code>expected_answer</code>, <code>chat_id</code> (groups the turns of one conversation), <code>turn_no</code>, <code>type</code>, <code>expected_sources</code>, <code>groups</code>.</p>
       </div>
     </section>
 
@@ -867,12 +906,13 @@ ragevalkit.<span class="fn">serve</span>(
       <table class="param-table">
         <thead><tr><th>Feature</th><th>What you see</th></tr></thead>
         <tbody>
-          <tr><td class="param-name">Quality score</td><td class="param-desc">Weighted average of answer + material marks, shown as a trend line across versions.</td></tr>
-          <tr><td class="param-name">Score distribution</td><td class="param-desc">Bar chart of answer marks 0–10 for all rows in the version.</td></tr>
-          <tr><td class="param-name">Recommendation</td><td class="param-desc">Best version badge: highest quality; ties broken by speed; optionally filtered by max response time.</td></tr>
-          <tr><td class="param-name">Node timings</td><td class="param-desc">Per-step timing from <code>@ragevalkit.step</code> decorators, shown as a bar per version.</td></tr>
-          <tr><td class="param-name">Tier filter</td><td class="param-desc">Filter rows by 🟢 High (≥8) / 🟡 Mid (5–7) / 🔴 Low (&lt;5) in the version detail view.</td></tr>
-          <tr><td class="param-name">Group tags</td><td class="param-desc">Shows which test case groups were used for each version run.</td></tr>
+          <tr><td class="param-name">Recommendation</td><td class="param-desc">The version to ship, worked out on the <strong>test cases the compared versions share</strong>: overall score = answer and context quality weighted by <code>answer_weight</code> / <code>material_weight</code>; versions within <code>recommendation_tolerance</code> of the best are tied and the fastest wins. Archived, stopped or failed versions are left out, and the card says what it was compared on when versions ran different cases.</td></tr>
+          <tr><td class="param-name">Quality trend / time</td><td class="param-desc">Average answer and context quality per version, and the time of each step, with the latest version's figures beside each title.</td></tr>
+          <tr><td class="param-name">How answers scored</td><td class="param-desc">One bar splitting the questions into Strong (8–10), Fair (5–7) and Weak (0–4), with counts and percentages.</td></tr>
+          <tr><td class="param-name">Timing of steps</td><td class="param-desc">One bar of each step's share of the whole response time, from <code>@ragevalkit.step</code>. Time outside any step shows as "Not in a step"; steps that run at the same time can add up to more than 100%.</td></tr>
+          <tr><td class="param-name">Watch-outs &amp; suggestions</td><td class="param-desc">AI-written findings: each watch-out is paired with the suggestion that answers it. <code>summary_prompt</code> changes what they look for.</td></tr>
+          <tr><td class="param-name">Scores by group</td><td class="param-desc">Average answer quality, context quality and response time per group. A case in several groups counts in each.</td></tr>
+          <tr><td class="param-name">Results table</td><td class="param-desc">Every question with its answer, scores, groups and time; filter by score tier, group or type, with averages for what is shown. Rows whose test case was deleted since say so.</td></tr>
           <tr><td class="param-name">Run notes</td><td class="param-desc">The note you entered at run time, shown under the version name.</td></tr>
         </tbody>
       </table></div>

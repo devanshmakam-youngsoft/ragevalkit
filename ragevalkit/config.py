@@ -16,13 +16,13 @@ class Config(BaseSettings):
 
     # Environment mode
     # "dev"  — full dashboard + eval routes (default)
-    # "uat"  — same as dev, but exposes UAT recording endpoint (/api/uat/ask)
+    # "uat"  — same as dev, but logs that UAT recording is active (no extra endpoint)
     # "prod" — blocks dashboard and all eval routes; only /api/health responds
     eval_env: str = "dev"
 
     # Recording mode (controls what @step captures during eval runs)
     # "eval"     — record steps only during eval runner calls (default)
-    # "uat"      — eval + UAT endpoint calls
+    # "uat"      — reserved; behaves like "eval"
     # "off"      — disable all step recording (eval still runs, just no step data)
     record_mode: str = "eval"
 
