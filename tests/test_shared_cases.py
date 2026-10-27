@@ -3,7 +3,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from ragevalkit.config import Config
-from ragevalkit.recommend import group_overview, recommend
+from ragevalkit.recommendation.group_overview import group_overview
+from ragevalkit.recommendation.engine import recommend
 from ragevalkit.server import create_app
 from ragevalkit.storage.store import EvalStore
 from ragevalkit.run_summary.case_scores import build_case_scores, case_key

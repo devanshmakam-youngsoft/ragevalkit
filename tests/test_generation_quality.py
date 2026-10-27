@@ -3,7 +3,7 @@ import pytest
 from docx import Document
 from fastapi.testclient import TestClient
 
-from ragevalkit.casetypes import NON_RAG, RAG, is_non_rag
+from ragevalkit.test_cases.case_types import NON_RAG, RAG, is_non_rag
 from ragevalkit.config import Config
 from ragevalkit.documents.models import Chunk
 from ragevalkit.documents.text_cleaning import normalise

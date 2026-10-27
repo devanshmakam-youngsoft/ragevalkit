@@ -7,7 +7,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 from ragevalkit.config import Config
-from ragevalkit.importing import detect_mapping, parse_rows, split_labels, template_workbook
+from ragevalkit.test_cases.importing.table_reader import detect_mapping
+from ragevalkit.test_cases.importing.row_parser import parse_rows, split_labels
+from ragevalkit.test_cases.importing.template import template_workbook
 from ragevalkit.server import create_app
 from ragevalkit.storage.store import EvalStore
 

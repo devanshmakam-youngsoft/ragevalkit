@@ -60,7 +60,7 @@ from typing import Callable
 import pandas as pd
 
 from ragevalkit import metrics, recording
-from ragevalkit.casetypes import is_non_rag
+from ragevalkit.test_cases.case_types import is_non_rag
 from ragevalkit.config import Config
 from ragevalkit.dataset import parse_source_groups
 from ragevalkit.evaluation.exceptions import RunBusy

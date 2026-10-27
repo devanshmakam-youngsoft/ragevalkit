@@ -7,9 +7,10 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Resp
 
 from ragevalkit.storage.exceptions import ConflictError, GroupNotFound
 from ragevalkit.datasets.exceptions import DatasetError
-from ragevalkit.importing import (
-    FIELD_LABELS, FIELDS, MAX_BYTES, clean_mapping, detect_mapping, parse_rows, read_table, template_workbook,
-)
+from ragevalkit.test_cases.importing.fields import FIELD_LABELS, FIELDS, MAX_BYTES
+from ragevalkit.test_cases.importing.table_reader import clean_mapping, detect_mapping, read_table
+from ragevalkit.test_cases.importing.row_parser import parse_rows
+from ragevalkit.test_cases.importing.template import template_workbook
 from ragevalkit.routes.deps import require_user
 
 router = APIRouter(prefix="/api/test-cases/import", dependencies=[Depends(require_user)])

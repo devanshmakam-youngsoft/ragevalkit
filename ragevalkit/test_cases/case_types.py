@@ -7,9 +7,15 @@ treated as such.
 """
 import re
 
+
 RAG = "rag"
+
+
 NON_RAG = "non-rag"
+
+
 TYPES = (RAG, NON_RAG)
+
 
 _NON_RAG = {"nonrag", "notrag", "norag"}
 
