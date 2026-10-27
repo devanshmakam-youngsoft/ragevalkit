@@ -3,9 +3,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from ragevalkit.dataset import parse_source_groups
+from ragevalkit.evaluation.source_check import parse_source_groups
 from ragevalkit.judging.judge import Judge
-from ragevalkit.runner import _source_check
+from ragevalkit.evaluation.source_check import check_sources_by_keyword
 
 
 def test_parse_groups():
@@ -15,9 +15,9 @@ def test_parse_groups():
 
 
 def test_keyword_mode_needs_every_group():
-    hit = _source_check("a.pdf , a_v2.pdf | b.pdf", ["docs/A_V2.pdf", "b.pdf"])
+    hit = check_sources_by_keyword("a.pdf , a_v2.pdf | b.pdf", ["docs/A_V2.pdf", "b.pdf"])
     assert hit["source_match"] is True and hit["matched_sources"] == ["a_v2.pdf", "b.pdf"]
-    partial = _source_check("a.pdf , a_v2.pdf | b.pdf", ["docs/A_V2.pdf"])
+    partial = check_sources_by_keyword("a.pdf , a_v2.pdf | b.pdf", ["docs/A_V2.pdf"])
     assert partial["source_match"] is False and partial["missing_sources"] == ["b.pdf"]
 
 

@@ -8,7 +8,7 @@ import pytest
 
 from ragevalkit import recording
 from ragevalkit.config import Config
-from ragevalkit.runner import _material_of
+from ragevalkit.evaluation.material import select_material
 from ragevalkit.server import create_app
 
 
@@ -45,7 +45,7 @@ def test_steps_started_in_a_thread_pool_are_recorded_with_their_material_and_sou
     steps = {s["name"]: s for s in got["steps"]}
     assert set(steps) == {"index_a", "index_b"}
     assert steps["index_a"]["elapsed"] >= 0.05 and steps["index_b"]["sources"] == ["index_b.pdf"]
-    assert _material_of(got["steps"]).count("text from") == 2
+    assert select_material(got["steps"]).count("text from") == 2
 
 
 def test_notes_from_a_thread_reach_the_question():
@@ -132,7 +132,7 @@ def test_only_the_step_that_declares_material_supplies_it_in_full():
         rewrite("q"), retrieve("q"), generate("q")
 
     steps = run_question(body)["steps"]
-    material = _material_of(steps)
+    material = select_material(steps)
     assert material == "DOCUMENT TEXT " * 100            # whole, not cut at 400
     assert "THE ANSWER" not in material and "rewritten" not in material
 
@@ -143,35 +143,35 @@ def test_a_context_manager_that_sets_material_also_counts_as_declared():
         with recording.step("search") as s:
             s.material = "from the search"
 
-    assert _material_of(run_question(body)["steps"]) == "from the search"
+    assert select_material(run_question(body)["steps"]) == "from the search"
 
 
 def test_when_nothing_is_declared_decorated_outputs_are_still_used_and_the_log_explains(caplog, monkeypatch):
-    import ragevalkit.runner as runner
-    monkeypatch.setattr(runner, "_warned_undeclared_material", False)
+    import ragevalkit.evaluation.material as material_module
+    monkeypatch.setattr(material_module, "_warned_undeclared_material", False)
 
     @recording.step("search")
     def search(q):
         return "found text"
 
     steps = run_question(lambda: (search("q"), generate("q")))["steps"]
-    with caplog.at_level(logging.WARNING, logger="ragevalkit.runner"):
-        assert _material_of(steps) == "found text\n\nTHE ANSWER ITSELF"        # how earlier versions behaved
-        _material_of(steps)
+    with caplog.at_level(logging.WARNING, logger="ragevalkit.evaluation.material"):
+        assert select_material(steps) == "found text\n\nTHE ANSWER ITSELF"        # how earlier versions behaved
+        select_material(steps)
     warnings = [r.getMessage() for r in caplog.records if "No step declared its material" in r.getMessage()]
     assert len(warnings) == 1 and "material=True" in warnings[0] and "search, llm" in warnings[0]
 
 
 def test_a_single_undeclared_step_is_taken_as_the_retriever_without_a_warning(caplog, monkeypatch):
-    import ragevalkit.runner as runner
-    monkeypatch.setattr(runner, "_warned_undeclared_material", False)
+    import ragevalkit.evaluation.material as material_module
+    monkeypatch.setattr(material_module, "_warned_undeclared_material", False)
 
     @recording.step("search")
     def search(q):
         return "found text"
 
-    with caplog.at_level(logging.WARNING, logger="ragevalkit.runner"):
-        assert _material_of(run_question(lambda: search("q"))["steps"]) == "found text"
+    with caplog.at_level(logging.WARNING, logger="ragevalkit.evaluation.material"):
+        assert select_material(run_question(lambda: search("q"))["steps"]) == "found text"
     assert not caplog.records
 
 
@@ -194,7 +194,7 @@ def test_material_is_cut_at_its_own_larger_limit(monkeypatch):
         with recording.step("search") as s:
             s.material = "m" * 80
 
-    material = _material_of(run_question(body)["steps"])
+    material = select_material(run_question(body)["steps"])
     assert material == "m" * 50 + "… (+30 more characters)"
 
 

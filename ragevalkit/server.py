@@ -11,7 +11,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from ragevalkit.config import Config
 from ragevalkit.routes import auth, generate, health, imports, runs
 from ragevalkit.generator import GenerationManager
-from ragevalkit.runner import RunManager
+from ragevalkit.evaluation.runner import RunManager
 from ragevalkit.storage.store import EvalStore
 
 logging.basicConfig(level=logging.INFO)

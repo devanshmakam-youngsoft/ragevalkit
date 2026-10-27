@@ -1,272 +1,28 @@
-"""
-RunManager — the evaluation engine.
-
-EXECUTION MODEL
----------------
-Every call to RunManager.start() launches a daemon thread named "eval-{version}".
-The HTTP response returns immediately (202 Accepted) while the thread works.
-Progress is published via run.events (a plain list) which the SSE endpoint
-streams to the dashboard by polling it every 0.3 s.
-
-WHY a daemon thread (not asyncio)?
-  The developer's fn() may block for seconds (LLM calls, DB queries).
-  A daemon thread can block freely without stalling the FastAPI event loop.
-  daemon=True means the thread is killed automatically if the server exits.
-
-CALL FLOW (one question)
-------------------------
-  _execute()
-    └─ _process_row()
-         ├─ _call_fn()             ← calls developer's fn(); recording captures steps + flags
-         ├─ _source_check()        ← compares expected_sources against recorded sources (if column present)
-         ├─ lexical metrics        ← keyword_recall, bm25_score, semantic_similarity
-         ├─ extra_metrics          ← any custom metric fns passed to serve()
-         └─ _grade()              ← LLM judge or custom judge_fn
-
-SIGNATURE DETECTION
--------------------
-_detect_sig() inspects the developer's function ONCE at startup (not per call).
-It checks parameter names against configurable alias sets and caches the
-result so every question pays zero inspection cost at eval time.
-
-HISTORY FORMAT
---------------
-Internally history is always stored as [{"question": ..., "answer": ...}].
-_build_history() converts to the format the developer's fn expects
-("dict" stays as-is; "openai" → [{"role": "user", ...}, {"role": "assistant", ...}]).
-
-STOP A RUNNING EVAL
--------------------
-POST /api/runs/{run_id}/stop sets Run.stop_requested = True.
-The _execute() loop checks this flag at the start of each row iteration.
-When triggered, it finalises the partial results (writes them to store) and
-emits a "stopped" event.
-
-QUESTION FINGERPRINTING
------------------------
-The dataset's question set is hashed on load and stored in the run summary as
-question_fingerprint. The dashboard can compare fingerprints across versions to
-warn when questions changed between runs.
-"""
-import asyncio
-import inspect
+"""RunManager: runs test cases through your function on a background thread and saves what it finds."""
 import logging
 import threading
 import time
 import uuid
-from datetime import datetime, timezone
 from typing import Callable
 
 import pandas as pd
 
 from ragevalkit import metrics, recording
-from ragevalkit.test_cases.case_types import is_non_rag
 from ragevalkit.config import Config
-from ragevalkit.dataset import parse_source_groups
 from ragevalkit.evaluation.exceptions import RunBusy
-from ragevalkit.judging.judge import Judge
-from ragevalkit.storage.store import EvalStore
-from ragevalkit.run_summary.group_stats import build_group_stats
-from ragevalkit.run_summary.builder import build_summary
+from ragevalkit.evaluation.function_adapter import answer_text_of, call_sync, detect_call_style, format_history, parameter_name_for
+from ragevalkit.evaluation.material import select_material
+from ragevalkit.evaluation.run import Run, light_row
+from ragevalkit.evaluation.source_check import check_sources_by_keyword, parse_source_groups
 from ragevalkit.judging.fallback_insights import finish_insights
+from ragevalkit.judging.judge import Judge
 from ragevalkit.judging.run_summary_input import stats_for_llm
+from ragevalkit.run_summary.builder import build_summary
+from ragevalkit.run_summary.group_stats import build_group_stats
+from ragevalkit.storage.store import EvalStore
+from ragevalkit.test_cases.case_types import is_non_rag
 
 logger = logging.getLogger(__name__)
-
-# Module-level defaults — overridden by Config values at RunManager init time.
-_ANSWER_KEYS    = ("answer", "response", "output", "result", "text", "content",
-                   "message", "generated_text", "generation", "completion")
-_HISTORY_ALIASES = {"history", "chat_history", "messages", "conversation", "turns", "context"}
-_SESSION_ALIASES = {"session_id", "session", "thread_id", "conversation_id", "user_id"}
-
-
-
-# ---------------------------------------------------------------------------
-# Signature / return-value helpers
-# ---------------------------------------------------------------------------
-
-def _detect_sig(fn: Callable, session_aliases=None, history_aliases=None) -> str:
-    """Returns 'session_id' | 'history' | 'question' based on fn's parameter names.
-
-    Priority: session_id > history > question.
-    A function that accepts a session_id is assumed to be stateful (manages its own
-    conversation history); the runner still builds history but passes it only to
-    functions that explicitly declare a history parameter.
-    """
-    s_aliases = set(session_aliases) if session_aliases is not None else _SESSION_ALIASES
-    h_aliases = set(history_aliases) if history_aliases is not None else _HISTORY_ALIASES
-    params = set(inspect.signature(fn).parameters)
-    if params & s_aliases:
-        return "session_id"
-    if params & h_aliases:
-        return "history"
-    return "question"
-
-
-def _sig_kwarg(fn: Callable, aliases: set[str]) -> str:
-    """Return the actual parameter name from fn that matches one of the aliases."""
-    matched = set(inspect.signature(fn).parameters) & aliases
-    return next(iter(matched), list(aliases)[0])
-
-
-def _coerce_to_str(result, answer_keys=None) -> str:
-    """
-    Turn any RAG function return value into a plain string.
-    Handles str, dict (tries answer_keys in order), pydantic model, or any object.
-    """
-    keys = answer_keys if answer_keys is not None else _ANSWER_KEYS
-    if isinstance(result, str):
-        return result
-    if hasattr(result, "model_dump"):
-        result = result.model_dump()
-    elif hasattr(result, "dict") and callable(result.dict):
-        try:
-            result = result.dict()
-        except Exception:
-            pass
-    if isinstance(result, dict):
-        for key in keys:
-            if key in result:
-                return str(result[key]) if not isinstance(result[key], str) else result[key]
-        import json
-        try:
-            return json.dumps(result, ensure_ascii=False, default=str)
-        except Exception:
-            return str(result)
-    for key in keys:
-        val = getattr(result, key, None)
-        if val is not None:
-            return str(val)
-    return str(result)
-
-
-_warned_undeclared_material = False
-
-
-def _material_of(steps: list[dict]) -> str:
-    """The retrieved text the judge scores: what steps DECLARED as material (``s.material = …`` or
-    ``@step(..., material=True)``). If no step declared any, the output of decorated steps is used, as earlier
-    versions did, and a warning explains how to say which step is the retrieval."""
-    global _warned_undeclared_material
-    declared = [s for s in steps if s.get("material_declared")]
-    pool = declared or [s for s in steps if s.get("material")]
-    if not declared and len(pool) > 1 and not _warned_undeclared_material:
-        _warned_undeclared_material = True
-        logger.warning(
-            "No step declared its material, so the output of every decorated step (%s) is used as the retrieved "
-            "context, including steps that are not retrieval. Mark the retrieval step with "
-            "@ragevalkit.step(\"retrieval\", material=True) (or set s.material inside a `with` block) so only it counts.",
-            ", ".join(s["name"] for s in pool),
-        )
-    return recording.clip_material("\n\n".join(s["material"] for s in pool if s.get("material")))
-
-
-def _call_sync(fn: Callable, *args, **kwargs):
-    """Call fn whether it is sync or async; always returns synchronously."""
-    if inspect.iscoroutinefunction(fn):
-        try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                import concurrent.futures
-                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
-                    return ex.submit(asyncio.run, fn(*args, **kwargs)).result()
-            return loop.run_until_complete(fn(*args, **kwargs))
-        except RuntimeError:
-            return asyncio.run(fn(*args, **kwargs))
-    return fn(*args, **kwargs)
-
-
-def _build_history(turns: list[dict], fmt: str) -> list[dict]:
-    """
-    Convert internal history to the format the developer's function expects.
-
-    fmt="dict"   → [{"question": "...", "answer": "..."}]   (default)
-    fmt="openai" → [{"role": "user", "content": "..."},
-                    {"role": "assistant", "content": "..."}]
-    """
-    if fmt == "openai":
-        msgs = []
-        for t in turns:
-            msgs.append({"role": "user",      "content": t.get("question", "")})
-            msgs.append({"role": "assistant", "content": t.get("answer",   "")})
-        return msgs
-    return list(turns)  # default "dict" format
-
-
-def _source_check(expected_str: str, recorded: list) -> dict:
-    """Compare expected_sources against recorded sources.
-
-    Format: groups separated by | (ALL must pass);
-            alternatives within a group separated by , (ANY ONE satisfies the group).
-
-    Example: "1.txt , 2.txt | 3.txt"
-      Group 1: 1.txt OR 2.txt must be retrieved (any one is enough)
-      Group 2: 3.txt must be retrieved
-      Both groups must pass for source_match = True.
-
-    Single-level usage (no commas) is identical to the old pipe-only format.
-    """
-    groups = parse_source_groups(expected_str)
-    if not groups:
-        return {"source_match": None, "matched_sources": [], "missing_sources": []}
-    recorded_lower = [str(s).lower() for s in (recorded or [])]
-    matched_sources: list[str] = []
-    missing_sources: list[str] = []
-    for alternatives in groups:
-        hit = next(
-            (alt for alt in alternatives
-             if any(alt.lower() in r or r in alt.lower() for r in recorded_lower)),
-            None,
-        )
-        if hit:
-            matched_sources.append(hit)
-        else:
-            missing_sources.append(" , ".join(alternatives))
-    return {
-        "source_match": len(missing_sources) == 0,
-        "matched_sources": matched_sources,
-        "missing_sources": missing_sources,
-    }
-
-
-# ---------------------------------------------------------------------------
-# Run / RunManager
-# ---------------------------------------------------------------------------
-
-class Run:
-    def __init__(self, version: str, total: int, dataset_name: str):
-        self.run_id   = str(uuid.uuid4())
-        self.version  = version
-        self.dataset_name = dataset_name
-        self.status   = "running"
-        self.total    = total
-        self.done     = 0
-        self.current_question = ""
-        self.started  = datetime.now(timezone.utc)
-        self.error: str | None = None
-        self.events: list[dict] = []
-        self.summary: dict | None = None
-        self.stop_requested: bool = False  # set True via POST /api/runs/{run_id}/stop
-        self.notes: str = ""
-        self.group_names: list[str] = []
-        self.from_library: bool = False   # df came from stored test cases (no re-import needed)
-        self.dataset_id: str = ""         # source group id for single-group library runs
-
-    def snapshot(self) -> dict:
-        return {
-            "run_id": self.run_id,
-            "version": self.version,
-            "status": self.status,
-            "total": self.total,
-            "done": self.done,
-            "current_question": self.current_question,
-            "date": self.started.isoformat(),
-            "dataset": self.dataset_name,
-            "error": self.error,
-        }
-
-    def emit(self, event_type: str, **data) -> None:
-        self.events.append({"type": event_type, **self.snapshot(), **data})
 
 
 class RunManager:
@@ -329,10 +85,10 @@ class RunManager:
         recording.configure(max_step_value_chars=config.step_value_chars, max_material_chars=config.material_chars)
 
         # Detect once at startup — inspection is expensive; cache the result.
-        self._sig = _detect_sig(fn, self._s_aliases, self._h_aliases)
+        self._sig = detect_call_style(fn, self._s_aliases, self._h_aliases)
         # Cache the exact param name so _call_fn can pass it as a keyword arg.
-        self._session_kwarg = _sig_kwarg(fn, self._s_aliases) if self._sig == "session_id" else "session_id"
-        self._history_kwarg = _sig_kwarg(fn, self._h_aliases) if self._sig == "history" else "history"
+        self._session_kwarg = parameter_name_for(fn, self._s_aliases) if self._sig == "session_id" else "session_id"
+        self._history_kwarg = parameter_name_for(fn, self._h_aliases) if self._sig == "history" else "history"
 
         self.runs: dict[str, Run] = {}
         self._lock = threading.Lock()
@@ -399,15 +155,15 @@ class RunManager:
         exc = None
         result = None
         try:
-            fmt_history = _build_history(history, self._history_fmt)
+            fmt_history = format_history(history, self._history_fmt)
             if self._sig == "session_id":
                 # Stateful backend — passes only the session token; backend owns history.
-                result = _call_sync(self.fn, question, **{self._session_kwarg: session_id})
+                result = call_sync(self.fn, question, **{self._session_kwarg: session_id})
             elif self._sig == "history":
                 # Stateless backend — runner passes the full conversation history each turn.
-                result = _call_sync(self.fn, question, **{self._history_kwarg: fmt_history})
+                result = call_sync(self.fn, question, **{self._history_kwarg: fmt_history})
             else:
-                result = _call_sync(self.fn, question)
+                result = call_sync(self.fn, question)
         except Exception as e:
             exc = e
         finally:
@@ -422,7 +178,7 @@ class RunManager:
         if exc is not None:
             raise exc
 
-        answer = _coerce_to_str(result, self._answer_keys)
+        answer = answer_text_of(result, self._answer_keys)
         if result is not None and not isinstance(result, str):
             logger.info(
                 "fn() returned %s — extracted answer string via answer_keys. "
@@ -435,7 +191,7 @@ class RunManager:
         node_timings: dict[str, float] = {}
         for s in steps:
             node_timings[s["name"]] = round(node_timings.get(s["name"], 0.0) + s["elapsed"], 3)
-        material = _material_of(steps)
+        material = select_material(steps)
         sources      = [src for s in steps for src in (s.get("sources") or [])]
         step_inputs  = {s["name"]: s.get("inputs", {}) for s in steps}
         step_outputs = {s["name"]: s.get("output",  "") for s in steps}
@@ -448,7 +204,7 @@ class RunManager:
         """Grade using judge_fn if provided, otherwise the LLM judge."""
         if self._judge_fn is not None:
             try:
-                raw = _call_sync(self._judge_fn, question, expected, generated, material)
+                raw = call_sync(self._judge_fn, question, expected, generated, material)
                 if not isinstance(raw, dict):
                     raw = {"answer_marks": int(raw)}
                 return {
@@ -527,9 +283,9 @@ class RunManager:
                         )
                     except Exception as e:
                         logger.warning("LLM source check failed, falling back to keyword: %s", e)
-                        out.update(_source_check(expected_sources, sources))
+                        out.update(check_sources_by_keyword(expected_sources, sources))
                 elif mode != "off":
-                    out.update(_source_check(expected_sources, sources))
+                    out.update(check_sources_by_keyword(expected_sources, sources))
 
         except Exception as e:
             logger.error("Generation failed for chat %s turn %s: %s", row.chat_id, row.turn_no, e)
@@ -565,7 +321,7 @@ class RunManager:
             gen = out.get("generated_answer", "")
             for name, fn in self._extra_metrics.items():
                 try:
-                    out[name] = _call_sync(fn, row.expected_answer, gen)
+                    out[name] = call_sync(fn, row.expected_answer, gen)
                 except Exception as e:
                     logger.warning("extra_metric '%s' failed: %s", name, e)
                     out[name] = None
@@ -616,7 +372,7 @@ class RunManager:
                     run.status = "stopped"
                     run.current_question = ""
                     run.emit("stopped")
-                    _partial_write(self, run, rows, fingerprint, dataset_id)
+                    write_partial_results(self, run, rows, fingerprint, dataset_id)
                     return
 
                 run.current_question = row.question[:120]
@@ -633,7 +389,7 @@ class RunManager:
                     })
                 rows.append(result)
                 run.done += 1
-                run.emit("progress", row=_light(result))
+                run.emit("progress", row=light_row(result))
 
             run.current_question = "Summarising run…"
 
@@ -665,7 +421,7 @@ class RunManager:
             # on_complete callback
             if self._on_complete is not None:
                 try:
-                    _call_sync(self._on_complete, summary, rows)
+                    call_sync(self._on_complete, summary, rows)
                 except Exception as e:
                     logger.error("on_complete callback failed: %s", e)
 
@@ -676,12 +432,12 @@ class RunManager:
 
             if self._on_complete is not None:
                 try:
-                    _call_sync(self._on_complete, None, rows)
+                    call_sync(self._on_complete, None, rows)
                 except Exception:
                     pass
 
 
-def _partial_write(manager: RunManager, run: Run, rows: list[dict], fingerprint: str, dataset_id: str) -> None:
+def write_partial_results(manager: RunManager, run: Run, rows: list[dict], fingerprint: str, dataset_id: str) -> None:
     """Write partial results when a run is stopped early."""
     try:
         summary = build_summary(
@@ -700,10 +456,3 @@ def _partial_write(manager: RunManager, run: Run, rows: list[dict], fingerprint:
         run.summary = summary
     except Exception as e:
         logger.error("Could not write partial results for stopped run: %s", e)
-
-
-def _light(r: dict) -> dict:
-    return {
-        k: r.get(k)
-        for k in ("chat_id", "turn_no", "type", "question", "answer_marks", "material_marks", "status")
-    }
