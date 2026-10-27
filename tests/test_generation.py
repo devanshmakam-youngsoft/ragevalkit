@@ -13,7 +13,7 @@ from ragevalkit.documents.text_cleaning import normalise
 from ragevalkit.documents.reader import read_document
 from ragevalkit.documents.ordering import spread_order
 from ragevalkit.documents.exceptions import DocumentError
-from ragevalkit.generator import GenerationError, Task, generate_item, plan_tasks, validate
+from ragevalkit.generation import GenerationError, Task, generate_item, plan_tasks, validate
 from ragevalkit.server import create_app
 
 
@@ -421,7 +421,7 @@ def test_a_restart_marks_unfinished_batches_but_keeps_their_items(make_client):
     store = client.app.state.store
     store.save_batch({"batch_id": "old", "status": "running", "created_at": "2026-01-01T00:00:00+00:00",
                       "expires_at": "2999-01-01T00:00:00+00:00", "items": [{"item_id": "x", "category": "direct", "turns": [{}]}]})
-    from ragevalkit.generator import GenerationManager
+    from ragevalkit.generation import GenerationManager
     GenerationManager(client.app.state.config, store, llm=FakeLLM())
     assert store.get_batch("old")["status"] == "interrupted" and len(store.get_batch("old")["items"]) == 1
 

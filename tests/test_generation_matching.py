@@ -5,7 +5,7 @@ import pytest
 
 from ragevalkit.documents.models import Chunk
 from ragevalkit.documents.text_cleaning import normalise
-from ragevalkit.generator import LiteLLM, Task, parse_reply, validate
+from ragevalkit.generation import GenerationModelClient, Task, parse_reply, validate
 
 MARKDOWN_PASSAGE = (
     "## Expenses\n\n**Employees** must submit expense claims within *thirty days* of travel. "
@@ -80,7 +80,7 @@ def test_a_providers_json_mode_error_falls_back_to_asking_without_it(monkeypatch
         return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content='```json\n{"question": "q"}\n```'))])
 
     monkeypatch.setattr(litellm, "completion", completion)
-    llm = LiteLLM(SimpleNamespace(generator_model="groq/x", judge_model="groq/y", judge_api_key=""))
+    llm = GenerationModelClient(SimpleNamespace(generator_model="groq/x", judge_model="groq/y", judge_api_key=""))
     assert llm([{"role": "user", "content": "hi"}]).strip().startswith("```json")
     assert "response_format" in calls[0] and "response_format" not in calls[1] and calls[1]["model"] == "groq/x"
 

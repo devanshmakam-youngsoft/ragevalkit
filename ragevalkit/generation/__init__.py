@@ -21,18 +21,19 @@ CATEGORIES (see ``categories``; each becomes a group)
 
 Every generated test case has the type ``rag``: its answer has to come from the documents.
 
-Modules: ``prompts`` (what the model is told) · ``evidence`` (quotes are really in the document) ·
+Modules: ``prompts/`` (what the model is told, one file each) · ``evidence`` (quotes are really in the document) ·
 ``checks`` (the rules) · ``llm`` (the model client; the call itself is ``llm.complete``) · ``writer`` · ``planning`` · ``manager``.
 """
+from ragevalkit.generation.categories import CASE_TYPE, CATEGORIES, CATEGORY_LABELS
+from ragevalkit.generation.checks import validate
 from ragevalkit.generation.exceptions import GenerationBusy, GenerationError
-from ragevalkit.generator.categories import CASE_TYPE, CATEGORIES, CATEGORY_LABELS
-from ragevalkit.generator.checks import validate
-from ragevalkit.generator.llm import LiteLLM, parse_reply
-from ragevalkit.generator.manager import GenerationManager
-from ragevalkit.generator.planning import Task, plan_tasks
-from ragevalkit.generator.writer import generate_item
+from ragevalkit.generation.manager import GenerationManager
+from ragevalkit.generation.model_client import GenerationModelClient
+from ragevalkit.generation.planning import Task, plan_tasks
+from ragevalkit.generation.reply_parser import parse_reply
+from ragevalkit.generation.writer import generate_item
 
 __all__ = [
     "CASE_TYPE", "CATEGORIES", "CATEGORY_LABELS", "GenerationBusy", "GenerationError", "GenerationManager",
-    "LiteLLM", "Task", "generate_item", "parse_reply", "plan_tasks", "validate",
+    "GenerationModelClient", "Task", "generate_item", "parse_reply", "plan_tasks", "validate",
 ]

@@ -9,8 +9,9 @@ from ragevalkit.documents.models import Chunk
 from ragevalkit.documents.text_cleaning import normalise
 from ragevalkit.documents.reader import read_document
 from ragevalkit.documents.exceptions import DocumentError
-from ragevalkit.generator import CASE_TYPE, Task, validate
-from ragevalkit.generator.prompts import CATEGORY_RULES, build_messages, system_prompt
+from ragevalkit.generation import CASE_TYPE, Task, validate
+from ragevalkit.generation.prompts import CATEGORY_PROMPTS
+from ragevalkit.generation.message_builder import build_messages, system_prompt
 from ragevalkit.server import create_app
 
 PASSAGE = ("Employees must submit expense claims within thirty days of travel. Managers approve claims above five hundred "
@@ -98,7 +99,7 @@ def test_the_multiturn_prompt_demands_follow_ups_that_cannot_stand_alone():
 def test_every_prompt_states_the_grounding_rules_and_the_reply_format(category):
     prompt = system_prompt(category, 3)
     assert "Use ONLY the passages" in prompt and "Give numbers only" in prompt and "Reply with JSON only" in prompt
-    assert category in CATEGORY_RULES
+    assert category in CATEGORY_PROMPTS
 
 
 def test_the_prompt_shows_the_passages_with_their_labels_and_what_is_already_written():

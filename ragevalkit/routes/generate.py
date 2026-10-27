@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Uplo
 from pydantic import BaseModel
 
 from ragevalkit.documents.constants import SUPPORTED_MESSAGE, SUPPORTED_SUFFIXES
-from ragevalkit.generator import CATEGORIES, GenerationBusy
+from ragevalkit.generation import CATEGORIES, GenerationBusy
 from ragevalkit.routes.deps import require_user
 
 router = APIRouter(prefix="/api/generate", dependencies=[Depends(require_user)])

@@ -28,13 +28,13 @@ from ragevalkit.documents.models import ReadDocument
 from ragevalkit.documents.reader import read_document
 from ragevalkit.documents.exceptions import DocumentError
 from ragevalkit.generation.exceptions import GenerationBusy
-from ragevalkit.generator.categories import (
+from ragevalkit.generation.categories import (
     CASE_TYPE, CATEGORIES, CATEGORY_LABELS, DEFAULT_PER_CATEGORY, DEFAULT_TURNS, MAX_TURNS, MIN_TURNS,
 )
-from ragevalkit.generator.checks import check_text
-from ragevalkit.generator.llm import LiteLLM
-from ragevalkit.generator.planning import Task, plan_tasks
-from ragevalkit.generator.writer import generate_item
+from ragevalkit.generation.checks import check_text
+from ragevalkit.generation.model_client import GenerationModelClient
+from ragevalkit.generation.planning import Task, plan_tasks
+from ragevalkit.generation.writer import generate_item
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +49,7 @@ class GenerationManager:
     def __init__(self, config, store, llm: Callable | None = None, sleep: Callable | None = None):
         self.config = config
         self.store = store
-        self._llm = llm or LiteLLM(config)
+        self._llm = llm or GenerationModelClient(config)
         self._sleep = sleep or time.sleep
         self._lock = threading.Lock()
         self._active: str | None = None

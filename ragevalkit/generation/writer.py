@@ -6,10 +6,11 @@ import time
 from typing import Callable
 
 from ragevalkit.generation.exceptions import GenerationError
-from ragevalkit.generator.checks import validate
-from ragevalkit.generator.llm import parse_reply
-from ragevalkit.generator.planning import Task
-from ragevalkit.generator.prompts import RETRY_INSTRUCTION, build_messages
+from ragevalkit.generation.checks import validate
+from ragevalkit.generation.reply_parser import parse_reply
+from ragevalkit.generation.planning import Task
+from ragevalkit.generation.prompts import retry_instruction
+from ragevalkit.generation.message_builder import build_messages
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +37,6 @@ def generate_item(task: Task, llm: Callable, *, turns: int, avoid: list[str], sl
             return {"category": task.category, "file": task.doc, "number": task.number, "turns": checked}
         messages = messages + [
             {"role": "assistant", "content": raw or ""},
-            {"role": "user", "content": RETRY_INSTRUCTION.format(reason=reason)},
+            {"role": "user", "content": retry_instruction.format(reason=reason)},
         ]
     raise GenerationError(reason)
