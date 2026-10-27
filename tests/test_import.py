@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 from ragevalkit.config import Config
 from ragevalkit.importing import detect_mapping, parse_rows, split_labels, template_workbook
 from ragevalkit.server import create_app
-from ragevalkit.store import EvalStore
+from ragevalkit.storage.store import EvalStore
 
 
 def table(**cols):

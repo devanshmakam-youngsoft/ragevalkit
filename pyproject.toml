@@ -51,6 +51,9 @@ include = ["ragevalkit*"]
 [tool.setuptools.package-data]
 ragevalkit = ["static/**/*", "static/*", "py.typed"]
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py310"

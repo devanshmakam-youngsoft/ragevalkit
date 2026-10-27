@@ -10,7 +10,8 @@ from ragevalkit.config import Config
 from ragevalkit.judging.judge import Judge
 from ragevalkit.judging.insights import parse_insights
 from ragevalkit.server import create_app
-from ragevalkit.store import EvalStore, build_group_stats
+from ragevalkit.storage.store import EvalStore
+from ragevalkit.run_summary.group_stats import build_group_stats
 
 
 @pytest.fixture
@@ -189,7 +190,7 @@ def test_the_summary_prompt_asks_for_actions_never_empty_and_no_jargon():
 
 
 def test_suggestions_read_from_the_numbers_are_never_empty_and_fit_the_run():
-    from ragevalkit.store import default_suggestions
+    from ragevalkit.judging.fallback_insights import default_suggestions
     clean = {"failed_rows": 0, "avg_material_marks": 9.5, "avg_total_time": 2.0, "scores": {"tiers": {"low": 0}}}
     assert default_suggestions(clean, []) == ["Keep this version as the baseline and add harder test cases (indirect and multi-turn questions) to find where it breaks."]
     troubled = {"failed_rows": 2, "avg_material_marks": 5.0, "avg_total_time": 4.0, "avg_retrieval": 3.0, "avg_llm": 0.5,
@@ -201,7 +202,7 @@ def test_suggestions_read_from_the_numbers_are_never_empty_and_fit_the_run():
 
 
 def test_the_model_is_told_each_steps_share_of_the_response_time():
-    from ragevalkit.store import stats_for_llm
+    from ragevalkit.judging.run_summary_input import stats_for_llm
     summary = {"total_rows": 2, "failed_rows": 0, "avg_answer_marks": 9, "avg_material_marks": 9, "avg_keyword_recall": 0.5,
                "avg_semantic_similarity": 0.5, "avg_total_time": 4.0, "avg_retrieval": 3.0, "scores": {}}
     assert "retrieval=3.0s (75% of the response time)" in stats_for_llm(summary, [])
@@ -238,7 +239,7 @@ def test_unequal_parallel_lists_are_asked_to_use_the_paired_shape():
 
 
 def test_a_watch_out_left_without_a_suggestion_gets_one_from_the_numbers():
-    from ragevalkit.store import finish_insights
+    from ragevalkit.judging.fallback_insights import finish_insights
     summary = {"failed_rows": 2, "avg_material_marks": 9, "avg_total_time": 2.0, "scores": {"tiers": {"low": 0}}}
     half = {"items": [{"watch_out": "Some questions failed.", "suggestion": ""}, {"watch_out": "Slow.", "suggestion": "Look at the slowest step."}],
             "pitfalls": ["Some questions failed.", "Slow."], "suggestions": ["Look at the slowest step."]}
@@ -248,14 +249,14 @@ def test_a_watch_out_left_without_a_suggestion_gets_one_from_the_numbers():
 
 
 def test_older_style_lists_are_paired_by_position_and_never_left_blank():
-    from ragevalkit.store import finish_insights
+    from ragevalkit.judging.fallback_insights import finish_insights
     done = finish_insights({"pitfalls": ["One.", "Two."], "suggestions": ["Fix one."]}, {"failed_rows": 0, "scores": {}}, [])
     assert done["items"][0] == {"watch_out": "One.", "suggestion": "Fix one."}
     assert done["items"][1]["watch_out"] == "Two." and done["items"][1]["suggestion"]
 
 
 def test_the_model_is_told_the_figures_in_plain_words():
-    from ragevalkit.store import stats_for_llm
+    from ragevalkit.judging.run_summary_input import stats_for_llm
     text = stats_for_llm({"total_rows": 1, "failed_rows": 0, "avg_answer_marks": 9, "avg_material_marks": 9, "avg_keyword_recall": 0.5,
                           "avg_semantic_similarity": 0.4, "avg_total_time": 2.0, "scores": {}}, [])
     assert "semantic" not in text.lower() and "recall" not in text.lower() and "meaning match" in text and "Step names" in text

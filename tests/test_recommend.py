@@ -7,7 +7,9 @@ from fastapi.testclient import TestClient
 from ragevalkit.config import Config
 from ragevalkit.recommend import group_overview, recommend
 from ragevalkit.server import create_app
-from ragevalkit.store import EvalStore, build_scores, build_summary
+from ragevalkit.storage.store import EvalStore
+from ragevalkit.run_summary.scores import build_scores
+from ragevalkit.run_summary.builder import build_summary
 
 
 def run(version, answer, material, time, *, rows=8, failed=0, archived=False, stopped=False, groups=None):

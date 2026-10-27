@@ -12,7 +12,7 @@ from ragevalkit.config import Config
 from ragevalkit.routes import auth, generate, health, imports, runs
 from ragevalkit.generator import GenerationManager
 from ragevalkit.runner import RunManager
-from ragevalkit.store import EvalStore
+from ragevalkit.storage.store import EvalStore
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
