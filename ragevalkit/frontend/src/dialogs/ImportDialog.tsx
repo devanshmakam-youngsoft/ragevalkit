@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { api } from "../api";
-import { plural } from "../lib";
-import type { Group, ImportMapping, ImportPreview, ImportResult } from "../types";
+import { api } from "../api/client";
+import { plural } from "../lib/format";
+import type { Group, ImportMapping, ImportPreview, ImportResult } from "../api/types";
 
 type Step = "file" | "check" | "options" | "done";
 

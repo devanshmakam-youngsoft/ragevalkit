@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { api } from "../api";
-import { plural } from "../lib";
-import type { GenSummary } from "../types";
+import { api } from "../api/client";
+import { plural } from "../lib/format";
+import type { GenSummary } from "../api/types";
 
 function timeLeft(iso: string): string {
   const minutes = Math.max(0, Math.round((Date.parse(iso) - Date.now()) / 60000));

@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { api } from "../api";
-import { ExecuteModal } from "./ExecuteModal";
-import { GenerateDialog } from "./GenerateDialog";
-import { GenerationBanner } from "./GenerationBanner";
-import { SectionTabs } from "./SectionTabs";
-import { TopBar } from "./TopBar";
-import { fmt, fmtDate } from "../lib";
-import { Pager, usePaging } from "./Pager";
-import type { Group, GroupRunStat } from "../types";
+import { api } from "../api/client";
+import { ExecuteModal } from "../dialogs/ExecuteModal";
+import { GenerateDialog } from "../dialogs/GenerateDialog";
+import { GenerationBanner } from "../components/GenerationBanner";
+import { SectionTabs } from "../components/SectionTabs";
+import { TopBar } from "../components/TopBar";
+import { fmt, fmtDate } from "../lib/format";
+import { Pager, usePaging } from "../components/Pager";
+import type { Group, GroupRunStat } from "../api/types";
 
 export default function Groups() {
   const [groups, setGroups] = useState<Group[] | null>(null);

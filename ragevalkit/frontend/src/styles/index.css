@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Base: Tailwind theme mapped to the CSS variables defined in ui/theme.css (Paper & Ink). */
+/* Base: Tailwind theme mapped to the CSS variables defined in styles/theme.css (Paper & Ink). */
 @theme inline {
   --color-bg: var(--bg);
   --color-surface: var(--surface);

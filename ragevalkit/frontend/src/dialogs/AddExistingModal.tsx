@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { api } from "../api";
-import type { TestCase } from "../types";
-import { GroupChips } from "./GroupChips";
+import { api } from "../api/client";
+import type { TestCase } from "../api/types";
+import { GroupChips } from "../components/GroupChips";
 
 const SHOWN = 150;   // rows drawn at once; searching narrows a long library down
 

@@ -1,4 +1,4 @@
-import type { GroupRef } from "../types";
+import type { GroupRef } from "../api/types";
 
 /** The group labels on a test case, as compact chips. Shows `max` and a "+n" for the rest. */
 export function GroupChips({ groups, max = 3 }: { groups: GroupRef[]; max?: number }) {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { api } from "../api";
-import type { Group } from "../types";
+import { api } from "../api/client";
+import type { Group } from "../api/types";
 
 const NEW = "__new__";
 

@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { api } from "./api";
-import { useRun } from "./RunContext";
-import { compareVersions } from "./lib";
-import type { VersionDetail, VersionSummary } from "./types";
+import { api } from "../api/client";
+import { useRun } from "../context/RunContext";
+import { compareVersions } from "../lib/format";
+import type { VersionDetail, VersionSummary } from "../api/types";
 
 /** All finished versions, oldest first. Refetches whenever a run finishes. */
 export function useVersions() {

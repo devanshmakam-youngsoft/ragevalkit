@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { api } from "../api";
-import { useRun } from "../RunContext";
-import type { DatasetInfo, Group, RunPreview, RunSelection, TestCase, VersionSummary } from "../types";
-import { nextVersion } from "../lib";
-import { GroupChips } from "./GroupChips";
+import { api } from "../api/client";
+import { useRun } from "../context/RunContext";
+import type { DatasetInfo, Group, RunPreview, RunSelection, TestCase, VersionSummary } from "../api/types";
+import { nextVersion } from "../lib/format";
+import { GroupChips } from "../components/GroupChips";
 
 const VERSION_RE = /^[A-Za-z0-9._-]{1,20}$/;
 const MAX_LISTED = 200;

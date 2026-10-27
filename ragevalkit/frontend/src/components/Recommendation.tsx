@@ -1,8 +1,8 @@
 import { Link } from "react-router-dom";
-import { fmt, fmtSeconds, plural } from "../lib";
-import type { RecoResult, VersionSummary } from "../types";
+import { fmt, fmtSeconds, plural } from "../lib/format";
+import type { RecoResult, VersionSummary } from "../api/types";
 import { GLOSSARY, Term } from "./Hint";
-import { Mark } from "./parts";
+import { Mark } from "./ScoreWidgets";
 
 /** Tolerance / time ceiling the user typed in; null means "use the server default from serve()". */
 export interface RecoOverrides {

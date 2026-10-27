@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { api } from "../api";
-import { plural } from "../lib";
-import type { GenBatch, GenItem, GenLimits } from "../types";
+import { api } from "../api/client";
+import { plural } from "../lib/format";
+import type { GenBatch, GenItem, GenLimits } from "../api/types";
 
 const DESCRIPTIONS: Record<string, string> = {
   direct: "The answer is stated plainly in one place.",

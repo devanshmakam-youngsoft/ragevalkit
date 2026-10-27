@@ -1,4 +1,4 @@
-import type { VersionSummary } from "./types";
+import type { VersionSummary } from "../api/types";
 
 const KNOWN_NODES: Record<string, { label: string; color: string }> = {
   query_decider: { label: "Query decider", color: "var(--brand)" },

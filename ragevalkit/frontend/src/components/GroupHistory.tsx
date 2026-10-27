@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { api } from "../api";
-import { fmt, fmtDate, fmtSeconds, plural } from "../lib";
-import { useRun } from "../RunContext";
+import { api } from "../api/client";
+import { fmt, fmtDate, fmtSeconds, plural } from "../lib/format";
+import { useRun } from "../context/RunContext";
 import { GLOSSARY, Term } from "./Hint";
-import type { GroupHistory as History, GroupRunStat } from "../types";
+import type { GroupHistory as History, GroupRunStat } from "../api/types";
 
 const SHOWN = 5;
 

@@ -1,10 +1,10 @@
 import { useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { useAuth } from "../AuthContext";
-import { ThemeToggle } from "../components/ThemeToggle";
+import { useAuth } from "../context/AuthContext";
+import { ThemeToggle } from "./ThemeToggle";
 import { Breadcrumbs, type Crumb } from "./Breadcrumbs";
-import { ExecuteModal } from "./ExecuteModal";
-import { useRun } from "../RunContext";
+import { ExecuteModal } from "../dialogs/ExecuteModal";
+import { useRun } from "../context/RunContext";
 
 /**
  * Frozen header: title on the left; Execute button, theme switch and sign-out on the right.

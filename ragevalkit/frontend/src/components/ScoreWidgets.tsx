@@ -1,6 +1,6 @@
 import { type ReactNode, useLayoutEffect, useRef, useState } from "react";
-import { fmt, fmtSeconds, nodeMeta, scoreTone } from "../lib";
-import { type VersionSummary } from "../types";
+import { fmt, fmtSeconds, nodeMeta, scoreTone } from "../lib/format";
+import { type VersionSummary } from "../api/types";
 
 const TONE_VAR = { good: "var(--good)", warn: "var(--warn)", bad: "var(--bad)", none: "var(--muted)" };
 const TONE_HL = { good: "var(--hl-good)", warn: "var(--hl-warn)", bad: "var(--hl-bad)", none: "transparent" };

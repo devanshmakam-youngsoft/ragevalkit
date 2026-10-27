@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
-import { api, authEvents } from "./api";
+import { api, authEvents } from "../api/client";
 
 interface AuthCtx {
   /** null = signed out; undefined = still checking the session. */

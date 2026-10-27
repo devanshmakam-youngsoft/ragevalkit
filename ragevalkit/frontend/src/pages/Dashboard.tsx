@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useNavigate } from "react-router-dom";
-import { api } from "../api";
-import { Delta, Mark, NodeTimings, ProgressBar, ScorePill, Stat } from "./parts";
-import { Recommendation } from "./Recommendation";
-import { TopBar } from "./TopBar";
-import { fmt, fmtDate, fmtSeconds, nodeMeta, plural, scoreTone, unionNodes } from "../lib";
-import { useRun } from "../RunContext";
-import { GLOSSARY, Hint, Term } from "./Hint";
-import { Pager, usePaging } from "./Pager";
-import { type RecoResult, type VersionSummary } from "../types";
+import { api } from "../api/client";
+import { Delta, Mark, NodeTimings, ProgressBar, ScorePill, Stat } from "../components/ScoreWidgets";
+import { Recommendation } from "../components/Recommendation";
+import { TopBar } from "../components/TopBar";
+import { fmt, fmtDate, fmtSeconds, nodeMeta, plural, scoreTone, unionNodes } from "../lib/format";
+import { useRun } from "../context/RunContext";
+import { GLOSSARY, Hint, Term } from "../components/Hint";
+import { Pager, usePaging } from "../components/Pager";
+import { type RecoResult, type VersionSummary } from "../api/types";
 
 type SortKey = "version" | "date" | "questions" | "answer" | "material" | "time";
 
@@ -533,7 +533,7 @@ function ScoreCell({ value, star }: { value: number | null; star: boolean }) {
   );
 }
 
-function ComparePanel({ runs }: { runs: import("../types").VersionSummary[] }) {
+function ComparePanel({ runs }: { runs: import("../api/types").VersionSummary[] }) {
   const allGroups = useMemo(() => {
     const s = new Set<string>();
     for (const v of runs) for (const g of (v.group_names ?? [])) s.add(g);
@@ -545,7 +545,7 @@ function ComparePanel({ runs }: { runs: import("../types").VersionSummary[] }) {
     [allGroups, runs]
   );
 
-  const overallFor = (v: import("../types").VersionSummary): number | null => {
+  const overallFor = (v: import("../api/types").VersionSummary): number | null => {
     if (commonGroups.length === 0) return v.avg_answer_marks;
     const vals = commonGroups.map((g) => v.group_stats?.[g]?.avg_answer_marks).filter((x): x is number => x != null);
     return vals.length > 0 ? Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10 : v.avg_answer_marks;

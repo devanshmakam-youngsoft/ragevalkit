@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { api } from "./api";
-import { apiPath } from "./base";
-import type { RunSelection, RunState } from "./types";
+import { api } from "../api/client";
+import { apiPath } from "../api/base";
+import type { RunSelection, RunState } from "../api/types";
 
 interface RunCtx {
   run: RunState | null;

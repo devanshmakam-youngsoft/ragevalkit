@@ -1,13 +1,13 @@
 import { Navigate, Route, Routes } from "react-router-dom";
-import { useAuth } from "./AuthContext";
+import { useAuth } from "./context/AuthContext";
 import { ThemeFollower } from "./components/ThemeToggle";
-import { RunProvider } from "./RunContext";
-import Dashboard from "./ui/Dashboard";
-import Datasets from "./ui/Datasets";
-import Groups from "./ui/Groups";
-import Login from "./ui/Login";
-import TestCases from "./ui/TestCases";
-import VersionDetail from "./ui/VersionDetail";
+import { RunProvider } from "./context/RunContext";
+import Dashboard from "./pages/Dashboard";
+import Datasets from "./pages/Datasets";
+import Groups from "./pages/Groups";
+import Login from "./pages/Login";
+import TestCases from "./pages/TestCases";
+import VersionDetail from "./pages/VersionDetail";
 
 export default function App() {
   const { user } = useAuth();

@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import { api } from "../api";
-import { Mark, ScorePill, SegmentBar, StepTimeBar, Stat } from "./parts";
-import { ChatTurn, GroupChips } from "./GroupChips";
-import { GLOSSARY, Hint, Term } from "./Hint";
-import { Pager, usePaging } from "./Pager";
-import { TopBar } from "./TopBar";
-import { fmt, fmtDay, fmtSeconds, fmtTime, nodeMeta, plural } from "../lib";
-import { type ResultRow, type VersionDetail as Detail, type VersionSummary } from "../types";
+import { api } from "../api/client";
+import { Mark, ScorePill, SegmentBar, StepTimeBar, Stat } from "../components/ScoreWidgets";
+import { ChatTurn, GroupChips } from "../components/GroupChips";
+import { GLOSSARY, Hint, Term } from "../components/Hint";
+import { Pager, usePaging } from "../components/Pager";
+import { TopBar } from "../components/TopBar";
+import { fmt, fmtDay, fmtSeconds, fmtTime, nodeMeta, plural } from "../lib/format";
+import { type ResultRow, type VersionDetail as Detail, type VersionSummary } from "../api/types";
 
 type SortKey = "order" | "answer_marks" | "material_marks" | "total_time_taken";
 type ScoreTier = "all" | "high" | "mid" | "low";
