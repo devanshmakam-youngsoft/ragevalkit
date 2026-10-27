@@ -14,7 +14,7 @@ from ragevalkit.api.services.run_requests import (
     plan_run,
     selection_preview,
 )
-from ragevalkit.api.services.runs import get_run, request_stop
+from ragevalkit.api.services.runs import get_run, request_stop, run_issues
 from ragevalkit.config import Config
 from ragevalkit.evaluation.runner import RunManager
 from ragevalkit.storage.exceptions import ConflictError
@@ -71,6 +71,12 @@ async def start_run(
 @router.get("")
 def list_runs(store: EvalStore = Depends(get_store)) -> list[dict]:
     return store.list_runs(include_archived=False)
+
+
+@router.get("/{run_id}/issues")
+def get_run_issues(run_id: str, manager: RunManager = Depends(get_run_manager)) -> dict:
+    """What went wrong during this run so far, in plain language, each with its technical detail."""
+    return run_issues(manager, run_id)
 
 
 @router.post("/{run_id}/stop", status_code=202)

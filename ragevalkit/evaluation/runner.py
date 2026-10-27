@@ -20,9 +20,11 @@ from ragevalkit.evaluation.function_adapter import (
 from ragevalkit.evaluation.material import select_material
 from ragevalkit.evaluation.run import Run, light_row
 from ragevalkit.evaluation.source_check import check_sources_by_keyword, parse_source_groups
+from ragevalkit.judging.exceptions import JudgeError
 from ragevalkit.judging.fallback_insights import finish_insights
 from ragevalkit.judging.judge import Judge
 from ragevalkit.judging.run_summary_input import stats_for_llm
+from ragevalkit.logs import EventLog
 from ragevalkit.run_summary.builder import build_summary
 from ragevalkit.run_summary.group_stats import build_group_stats
 from ragevalkit.storage.store import EvalStore
@@ -137,15 +139,23 @@ class RunManager:
             if self.active():
                 raise RunBusy("Another evaluation is already running")
             run = Run(version, len(df), dataset_name)
+            run.log = EventLog(self.config, "runs", version)
             run.notes = notes
             run.group_names = group_names or []
             run.from_library = from_library
             run.dataset_id = dataset_id
             self.runs[run.run_id] = run
         threading.Thread(
-            target=self._execute, args=(run, df), daemon=True, name=f"eval-{version}"
+            target=self._execute_and_close_log, args=(run, df), daemon=True, name=f"eval-{version}"
         ).start()
         return run
+
+    def _execute_and_close_log(self, run: Run, df: pd.DataFrame) -> None:
+        try:
+            self._execute(run, df)
+        finally:
+            run.log.info("Run %s %s after %d of %d questions, %d problems", run.version, run.status, run.done, run.total, run.log.issue_total)
+            run.log.close()
 
     # ---
 
@@ -205,7 +215,7 @@ class RunManager:
 
     def _grade(
         self, question: str, expected: str, generated: str | None,
-        material: str, material_applicable: bool
+        material: str, material_applicable: bool, run: Run, where: str,
     ) -> dict:
         """Grade using judge_fn if provided, otherwise the LLM judge."""
         if self._judge_fn is not None:
@@ -221,9 +231,9 @@ class RunManager:
                         "Not applicable (no retrieval expected)." if not material_applicable else "")),
                 }
             except Exception as e:
-                logger.error("Custom judge_fn failed: %s", e)
+                issue = run.log.issue("custom_judge", e, where)
                 return {
-                    "answer_marks": 0, "answer_comment": f"judge_fn error: {e}",
+                    "answer_marks": 0, "answer_comment": issue.message,
                     "material_marks": None, "material_comment": "",
                 }
 
@@ -235,7 +245,8 @@ class RunManager:
             "material_comment": grade.material_comment,
         }
 
-    def _process_row(self, row, session_id: str, history: list[dict]) -> dict:
+    def _process_row(self, row, session_id: str, history: list[dict], run: Run) -> dict:
+        where = f"Question {run.done + 1} of {run.total} (chat {row.chat_id}, turn {row.turn_no})"
         out = {
             "chat_id":         row.chat_id,
             "turn_no":         row.turn_no,
@@ -288,15 +299,17 @@ class RunManager:
                             source_comment=result.source_comment,
                         )
                     except Exception as e:
-                        logger.warning("LLM source check failed, falling back to keyword: %s", e)
+                        run.log.issue("source_check", e, where, severity="warning")
                         out.update(check_sources_by_keyword(expected_sources, sources))
                 elif mode != "off":
                     out.update(check_sources_by_keyword(expected_sources, sources))
 
         except Exception as e:
-            logger.error("Generation failed for chat %s turn %s: %s", row.chat_id, row.turn_no, e)
+            issue = run.log.issue("answer", e, where)
             out.update(
                 status="generation_failed",
+                error_message=issue.message,
+                error_detail=issue.technical,
                 generated_answer=None,
                 material="",
                 sources=[],
@@ -320,7 +333,7 @@ class RunManager:
                         row.expected_answer, gen, self.config.embedding_model
                     )
                 except Exception as e:
-                    logger.warning("Semantic similarity failed: %s", e)
+                    run.log.issue("metric", e, f"{where}, semantic similarity", severity="warning")
 
         # Extra / custom metrics
         if out["status"] == "ok" and self._extra_metrics:
@@ -329,7 +342,7 @@ class RunManager:
                 try:
                     out[name] = call_sync(fn, row.expected_answer, gen)
                 except Exception as e:
-                    logger.warning("extra_metric '%s' failed: %s", name, e)
+                    run.log.issue("metric", e, f"{where}, {name}", severity="warning")
                     out[name] = None
 
         # Grading (LLM judge or custom judge_fn)
@@ -337,7 +350,7 @@ class RunManager:
             grade = self._grade(
                 row.question, row.expected_answer,
                 out.get("generated_answer"), out.get("material", ""),
-                not conversational,
+                not conversational, run, where,
             )
             out.update(
                 answer_marks=grade["answer_marks"],
@@ -346,10 +359,10 @@ class RunManager:
                 material_remarks=grade["material_comment"],
             )
         except Exception as e:
-            logger.error("Grading failed: %s", e)
+            issue = run.log.issue("grading", e, where)
             if out["status"] == "ok":
                 out["status"] = "grading_failed"
-            out.update(answer_remarks=str(e)[:400], material_remarks="Grading failed")
+            out.update(answer_remarks=issue.message, material_remarks="Grading failed", error_message=issue.message, error_detail=issue.technical)
 
         return out
 
@@ -365,9 +378,13 @@ class RunManager:
             try:
                 dataset_id = self.store.import_dataset(run.dataset_name, df, fingerprint)
             except Exception as e:
-                logger.warning("Could not import dataset into test_cases table: %s", e)
+                run.log.issue("save", e, "importing the questions into the library", severity="warning")
 
         try:
+            run.log.info(
+                "Run %s started: %d questions from %s, judge model %s",
+                run.version, run.total, run.dataset_name, "custom judge_fn" if self._judge_fn else self.config.judge_model,
+            )
             run.emit("started")
             sessions:  dict[str, str]        = {}
             histories: dict[str, list[dict]] = {}
@@ -377,6 +394,7 @@ class RunManager:
                 if run.stop_requested:
                     run.status = "stopped"
                     run.current_question = ""
+                    run.log.info("Stop requested: stopped after %d of %d questions", run.done, run.total)
                     run.emit("stopped")
                     write_partial_results(self, run, rows, fingerprint, dataset_id)
                     return
@@ -387,7 +405,7 @@ class RunManager:
                     sessions[chat_id]  = self._session_id_fn(chat_id)
                     histories[chat_id] = []
 
-                result = self._process_row(row, sessions[chat_id], histories[chat_id])
+                result = self._process_row(row, sessions[chat_id], histories[chat_id], run)
                 if result.get("generated_answer"):
                     histories[chat_id].append({
                         "question": row.question,
@@ -395,6 +413,11 @@ class RunManager:
                     })
                 rows.append(result)
                 run.done += 1
+                run.log.info(
+                    "Question %d of %d | chat %s turn %s | %s | answer %s, material %s | %ss",
+                    run.done, run.total, row.chat_id, row.turn_no, result["status"],
+                    result.get("answer_marks"), result.get("material_marks"), result.get("total_time_taken", "-"),
+                )
                 run.emit("progress", row=light_row(result))
 
             run.current_question = "Summarising run…"
@@ -419,7 +442,9 @@ class RunManager:
                     for i in insights["items"])
             else:
                 summary["comment"] = "Summary could not be generated for this run."
+                run.log.issue("summary", JudgeError("The judge returned no usable summary"), "writing the findings", severity="warning")
 
+            attach_run_log(summary, run)
             self.store.write(run.version, summary, rows)
             run.summary, run.status, run.current_question = summary, "completed", ""
             run.emit("done", summary=summary)
@@ -429,11 +454,11 @@ class RunManager:
                 try:
                     call_sync(self._on_complete, summary, rows)
                 except Exception as e:
-                    logger.error("on_complete callback failed: %s", e)
+                    run.log.issue("callback", e, "on_complete", severity="warning")
 
         except Exception as e:
-            logger.exception("Run %s failed", run.version)
-            run.status, run.error = "failed", str(e)
+            issue = run.log.issue("run", e, f"after {run.done} of {run.total} questions")
+            run.status, run.error, run.error_detail = "failed", issue.message, issue.technical
             run.emit("error")
 
             if self._on_complete is not None:
@@ -441,6 +466,13 @@ class RunManager:
                     call_sync(self._on_complete, None, rows)
                 except Exception:
                     pass
+
+
+def attach_run_log(summary: dict, run: Run) -> None:
+    """Keep the run's problems and the name of its log file with the saved results."""
+    summary["issues"] = run.log.issue_dicts()
+    summary["issue_total"] = run.log.issue_total
+    summary["log_file"] = run.log.file_name
 
 
 def write_partial_results(manager: RunManager, run: Run, rows: list[dict], fingerprint: str, dataset_id: str) -> None:
@@ -453,6 +485,7 @@ def write_partial_results(manager: RunManager, run: Run, rows: list[dict], finge
             dataset_id=dataset_id,
         )
         summary["comment"] = f"Run stopped after {run.done}/{run.total} rows."
+        attach_run_log(summary, run)
         summary["stopped"] = True  # incomplete: never recommended or compared as a finished run
         summary["run_id"] = run.version
         summary["notes"] = run.notes

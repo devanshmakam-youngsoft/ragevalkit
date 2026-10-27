@@ -4,6 +4,7 @@ from ragevalkit.config.datasets import DatasetSettings
 from ragevalkit.config.function_adapter import FunctionAdapterSettings
 from ragevalkit.config.generation import GenerationSettings
 from ragevalkit.config.judge import JudgeSettings
+from ragevalkit.config.logs import LogSettings
 from ragevalkit.config.recording import RecordingSettings
 from ragevalkit.config.scoring import ScoringSettings
 from ragevalkit.config.server import ServerSettings
@@ -11,6 +12,7 @@ from ragevalkit.config.server import ServerSettings
 
 class Config(
     ServerSettings,
+    LogSettings,
     AccessSettings,
     RecordingSettings,
     JudgeSettings,

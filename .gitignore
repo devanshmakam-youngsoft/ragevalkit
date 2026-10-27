@@ -22,3 +22,4 @@ eval_inputs/
 # Frontend build artifacts
 node_modules/
 ragevalkit/frontend/dist/
+eval_logs/

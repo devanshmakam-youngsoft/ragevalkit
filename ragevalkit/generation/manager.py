@@ -42,6 +42,7 @@ from ragevalkit.generation.exceptions import GenerationBusy
 from ragevalkit.generation.model_client import GenerationModelClient
 from ragevalkit.generation.planning import Task, plan_tasks
 from ragevalkit.generation.writer import generate_item
+from ragevalkit.logs import EventLog
 
 logger = logging.getLogger(__name__)
 
@@ -106,29 +107,36 @@ class GenerationManager:
             }
             self.store.save_batch(batch)
             self._active = batch_id
-        threading.Thread(target=self._run, args=(batch, files, workdir), daemon=True, name=f"generate-{batch_id}").start()
+        log = EventLog(self.config, "generation", batch_id)
+        log.info("Generation %s started: %d documents, %d per category, categories %s, %d turns, model %s",
+                 batch_id, len(files), per_category, ", ".join(categories), turns, self.model)
+        batch["log_file"] = log.file_name
+        self.store.save_batch(batch)
+        threading.Thread(target=self._run, args=(batch, files, workdir, log), daemon=True, name=f"generate-{batch_id}").start()
         return batch
 
     def cancel(self, batch_id: str) -> None:
         self._cancelled.add(batch_id)
 
-    def _run(self, batch: dict, files: list[tuple[str, Path]], workdir: Path | None) -> None:
+    def _run(self, batch: dict, files: list[tuple[str, Path]], workdir: Path | None, log: EventLog) -> None:
         batch_id = batch["batch_id"]
         try:
-            docs = self._read_documents(batch, files, workdir)
+            docs = self._read_documents(batch, files, workdir, log)
             if docs:
-                self._write_items(batch, docs)
+                self._write_items(batch, docs, log)
             self._finish(batch)
         except Exception as e:  # never leave a batch stuck on "running"
-            logger.exception("generation %s failed", batch_id)
-            batch.update(status="failed" if not batch["items"] else "ready", error=str(e))
+            issue = log.issue("generation_run", e, f"after {batch['done_tasks']} of {batch['total_tasks']} questions")
+            batch.update(status="failed" if not batch["items"] else "ready", error=issue.message, error_detail=issue.technical)
             self.store.save_batch(batch)
         finally:
+            log.info("Generation %s %s: %d items, %d problems", batch_id, batch["status"], len(batch["items"]), log.issue_total)
+            log.close()
             self._cancelled.discard(batch_id)
             with self._lock:
                 self._active = None
 
-    def _read_documents(self, batch: dict, files: list[tuple[str, Path]], workdir: Path | None) -> list[ReadDocument]:
+    def _read_documents(self, batch: dict, files: list[tuple[str, Path]], workdir: Path | None, log: EventLog) -> list[ReadDocument]:
         """Read every upload (one that cannot be read is reported and skipped), then delete the uploads."""
         docs: list[ReadDocument] = []
         batch["files"] = []
@@ -139,6 +147,7 @@ class GenerationManager:
                     docs.append(doc)
                     batch["files"].append({"name": name, "pages": doc.pages, "passages": len(doc.usable())})
                 except DocumentError as e:
+                    log.issue("generation", e, name)
                     batch["files"].append({"name": name, "error": str(e)})
         finally:
             if workdir:
@@ -149,7 +158,7 @@ class GenerationManager:
         self.store.save_batch(batch)
         return docs
 
-    def _write_items(self, batch: dict, docs: list[ReadDocument]) -> None:
+    def _write_items(self, batch: dict, docs: list[ReadDocument], log: EventLog) -> None:
         batch_id, opts = batch["batch_id"], batch["options"]
         tasks = plan_tasks(docs, opts["categories"], opts["per_category"])
         batch["total_tasks"] = len(tasks)
@@ -175,7 +184,8 @@ class GenerationManager:
                             item["item_id"] = uuid.uuid4().hex[:8]
                             batch["items"].append(item)
                     except Exception as e:
-                        batch["errors"].append({"category": task.category, "file": task.doc, "reason": str(e)})
+                        issue = log.issue("generation", e, f"{CATEGORY_LABELS[task.category]} question from {task.doc}")
+                        batch["errors"].append({"category": task.category, "file": task.doc, "reason": issue.message, "detail": issue.technical})
                     batch["items"].sort(key=lambda it: (CATEGORIES.index(it["category"]), it["number"]))
                     self.store.save_batch(batch)  # saved after every item: nothing is lost if the browser goes away
 

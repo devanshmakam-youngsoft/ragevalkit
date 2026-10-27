@@ -16,6 +16,13 @@ class ServerSettings(Settings):
 
     store_path: Path = Path("eval_store.json")
 
+    # Folder for log files; empty means "eval_logs" beside the results store
+    log_dir: Path | None = None
+
     @property
     def inputs_dir(self) -> Path:
         return self.store_path.parent / "eval_inputs"
+
+    @property
+    def logs_dir(self) -> Path:
+        return self.log_dir or self.store_path.parent / "eval_logs"

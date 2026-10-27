@@ -13,6 +13,7 @@ from ragevalkit.documents.exceptions import DocumentError
 from ragevalkit.evaluation.exceptions import NoDatasetError, RunBusy
 from ragevalkit.exceptions import InvalidInput, NotFoundError, RagevalError, TooLargeError
 from ragevalkit.generation.exceptions import GenerationBusy
+from ragevalkit.logs import redact
 from ragevalkit.storage.exceptions import ConflictError
 
 logger = logging.getLogger(__name__)
@@ -46,12 +47,13 @@ async def handle_library_error(request: Request, error: RagevalError) -> JSONRes
 
 
 async def handle_unexpected_error(request: Request, error: Exception) -> JSONResponse:
-    """Anything nobody planned for: logged in full, answered with a reference the person can quote."""
+    """Anything nobody planned for: the traceback is logged, the person gets a plain message, a reference to quote,
+    and the error's own text (secrets hidden) to show on request."""
     reference = uuid.uuid4().hex[:8]
     logger.error("[%s] %s %s failed unexpectedly", reference, request.method, request.url.path, exc_info=error)
     return JSONResponse(
         {"detail": f"Something went wrong on our side. Please try again; if it keeps happening, tell us reference {reference}.",
-         "code": "server_error", "reference": reference},
+         "code": "server_error", "reference": reference, "technical": redact(f"{type(error).__name__}: {error}")},
         status_code=500,
     )
 

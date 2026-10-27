@@ -10,6 +10,7 @@ from ragevalkit.api import create_app
 from ragevalkit.config import Config
 from ragevalkit.config.dotenv import load_dotenv
 from ragevalkit.exceptions import ConfigError
+from ragevalkit.logs import configure_logging
 
 
 def serve(
@@ -240,6 +241,7 @@ def serve(
         history_format=history_format,
         **cfg_extra,
     )
+    configure_logging(config)
     if config.eval_env != "prod":
         try:
             llm.load_litellm()   # once, here, before the server and its worker threads exist (see llm/loader.py)

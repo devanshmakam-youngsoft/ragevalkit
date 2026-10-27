@@ -2,6 +2,8 @@
 import uuid
 from datetime import datetime, timezone
 
+from ragevalkit.logs import EventLog
+
 
 class Run:
     def __init__(self, version: str, total: int, dataset_name: str):
@@ -13,7 +15,9 @@ class Run:
         self.done     = 0
         self.current_question = ""
         self.started  = datetime.now(timezone.utc)
-        self.error: str | None = None
+        self.error: str | None = None          # plain-language reason a run failed
+        self.error_detail: str = ""            # the technical version of it, shown on request
+        self.log: EventLog | None = None
         self.events: list[dict] = []
         self.summary: dict | None = None
         self.stop_requested: bool = False  # set True via POST /api/runs/{run_id}/stop
@@ -33,6 +37,8 @@ class Run:
             "date": self.started.isoformat(),
             "dataset": self.dataset_name,
             "error": self.error,
+            "error_detail": self.error_detail,
+            "issue_count": self.log.issue_total if self.log else 0,
         }
 
     def emit(self, event_type: str, **data) -> None:
