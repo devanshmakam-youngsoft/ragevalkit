@@ -606,14 +606,28 @@ ragevalkit.<span class="fn">serve</span>(
       </div>
 
       <div class="sub">
-        <div class="sub-title">What steps capture</div>
+      <div class="sub-title">Which step supplies the retrieved text</div>
+      <p style="font-size:13.5px;color:var(--fg-muted)">Only a step that <strong>declares</strong> its material feeds the judge's context score. Declare it with <code>s.material = …</code> in the <code>with</code> form, or decorate a function that returns the text with <code>material=True</code>. Other steps (a rewrite, the LLM call) are timed but their output is not treated as retrieved context.</p>
+      <pre><code><span class="kw">@</span>ragevalkit.<span class="fn">step</span>(<span class="st">"retrieval"</span>, material=<span class="kw">True</span>)   <span class="cm"># the return value is the retrieved text</span>
+<span class="kw">def</span> <span class="fn">retrieve</span>(query):
+    <span class="kw">return</span> <span class="st">"\n\n"</span>.join(d.text <span class="kw">for</span> d <span class="kw">in</span> vector_db.search(query))</code></pre>
+      <p style="font-size:13.5px;color:var(--fg-muted)">If no step declares anything, the output of decorated steps is used as before and the server log warns, with the fix. Material is cut at <code>max_material_chars</code> (20,000) and shown inputs, outputs and notes at <code>max_step_value_chars</code> (1,000); a cut ends with "… (+N more characters)", and a long list of numbers such as an embedding is shown as <code>[N numbers]</code>.</p>
+    </div>
+
+      <div class="sub">
+      <div class="sub-title">Threads and repeated steps</div>
+      <p style="font-size:13.5px;color:var(--fg-muted)">Steps and notes are recorded for the question being evaluated, whichever thread runs them, so a thread pool or executor inside your function is fine. Steps are listed in the order they started. A step that runs more than once (an agent calling a tool in a loop, or the same search on two indexes in parallel) has its times added up; steps that overlap can therefore add up to more than the response time, which the timing bar notes.</p>
+    </div>
+
+    <div class="sub">
+      <div class="sub-title">What steps capture</div>
         <table class="param-table">
           <thead><tr><th>Field</th><th>How set</th><th>Used for</th></tr></thead>
           <tbody>
             <tr><td><code class="param-name">elapsed</code></td><td class="param-desc">Always, automatically</td><td class="param-desc">Per-node timing bar in dashboard</td></tr>
             <tr><td><code class="param-name">inputs</code></td><td class="param-desc">Decorator only (auto)</td><td class="param-desc">Input args visible in receipt</td></tr>
             <tr><td><code class="param-name">output</code></td><td class="param-desc">Decorator only (auto)</td><td class="param-desc">Return value visible in receipt</td></tr>
-            <tr><td><code class="param-name">material</code></td><td class="param-desc">Explicit <code>s.material = …</code></td><td class="param-desc">Retrieved context → sent to judge</td></tr>
+            <tr><td><code class="param-name">material</code></td><td class="param-desc">Explicit <code>s.material = …</code>, or <code>@step(…, material=True)</code></td><td class="param-desc">Retrieved context → sent to judge</td></tr>
             <tr><td><code class="param-name">sources</code></td><td class="param-desc">Explicit <code>s.sources = […]</code></td><td class="param-desc">Source list in dashboard receipt</td></tr>
           </tbody>
         </table>
@@ -624,14 +638,14 @@ ragevalkit.<span class="fn">serve</span>(
         <table class="param-table">
           <thead><tr><th>Mode</th><th>What's captured</th></tr></thead>
           <tbody>
-            <tr><td><code class="param-name">"all"</code> <span class="badge badge-green">default</span></td><td class="param-desc">Everything: inputs, outputs, material, sources, timing. Decorator output auto-becomes material.</td></tr>
-            <tr><td><code class="param-name">"selected"</code></td><td class="param-desc">Timing always; material/sources only when explicitly set with <code>s.material = …</code>. Use this to keep decorator steps from polluting the judge's context.</td></tr>
+            <tr><td><code class="param-name">"all"</code> <span class="badge badge-green">default</span></td><td class="param-desc">Everything: inputs, outputs, material, sources, timing.</td></tr>
+            <tr><td><code class="param-name">"selected"</code></td><td class="param-desc">Only steps that declare material or sources (<code>s.material</code>, <code>s.sources</code> or <code>material=True</code>) are recorded; other steps are left out entirely, timing included.</td></tr>
             <tr><td><code class="param-name">"off"</code></td><td class="param-desc">Step name + timing only. No content captured.</td></tr>
           </tbody>
         </table>
         <div class="callout callout-tip">
           <div class="callout-icon">💡</div>
-          <p>Use <code>record_detail="selected"</code> when you decorate multiple steps but only want the retrieval step's context sent to the judge.</p>
+          <p>You do not need <code>record_detail="selected"</code> to keep other steps out of the judge's context: only the step that declares its material supplies it, and every step still shows in the timing bar.</p>
         </div>
       </div>
     </section>

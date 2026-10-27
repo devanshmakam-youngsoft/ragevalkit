@@ -52,15 +52,16 @@ The dashboard opens at `http://localhost:8002` (the default port is `8001`). A `
 Your function can also take history or a session id, return a dict, or be `async`; ragevalkit adapts to its parameter names (see the guide). To show what happens *inside* the pipeline, mark its steps:
 
 ```python
-@ragevalkit.step("retrieval")
-def retrieve(query):
-    return vector_db.search(query)
+with ragevalkit.step("retrieval") as s:
+    docs = vector_db.search(query)
+    s.material = "\n\n".join(d.text for d in docs)   # the retrieved text: this is what "context quality" scores
+    s.sources = [d.source for d in docs]               # which documents: checked against expected_sources
 
-with ragevalkit.step("llm") as s:
+with ragevalkit.step("llm"):                           # timing only: its output is not treated as context
     answer = llm.generate(query, docs)
-    s.material = docs          # what the answer was based on: this is what "context quality" scores
-    s.sources = ["policy.pdf"] # which documents were used: checked against expected_sources
 ```
+
+Only a step that **declares** its material feeds the judge: set `s.material`, or decorate a function that returns the text with `@ragevalkit.step("retrieval", material=True)`. Steps may run in threads you start (a thread pool searching several indexes, say); they still belong to the question being evaluated.
 
 ### 2. Add test cases
 

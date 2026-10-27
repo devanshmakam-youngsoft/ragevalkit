@@ -31,6 +31,10 @@ class Config(BaseSettings):
     # "selected" — only steps where developer explicitly set .material or .sources
     # "off"      — only step name + elapsed time (no content captured)
     record_detail: str = "all"
+    # How much of a step is kept. Shown inputs, outputs and notes are cut at step_value_chars; the material the
+    # judge reads is cut at material_chars. A cut always ends with a marker saying how much was left out.
+    step_value_chars: int = 1000
+    material_chars: int = 20000
 
     # Judge LLM (any LiteLLM model string: "groq/...", "gemini/...", "openai/...", "ollama/...")
     judge_model: str = "groq/openai/gpt-oss-120b"

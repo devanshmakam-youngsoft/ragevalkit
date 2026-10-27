@@ -136,6 +136,27 @@ def _coerce_to_str(result, answer_keys=None) -> str:
     return str(result)
 
 
+_warned_undeclared_material = False
+
+
+def _material_of(steps: list[dict]) -> str:
+    """The retrieved text the judge scores: what steps DECLARED as material (``s.material = …`` or
+    ``@step(..., material=True)``). If no step declared any, the output of decorated steps is used, as earlier
+    versions did, and a warning explains how to say which step is the retrieval."""
+    global _warned_undeclared_material
+    declared = [s for s in steps if s.get("material_declared")]
+    pool = declared or [s for s in steps if s.get("material")]
+    if not declared and len(pool) > 1 and not _warned_undeclared_material:
+        _warned_undeclared_material = True
+        logger.warning(
+            "No step declared its material, so the output of every decorated step (%s) is used as the retrieved "
+            "context, including steps that are not retrieval. Mark the retrieval step with "
+            "@ragevalkit.step(\"retrieval\", material=True) (or set s.material inside a `with` block) so only it counts.",
+            ", ".join(s["name"] for s in pool),
+        )
+    return recording.clip_material("\n\n".join(s["material"] for s in pool if s.get("material")))
+
+
 def _call_sync(fn: Callable, *args, **kwargs):
     """Call fn whether it is sync or async; always returns synchronously."""
     if inspect.iscoroutinefunction(fn):
@@ -301,6 +322,7 @@ class RunManager:
         self._history_fmt   = config.history_format
         self._record_detail = config.record_detail
         self._record_mode   = config.record_mode
+        recording.configure(max_step_value_chars=config.step_value_chars, max_material_chars=config.material_chars)
 
         # Detect once at startup — inspection is expensive; cache the result.
         self._sig = _detect_sig(fn, self._s_aliases, self._h_aliases)
@@ -404,8 +426,12 @@ class RunManager:
                 type(result).__name__,
             )
 
-        node_timings = {s["name"]: s["elapsed"] for s in steps}
-        material     = "\n\n".join(s["material"] for s in steps if s.get("material"))
+        # A step that ran several times (an agent calling a tool in a loop, or the same search in parallel threads)
+        # has its time added up: this is the time spent in that step.
+        node_timings: dict[str, float] = {}
+        for s in steps:
+            node_timings[s["name"]] = round(node_timings.get(s["name"], 0.0) + s["elapsed"], 3)
+        material = _material_of(steps)
         sources      = [src for s in steps for src in (s.get("sources") or [])]
         step_inputs  = {s["name"]: s.get("inputs", {}) for s in steps}
         step_outputs = {s["name"]: s.get("output",  "") for s in steps}

@@ -313,14 +313,16 @@ ragevalkit.serve(my_rag)                 # opens http://localhost:8001</code></p
         <div class="box gray"><b>note("intent", "x")</b><span>free-form flags</span></div>
       </div>
       <div class="arrow">&#8595;</div>
-      <div class="row"><div class="box purple wide"><b>Thread-local buffer: steps and flags</b><span>no-op unless active; secret-named arguments become [REDACTED]</span></div></div>
+      <div class="row"><div class="box purple wide"><b>One recorder per question: steps and flags</b><span>any thread can add to it; no-op unless a question is running; secret-named arguments become [REDACTED]</span></div></div>
     </div>
   </div>
   <figcaption>Figure 4. How <code>step()</code> works without changing your code's behaviour.</figcaption>
 </figure>
 <ul>
-  <li><strong>Zero overhead outside an eval.</strong> Steps do nothing unless the current thread is inside a run, so the decorators are safe to leave in production code.</li>
-  <li><strong>Thread-local.</strong> If your function starts its own threads, each has its own buffer, so concurrent steps do not mix.</li>
+  <li><strong>Zero overhead outside an eval.</strong> Steps do nothing unless a question is being run, so the decorators are safe to leave in production code.</li>
+  <li><strong>A recorder per question, not per thread.</strong> The runner handles one question at a time, so everything recorded while your function runs belongs to that question, even from a thread pool or executor you start. Each step takes hold of its question's recorder when it starts, and a closed recorder ignores late steps, so a slow thread from one question cannot leak into the next. Steps are listed in the order they started.</li>
+  <li><strong>Material is declared.</strong> Only a step that sets <code>s.material</code>, or is decorated with <code>material=True</code>, supplies the retrieved text the judge reads. If none declares it, decorated outputs are used as before and a warning says how to be explicit. Material is cut at <code>max_material_chars</code> (20,000) and displayed values at <code>max_step_value_chars</code> (1,000), each with a marker saying how much was left out.</li>
+  <li><strong>Repeated steps add up.</strong> A step that runs several times has its times summed in <code>node_timings</code>.</li>
   <li><strong>Always cleaned up.</strong> <code>_deactivate()</code> sits in a <code>finally</code> block, so one failed question cannot leak steps into the next.</li>
   <li><strong>Secrets hidden.</strong> Inputs whose name contains <code>password</code>, <code>token</code>, <code>key</code>, <code>secret</code> and similar are stored as <code>[REDACTED]</code>.</li>
 </ul>
