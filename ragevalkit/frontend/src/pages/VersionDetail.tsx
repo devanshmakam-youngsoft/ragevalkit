@@ -4,7 +4,9 @@ import { api } from "../api/client";
 import { Mark, ScorePill, SegmentBar, StepTimeBar, Stat } from "../components/ScoreWidgets";
 import { ChatTurn, GroupChips } from "../components/GroupChips";
 import { GLOSSARY, Hint, Term } from "../components/Hint";
+import { IssueList } from "../components/IssueList";
 import { Pager, usePaging } from "../components/Pager";
+import { TechnicalDetails } from "../components/TechnicalDetails";
 import { TopBar } from "../components/TopBar";
 import { fmt, fmtDay, fmtSeconds, fmtTime, nodeMeta, plural } from "../lib/format";
 import { type ResultRow, type VersionDetail as Detail, type VersionSummary } from "../api/types";
@@ -114,9 +116,16 @@ export default function VersionDetail() {
             </div>
           </div>
         </div>
-        <a href={api.downloadUrl(version)} className="inline-flex items-center gap-2 rounded border border-line bg-surface px-4 py-2.5 text-sm font-medium hover:bg-surface-2">
-          Download .xlsx
-        </a>
+        <div className="flex flex-wrap items-center gap-2">
+          {s.log_file && (
+            <a href={api.versionLogUrl(version)} title="The technical log of this run" className="inline-flex items-center gap-2 rounded border border-line bg-surface px-4 py-2.5 text-sm font-medium hover:bg-surface-2">
+              Download log
+            </a>
+          )}
+          <a href={api.downloadUrl(version)} className="inline-flex items-center gap-2 rounded border border-line bg-surface px-4 py-2.5 text-sm font-medium hover:bg-surface-2">
+            Download .xlsx
+          </a>
+        </div>
       </div>
 
       <dl className="mt-5 flex flex-wrap gap-x-10 gap-y-3 border-y border-line py-3.5 text-sm">
@@ -176,6 +185,16 @@ export default function VersionDetail() {
       <section className="mt-4">
         <Insights summary={s} />
       </section>
+
+      {(s.issues?.length ?? 0) > 0 && (
+        <section className="card mt-4 p-5">
+          <h3 className="label">Problems during this run</h3>
+          <p className="mb-3 mt-1 text-xs text-muted">
+            These did not stop the run, but the results may be missing something. Open the technical details when you need to find the cause{s.log_file ? " or download the log" : ""}.
+          </p>
+          <IssueList issues={s.issues!} />
+        </section>
+      )}
 
       {groupScores.length > 0 && (
         <section className="card mt-4 overflow-hidden">
@@ -483,7 +502,13 @@ function RowDrawer({ row, onClose }: { row: ResultRow; onClose: () => void }) {
         </div>
 
         {/* 3. What was answered, against what was expected */}
-        <Block title="Generated answer">{row.generated_answer ?? "Generation failed"}</Block>
+        <Block title="Generated answer">{row.generated_answer ?? "No answer: the assistant returned an error"}</Block>
+        {row.error_message && (
+          <div className="mt-3 rounded border border-bad p-3 text-sm" role="alert">
+            <p className="text-bad">{row.error_message}</p>
+            <TechnicalDetails text={row.error_detail ?? ""} />
+          </div>
+        )}
         <Block title="Expected answer">{row.expected_answer || "—"}</Block>
 
         {/* 4. Why it scored that way */}

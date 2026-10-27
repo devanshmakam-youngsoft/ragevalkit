@@ -8,7 +8,7 @@ import { useRun } from "../context/RunContext";
 
 /**
  * Frozen header: title on the left; Execute button, theme switch and sign-out on the right.
- * Two sections: Dashboard (runs and versions) and Test Cases (cases, groups and import).
+ * Three sections: Dashboard (runs and versions), Test Cases (cases, groups and import) and Help (the guides).
  * Pass `crumbs` (the whole trail, starting from the page's own section) on any page below a top-level section.
  */
 export function TopBar({ action, crumbs }: { action?: ReactNode; crumbs?: Crumb[] }) {
@@ -17,6 +17,7 @@ export function TopBar({ action, crumbs }: { action?: ReactNode; crumbs?: Crumb[
   const [modal, setModal] = useState(false);
   const { pathname } = useLocation();
   const inTestCases = pathname.startsWith("/test-cases");
+  const inHelp = pathname.startsWith("/help");
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-bg pt-[5px]">
@@ -29,7 +30,7 @@ export function TopBar({ action, crumbs }: { action?: ReactNode; crumbs?: Crumb[
             <p className="mt-1.5 text-xs text-muted">Evaluation runs, scored version by version</p>
           </Link>
           <nav aria-label="Main" className="flex items-center gap-5">
-            {([["Dashboard", "/", !inTestCases], ["Test Cases", "/test-cases", inTestCases]] as const).map(([label, to, on]) => (
+            {([["Dashboard", "/", !inTestCases && !inHelp], ["Test Cases", "/test-cases", inTestCases], ["Help", "/help", inHelp]] as const).map(([label, to, on]) => (
               <Link key={to} to={to} aria-current={on ? "page" : undefined}
                 className={`border-b-2 py-1 text-sm font-medium transition ${on ? "border-brand text-fg" : "border-transparent text-muted hover:text-fg"}`}>
                 {label}

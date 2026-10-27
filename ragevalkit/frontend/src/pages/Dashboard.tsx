@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { Delta, Mark, NodeTimings, ProgressBar, ScorePill, Stat } from "../components/ScoreWidgets";
 import { Recommendation } from "../components/Recommendation";
+import { RunProblems } from "../components/RunProblems";
+import { TechnicalDetails } from "../components/TechnicalDetails";
 import { TopBar } from "../components/TopBar";
 import { fmt, fmtDate, fmtSeconds, nodeMeta, plural, scoreTone, unionNodes } from "../lib/format";
 import { useRun } from "../context/RunContext";
@@ -214,9 +216,12 @@ export default function Dashboard() {
     <div className="mx-auto max-w-[1280px] px-6 pb-16 pt-1">
 
       {run?.status === "failed" && (
-        <div className="mt-6 flex items-center gap-3 border border-bad p-3.5 text-sm text-bad">
-          Version {run.version} failed: {run.error}
-          <button onClick={dismiss} className="mono ml-auto text-xs underline">dismiss</button>
+        <div className="mt-6 border border-bad p-3.5 text-sm" role="alert">
+          <div className="flex items-start gap-3 text-bad">
+            <span>Version {run.version} failed: {run.error}</span>
+            <button onClick={dismiss} className="mono ml-auto text-xs underline">dismiss</button>
+          </div>
+          <TechnicalDetails text={run.error_detail ?? ""} />
         </div>
       )}
 
@@ -427,6 +432,7 @@ export default function Dashboard() {
                     </div>
                     <ProgressBar done={run.done} total={run.total} />
                     <div className="mt-2 truncate text-xs text-muted">{run.current_question ? `now: ${run.current_question}` : "Starting…"}</div>
+                    <RunProblems run={run} />
                   </td>
                   <td className="px-3 py-5 text-right">
                     <button onClick={requestStop}

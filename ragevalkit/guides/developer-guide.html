@@ -410,6 +410,7 @@ pre code {
       <a class="nav-link" href="#test-cases">Test cases & groups</a>
       <a class="nav-link" href="#runs">Running evaluations</a>
       <a class="nav-link" href="#export">Excel export</a>
+      <a class="nav-link" href="#logs">Logs & problems</a>
     </div>
     <div class="nav-group">
       <span class="nav-label">Advanced</span>
@@ -677,6 +678,8 @@ ragevalkit.<span class="fn">note</span>(<span class="st">"sub_queries"</span>, s
         <tbody>
           <tr><td class="param-name">port</td><td class="param-default">8001</td><td class="param-desc">HTTP port for the eval server and dashboard.</td></tr>
           <tr><td class="param-name">store_path</td><td class="param-default">"eval_store.json"</td><td class="param-desc">Path to the TinyDB JSON file. Created automatically on first start.</td></tr>
+          <tr><td class="param-name">log_dir</td><td class="param-default">None</td><td class="param-desc">Folder for log files. Default: <code>eval_logs</code> next to <code>store_path</code>. See <a href="#logs">Logs &amp; problems</a>.</td></tr>
+          <tr><td class="param-name">log_level</td><td class="param-default">"INFO"</td><td class="param-desc">Level of the console and <code>server.log</code>. Use <code>"DEBUG"</code> for more detail.</td></tr>
           <tr><td class="param-name">open_browser</td><td class="param-default">True</td><td class="param-desc">Opens the dashboard in a browser 1.5 s after startup.</td></tr>
           <tr><td class="param-name">eval_env</td><td class="param-default">"dev"</td><td class="param-desc"><code>"dev"</code> — full dashboard. <code>"prod"</code> — only <code>/health</code>, dashboard blocked. <code>"uat"</code> — like dev with UAT logging.</td></tr>
         </tbody>
@@ -958,6 +961,35 @@ ragevalkit.<span class="fn">serve</span>(
       <div class="callout callout-info">
         <div class="callout-icon">ℹ️</div>
         <p>The Results sheet is styled: teal header row, text wrap on long columns, auto column widths. Ready to share with stakeholders.</p>
+      </div>
+    </section>
+
+    <!-- Logs -->
+    <section class="section" id="logs">
+      <h2 class="section-title">Logs &amp; problems</h2>
+      <p class="section-intro">Every run is written to a log file, and when something goes wrong the dashboard says so in plain words, with the technical detail one click away.</p>
+
+      <table class="param-table">
+        <thead><tr><th>File</th><th>Contents</th></tr></thead>
+        <tbody>
+          <tr><td class="param-name">eval_logs/server.log</td><td class="param-desc">The library's own log lines. Unexpected API errors are here with a reference number and the full traceback.</td></tr>
+          <tr><td class="param-name">eval_logs/runs/&lt;time&gt;_&lt;version&gt;.log</td><td class="param-desc">One file per evaluation run: each question with its result and time, every problem with its traceback, and how the run ended.</td></tr>
+          <tr><td class="param-name">eval_logs/generation/&lt;batch&gt;.log</td><td class="param-desc">The same for test cases written from documents.</td></tr>
+        </tbody>
+      </table>
+      <p>The folder is next to the results store. Set <code>log_dir</code> to put it somewhere else (a mounted volume, for example). API keys and passwords are hidden before anything is written or shown.</p>
+
+      <div class="sub"><div class="sub-title">In the dashboard</div>
+      <ul>
+        <li>While a run is going, a problem count appears under the progress bar and opens into a list.</li>
+        <li>A finished version has a <em>Problems during this run</em> section and a <em>Download log</em> button. The same problem on many questions is listed once, with a count.</li>
+        <li>A question that could not be answered or graded shows the reason in plain words; <em>Show technical details</em> reveals the error and the end of its traceback.</li>
+        <li>The <em>Help</em> page in the top bar shows this guide and <em>How ragevalkit works</em>.</li>
+      </ul></div>
+
+      <div class="callout callout-info">
+        <div class="callout-icon">ℹ️</div>
+        <p>A failing <code>fn</code> never stops a run: that question is marked failed, the reason is recorded, and the run goes on. Only a problem in the run itself (for example the results cannot be saved) ends it, and then the dashboard says why.</p>
       </div>
     </section>
 

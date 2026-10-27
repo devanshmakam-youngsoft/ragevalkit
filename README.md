@@ -8,7 +8,7 @@ Evaluate any RAG pipeline, chatbot or agent. You give ragevalkit a Python functi
 - Plain-language findings for every run: each watch-out paired with what to do about it
 - Excel export, optional login, and one JSON file for storage (TinyDB), so there is nothing to set up
 
-**More:** [docs/guide.html](docs/guide.html) is the full reference; [docs/how-ragevalkit-works.html](docs/how-ragevalkit-works.html) explains how it works inside, file by file.
+**More:** the dashboard's **Help** page has the guides; the same pages are in the repository: [ragevalkit/guides/developer-guide.html](ragevalkit/guides/developer-guide.html) is the full reference and [ragevalkit/guides/how-it-works.html](ragevalkit/guides/how-it-works.html) explains how it works inside, folder by folder.
 
 ---
 
@@ -79,13 +79,14 @@ The **Dashboard** shows every version with its average scores and a recommendati
 
 ## Configuration
 
-The most used `serve()` parameters (the full list, with every default, is in the `serve()` docstring and `docs/guide.html`):
+The most used `serve()` parameters (the full list, with every default, is in the `serve()` docstring and the developer guide):
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `fn` | required | Your pipeline function |
 | `port` | `8001` | Port for the dashboard |
 | `store_path` | `"eval_store.json"` | TinyDB file that holds everything |
+| `log_dir` | `None` | Folder for log files; default `eval_logs` next to `store_path` (see [Logs and problems](#logs-and-problems)) |
 | `require_login` | `True` | Show the login page; `False` lets anyone in as a guest |
 | `users` | `"admin:admin123"` | `"user:password"` pairs, comma separated |
 | `judge_model` | `"groq/openai/gpt-oss-120b"` | Any LiteLLM model string for the judge |
@@ -157,6 +158,20 @@ Each run also saves a detailed `scores` block (score tiers, per-question-type av
 
 ---
 
+## Logs and problems
+
+Log files are written to `eval_logs/`, next to the results store (`log_dir` moves them):
+
+| File | Contents |
+|---|---|
+| `eval_logs/server.log` | The library's own log lines; unexpected API errors with a reference number and the full traceback |
+| `eval_logs/runs/<time>_<version>.log` | One file per run: every question with its result and time, every problem with its traceback, how the run ended |
+| `eval_logs/generation/<batch>.log` | The same for test cases written from documents |
+
+The dashboard reports problems in plain words and keeps the technical detail one click away: a problem count while a run is going, a *Problems during this run* section and a *Download log* button on each version, the reason on every question that could not be answered or graded, and a message with a reference number for server errors. A failing pipeline function never stops a run: that question is marked failed, the reason is recorded, and the run goes on. API keys and passwords are hidden before anything is written or shown.
+
+---
+
 ## Source Verification
 
 Add an `expected_sources` column to your dataset to track which documents the RAG should retrieve.
@@ -198,6 +213,30 @@ When you release a new version of your RAG app, run the evaluator against the sa
 ---
 
 ## Development
+
+### Layout
+
+```
+ragevalkit/
+  __init__.py       public API: serve, step, note, exceptions
+  launcher.py       serve()
+  exceptions.py     base errors (each package adds its own)
+  api/              app.py, routes/ (thin), schemas/, services/, dependencies.py, error_handlers.py
+  evaluation/       the run manager, calling your function, material, source check
+  judging/          the AI judge (prompts/ holds one prompt per file)
+  storage/          EvalStore, built from one repository per kind of record
+  generation/       test cases written from documents (prompts/ one per file)
+  test_cases/       case types, identity, importing/
+  recommendation/   which version to ship
+  run_summary/      the numbers saved for each run
+  recording/        step() and note()
+  metrics/  datasets/  documents/  llm/  auth/  config/  logs/  guides/
+  frontend/         dashboard source: pages/, dialogs/, components/, context/, api/, hooks/, lib/, styles/
+  static/           the built dashboard
+tests/              mirrors the package folders
+```
+
+### Dashboard
 
 The dashboard source lives in `ragevalkit/frontend/` (React + Vite). To rebuild it:
 

@@ -19,6 +19,10 @@ export interface VersionSummary {
   avg_bm25_score: number | null;
   avg_semantic_similarity: number | null;
   comment: string;
+  /** Problems met during the run, and the name of its log file (see the Download log link). */
+  issues?: Issue[];
+  issue_total?: number;
+  log_file?: string | null;
   /** Average seconds per node, in pipeline order (only nodes that ran in that version). */
   nodes: NodeAvg[];
   archived?: boolean;
@@ -122,12 +126,33 @@ export interface ResultRow {
   groups?: string[];
   /** Set when the test case has been deleted since this version ran (the question and answer here are kept). */
   case_deleted?: boolean;
+  /** Set when the question could not be answered or graded: a plain message, and the technical text on request. */
+  error_message?: string;
+  error_detail?: string;
   /** Free-form notes attached via ragevalkit.note() during the pipeline run. */
   flags?: Record<string, string>;
   /** Whether recorded sources matched expected_sources from the dataset. */
   source_match?: boolean | null;
   matched_sources?: string[];
   missing_sources?: string[];
+}
+
+/** A problem met while something ran: `message` is for anyone, `technical` is shown on request. */
+export interface Issue {
+  stage: string;
+  where: string;
+  message: string;
+  technical: string;
+  severity: "error" | "warning";
+  at: string;
+  /** How many times the same problem happened. */
+  count: number;
+}
+
+export interface Guide {
+  id: string;
+  title: string;
+  description: string;
 }
 
 export interface VersionDetail {
@@ -145,6 +170,9 @@ export interface RunState {
   date: string;
   dataset: string;
   error: string | null;
+  /** The technical version of `error`, shown on request. */
+  error_detail?: string;
+  issue_count?: number;
 }
 
 export interface DatasetInfo {
@@ -224,8 +252,9 @@ export interface GenBatch {
   total_tasks: number;
   done_tasks: number;
   items: GenItem[];
-  errors: { category: string; file: string; reason: string }[];
+  errors: { category: string; file: string; reason: string; detail?: string }[];
   error: string;
+  error_detail?: string;
 }
 
 /** A batch without its items: what the "waiting for review" banner needs. */

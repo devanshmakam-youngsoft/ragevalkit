@@ -3,6 +3,7 @@ import logging
 import secrets
 import threading
 import webbrowser
+from pathlib import Path
 from typing import Callable
 
 from ragevalkit import llm
@@ -18,6 +19,8 @@ def serve(
     # --- server ---
     port: int = 8001,
     store_path: str = "eval_store.json",
+    log_dir: str | None = None,
+    log_level: str = "INFO",
     open_browser: bool = True,
     # --- environment / recording modes ---
     eval_env: str = "dev",
@@ -83,6 +86,9 @@ def serve(
             or a Pydantic model. Async functions are supported.
         port: HTTP port for the server. Default ``8001``.
         store_path: Path to the TinyDB JSON results file. Created automatically.
+        log_dir: Folder for log files. Default: ``eval_logs`` next to ``store_path``. It holds ``server.log`` and one file
+            per evaluation run (``runs/``) and per test case generation (``generation/``), with full tracebacks.
+        log_level: Level of ``server.log`` and the console (``"INFO"`` by default; ``"DEBUG"`` for more).
         open_browser: Open the dashboard in a browser 1.5 s after startup.
         eval_env: Environment mode. ``"dev"`` (default) enables the full dashboard.
             ``"prod"`` blocks the dashboard and all eval routes — only ``/api/health``
@@ -217,6 +223,8 @@ def serve(
     config = Config(
         backend_port=port,
         store_path=store_path,
+        log_dir=Path(log_dir) if log_dir else None,
+        log_level=log_level,
         eval_env=eval_env,
         record_mode=record_mode,
         record_detail=record_detail,

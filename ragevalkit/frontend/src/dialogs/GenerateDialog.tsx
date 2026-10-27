@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api/client";
+import { TechnicalDetails } from "../components/TechnicalDetails";
 import { plural } from "../lib/format";
 import type { GenBatch, GenItem, GenLimits } from "../api/types";
 
@@ -340,7 +341,10 @@ export function GenerateDialog({ resumeId, onClose, onDone }: {
           {/* ---------- failed ---------- */}
           {batch && !gone && status === "failed" && (
             <div className="py-4 text-sm">
-              <p className="rounded border border-bad p-3 text-bad" role="alert">{batch.error || "Nothing could be written."}</p>
+              <div className="rounded border border-bad p-3" role="alert">
+                <p className="text-bad">{batch.error || "Nothing could be written."}</p>
+                <TechnicalDetails text={batch.error_detail ?? batch.errors.find((e) => e.detail)?.detail ?? ""} />
+              </div>
               {batch.files.some((f) => f.error) && (
                 <ul className="mt-3 space-y-1">{batch.files.filter((f) => f.error).map((f) => <li key={f.name}><b>{f.name}</b> — {f.error}</li>)}</ul>
               )}
@@ -384,7 +388,7 @@ export function GenerateDialog({ resumeId, onClose, onDone }: {
               {batch.errors.length > 0 && (
                 <details className="mt-4 text-xs text-muted">
                   <summary className="cursor-pointer text-warn">{plural(batch.errors.length, "question")} could not be written</summary>
-                  <ul className="mt-1.5 space-y-1">{batch.errors.map((e, i) => <li key={i}>{labels[e.category] ?? e.category} · {e.file}: {friendly(e.reason)}</li>)}</ul>
+                  <ul className="mt-1.5 space-y-1">{batch.errors.map((e, i) => <li key={i}>{labels[e.category] ?? e.category} · {e.file}: {friendly(e.reason)}<TechnicalDetails text={e.detail ?? ""} /></li>)}</ul>
                 </details>
               )}
             </>

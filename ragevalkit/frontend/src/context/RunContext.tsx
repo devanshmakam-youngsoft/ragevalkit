@@ -62,6 +62,7 @@ export function RunProvider({ children }: { children: ReactNode }) {
       setRun({
         run_id: ev.run_id, version: ev.version, status: ev.status, total: ev.total, done: ev.done,
         current_question: ev.current_question, date: ev.date, dataset: ev.dataset, error: ev.error,
+        error_detail: ev.error_detail, issue_count: ev.issue_count,
       });
       if (ev.type === "done" || ev.type === "error" || ev.type === "stopped") finish();
     };

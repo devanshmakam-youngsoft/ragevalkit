@@ -1,19 +1,38 @@
 import { apiPath } from "./base";
-import type { DatasetInfo, GenBatch, GenItem, GenLimits, GenSummary, GenTurn, Group, GroupHistory, ImportMapping, ImportPreview, ImportResult, RecoResult, RunPreview, RunSelection, RunState, TestCase, VersionDetail, VersionSummary } from "./types";
+import type { DatasetInfo, GenBatch, Guide, Issue, GenItem, GenLimits, GenSummary, GenTurn, Group, GroupHistory, ImportMapping, ImportPreview, ImportResult, RecoResult, RunPreview, RunSelection, RunState, TestCase, VersionDetail, VersionSummary } from "./types";
 
 /** Fired when any call comes back 401 so the app can return to the login page. */
 export const authEvents = new EventTarget();
 
+/** Fired when the server reports an unexpected failure (HTTP 5xx), so one place can offer the technical details. */
+export const apiEvents = new EventTarget();
+
+/** An error answer from the server: `message` is plain language, `technical` is for whoever needs the detail. */
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly code?: string,
+    readonly reference?: string,
+    readonly technical?: string,
+  ) {
+    super(message);
+  }
+}
+
 async function json<T>(res: Response, { notifyUnauthorized = true } = {}): Promise<T> {
   if (!res.ok) {
     if (res.status === 401 && notifyUnauthorized) authEvents.dispatchEvent(new Event("unauthorized"));
-    let detail = res.statusText;
+    let body: { detail?: unknown; code?: string; reference?: string; technical?: string } = {};
     try {
-      detail = (await res.json()).detail ?? detail;
+      body = await res.json();
     } catch {
       /* non-JSON error body */
     }
-    throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
+    const detail = body.detail ?? res.statusText;
+    const error = new ApiError(typeof detail === "string" ? detail : JSON.stringify(detail), res.status, body.code, body.reference, body.technical);
+    if (res.status >= 500) apiEvents.dispatchEvent(new CustomEvent("server-error", { detail: error }));
+    throw error;
   }
   return res.json();
 }
@@ -42,6 +61,13 @@ export const api = {
     return fetch(apiPath("runs"), { method: "POST", body: fd }).then((r) => json<RunState>(r));
   },
   downloadUrl: (v: string) => apiPath(`versions/${encodeURIComponent(v)}/download`),
+  /** The technical log written while a version ran. */
+  versionLogUrl: (v: string) => apiPath(`versions/${encodeURIComponent(v)}/log`),
+  /** What went wrong so far in a run, in plain language, each with its technical detail. */
+  runIssues: (runId: string) =>
+    fetch(apiPath(`runs/${runId}/issues`)).then((r) => json<{ issues: Issue[]; issue_total: number; error: string | null; error_detail: string }>(r)),
+  guides: () => fetch(apiPath("help/guides")).then((r) => json<Guide[]>(r)),
+  guideUrl: (id: string) => apiPath(`help/guides/${encodeURIComponent(id)}`),
   stopRun: (runId: string) =>
     fetch(apiPath(`runs/${runId}/stop`), { method: "POST" }).then((r) => json<{ run_id: string; message: string }>(r)),
   archiveRun: (runId: string) =>
