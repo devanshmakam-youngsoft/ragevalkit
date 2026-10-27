@@ -8,7 +8,12 @@ from fastapi.responses import StreamingResponse
 from ragevalkit.api.dependencies import get_config, get_run_manager, get_store, require_user
 from ragevalkit.api.schemas import SelectionBody
 from ragevalkit.api.services.lookups import ensure_found
-from ragevalkit.api.services.run_requests import check_version_name, parse_id_list, plan_run, selection_preview
+from ragevalkit.api.services.run_requests import (
+    check_version_name,
+    parse_id_list,
+    plan_run,
+    selection_preview,
+)
 from ragevalkit.api.services.runs import get_run, request_stop
 from ragevalkit.config import Config
 from ragevalkit.evaluation.runner import RunManager

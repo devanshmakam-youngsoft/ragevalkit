@@ -1,7 +1,6 @@
 """The instructions for writing one indirect question."""
 from ragevalkit.generation.prompts.single_reply_format import single_reply_format
 
-
 indirect_prompt = f"""Write ONE indirect question. The answer is in the passages, but the question does NOT use the passage's own wording. Instead describe a real situation, use everyday words and synonyms, or require one small step of inference.
 
 Examples of the style (a made-up topic; never reuse it):

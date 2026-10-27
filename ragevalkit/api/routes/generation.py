@@ -3,7 +3,12 @@ from fastapi import APIRouter, Depends, File, Form, UploadFile
 
 from ragevalkit.api.dependencies import get_config, get_generation_manager, get_store, require_user
 from ragevalkit.api.schemas import Approval, ItemEdit
-from ragevalkit.api.services.generation_batches import batch_summary, discard_batch, get_batch, start_generation
+from ragevalkit.api.services.generation_batches import (
+    batch_summary,
+    discard_batch,
+    get_batch,
+    start_generation,
+)
 from ragevalkit.config import Config
 from ragevalkit.generation.manager import GenerationManager
 from ragevalkit.storage.store import EvalStore

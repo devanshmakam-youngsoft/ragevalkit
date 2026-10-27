@@ -6,7 +6,6 @@ import pandas as pd
 
 from ragevalkit.run_summary.nodes import node_order
 
-
 COLUMNS_BEFORE_NODES = [
     "chat_id", "session_id", "turn_no", "type", "question", "expected_answer",
     "generated_answer", "material", "sources", "status", "total_time_taken",
@@ -124,8 +123,8 @@ def build_results_workbook(data: dict) -> bytes:
         df_results.to_excel(xw, sheet_name="Results", index=False)
 
         # Formatting: auto-width columns, wrap text in answer/context cells
-        from openpyxl.utils import get_column_letter
         from openpyxl.styles import Alignment, Font, PatternFill
+        from openpyxl.utils import get_column_letter
         WRAP_COLS = {"question", "expected_answer", "generated_answer",
                      "answer_remarks", "material_remarks", "retrieved_context"}
         HEADER_FILL = PatternFill("solid", fgColor="1A5276")

@@ -4,13 +4,13 @@ from datetime import datetime, timezone
 import pytest
 from fastapi.testclient import TestClient
 
-from ragevalkit.config import Config
-from ragevalkit.recommendation.group_overview import group_overview
-from ragevalkit.recommendation.engine import recommend
 from ragevalkit.api import create_app
-from ragevalkit.storage.store import EvalStore
-from ragevalkit.run_summary.scores import build_scores
+from ragevalkit.config import Config
+from ragevalkit.recommendation.engine import recommend
+from ragevalkit.recommendation.group_overview import group_overview
 from ragevalkit.run_summary.builder import build_summary
+from ragevalkit.run_summary.scores import build_scores
+from ragevalkit.storage.store import EvalStore
 
 
 def run(version, answer, material, time, *, rows=8, failed=0, archived=False, stopped=False, groups=None):

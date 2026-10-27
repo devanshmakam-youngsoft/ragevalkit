@@ -6,7 +6,6 @@ import pandas as pd
 
 from ragevalkit.datasets.exceptions import DatasetError
 
-
 REQUIRED_COLUMNS = ["chat_id", "turn_no", "type", "question", "expected_answer"]
 
 

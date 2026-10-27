@@ -1,7 +1,6 @@
 """How much of a step is kept: displayed values and the material the judge reads."""
 import json
 
-
 LIMITS = {"value": 1000, "material": 20000}
 
 

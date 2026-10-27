@@ -5,10 +5,10 @@ from types import SimpleNamespace
 import pandas as pd
 import pytest
 
-from ragevalkit.judging.judge import Judge
 from ragevalkit.judging.insights import parse_insights
-from ragevalkit.storage.store import EvalStore
+from ragevalkit.judging.judge import Judge
 from ragevalkit.run_summary.group_stats import build_group_stats
+from ragevalkit.storage.store import EvalStore
 
 
 @pytest.fixture
@@ -80,6 +80,7 @@ def test_the_excel_export_has_a_groups_column(store):
     sel = store.resolve_selection(group_ids=[a, b])
     store.write("1", {"version": "1", "date": "2026-01-01T00:00:00+00:00"}, _rows(sel, {"q1": 1, "q2": 2, "q3": 3}))
     import io
+
     import openpyxl
     book = openpyxl.load_workbook(io.BytesIO(store.export_xlsx("1")))
     sheet = book["Results"]

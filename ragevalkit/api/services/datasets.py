@@ -1,9 +1,9 @@
 """The older dataset endpoints: a default dataset, validating a file, uploading one into the library."""
+from ragevalkit.api.services.uploads import load_uploaded_spreadsheet
 from ragevalkit.config import Config
 from ragevalkit.datasets.exceptions import DatasetError
 from ragevalkit.datasets.loader import REQUIRED_COLUMNS, load_dataset
 from ragevalkit.exceptions import NotFoundError
-from ragevalkit.api.services.uploads import load_uploaded_spreadsheet
 from ragevalkit.storage.store import EvalStore
 
 

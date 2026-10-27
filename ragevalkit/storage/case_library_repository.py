@@ -8,7 +8,7 @@ from ragevalkit.exceptions import InvalidInput
 from ragevalkit.storage.base import StoreBase
 from ragevalkit.storage.exceptions import GroupNotFound
 from ragevalkit.storage.selection import RunSelection, cases_to_dataframe
-from ragevalkit.test_cases.identity import case_order, latest_versions, case_id_for
+from ragevalkit.test_cases.identity import case_id_for, case_order, latest_versions
 
 logger = logging.getLogger(__name__)
 

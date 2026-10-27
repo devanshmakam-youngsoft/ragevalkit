@@ -2,7 +2,6 @@
 import re
 
 
-
 def normalise_header(header) -> str:
     return re.sub(r"[^a-z0-9]+", "_", str(header).strip().lower()).strip("_")
 

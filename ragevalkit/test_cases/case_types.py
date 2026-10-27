@@ -7,7 +7,6 @@ treated as such.
 """
 import re
 
-
 RAG = "rag"
 
 

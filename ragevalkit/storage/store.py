@@ -2,11 +2,11 @@
 from pathlib import Path
 
 from ragevalkit.storage.case_import_repository import CaseImportRepository
+from ragevalkit.storage.case_library_repository import CaseLibraryRepository
 from ragevalkit.storage.datasets_repository import DatasetsRepository
 from ragevalkit.storage.generation_batches_repository import GenerationBatchesRepository
 from ragevalkit.storage.groups_repository import GroupsRepository
 from ragevalkit.storage.runs_repository import RunsRepository
-from ragevalkit.storage.case_library_repository import CaseLibraryRepository
 
 
 class EvalStore(

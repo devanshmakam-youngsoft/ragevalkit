@@ -3,16 +3,16 @@ import pytest
 from docx import Document
 from fastapi.testclient import TestClient
 
-from ragevalkit.test_cases.case_types import NON_RAG, RAG, is_non_rag
-from ragevalkit.config import Config
-from ragevalkit.documents.models import Chunk
-from ragevalkit.documents.text_cleaning import normalise
-from ragevalkit.documents.reader import read_document
-from ragevalkit.documents.exceptions import DocumentError
-from ragevalkit.generation import CASE_TYPE, Task, validate
-from ragevalkit.generation.prompts import CATEGORY_PROMPTS
-from ragevalkit.generation.message_builder import build_messages, system_prompt
 from ragevalkit.api import create_app
+from ragevalkit.config import Config
+from ragevalkit.documents.exceptions import DocumentError
+from ragevalkit.documents.models import Chunk
+from ragevalkit.documents.reader import read_document
+from ragevalkit.documents.text_cleaning import normalise
+from ragevalkit.generation import CASE_TYPE, Task, validate
+from ragevalkit.generation.message_builder import build_messages, system_prompt
+from ragevalkit.generation.prompts import CATEGORY_PROMPTS
+from ragevalkit.test_cases.case_types import NON_RAG, RAG, is_non_rag
 
 PASSAGE = ("Employees must submit expense claims within thirty days of travel. Managers approve claims above five hundred "
            "dollars within five working days. Late claims are paid in the next monthly cycle unless finance grants an "

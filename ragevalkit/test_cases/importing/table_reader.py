@@ -10,7 +10,6 @@ from ragevalkit.datasets.exceptions import DatasetError
 from ragevalkit.test_cases.importing.cell_values import cell_text, normalise_header
 from ragevalkit.test_cases.importing.fields import ALIASES, FIELDS, MAX_ROWS
 
-
 _TEXT_SUFFIXES = {".csv", ".tsv", ".txt"}
 
 

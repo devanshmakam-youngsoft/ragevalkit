@@ -3,9 +3,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from ragevalkit.evaluation.source_check import parse_source_groups
+from ragevalkit.evaluation.source_check import check_sources_by_keyword, parse_source_groups
 from ragevalkit.judging.judge import Judge
-from ragevalkit.evaluation.source_check import check_sources_by_keyword
 
 
 def test_parse_groups():

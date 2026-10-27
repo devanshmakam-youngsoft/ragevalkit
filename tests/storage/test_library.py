@@ -3,9 +3,9 @@ import pandas as pd
 import pytest
 from fastapi.testclient import TestClient
 
+from ragevalkit.api import create_app
 from ragevalkit.config import Config
 from ragevalkit.storage.exceptions import ConflictError, GroupNotFound
-from ragevalkit.api import create_app
 from ragevalkit.storage.store import EvalStore
 
 

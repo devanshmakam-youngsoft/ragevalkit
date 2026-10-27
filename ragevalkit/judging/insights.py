@@ -1,7 +1,6 @@
 """Reading and checking the findings a model writes for a run: watch-outs, each paired with its suggestion."""
 import json
 
-
 _ITEM_TEXT_KEYS = ("text", "suggestion", "pitfall", "watch_out", "issue", "action", "title", "description", "summary")
 
 

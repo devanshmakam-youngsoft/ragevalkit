@@ -23,7 +23,12 @@ import time
 
 from ragevalkit.judging.exceptions import JudgeError
 from ragevalkit.judging.insights import check_insights, parse_insights
-from ragevalkit.judging.prompts import grader_prompt, run_summary_format, run_summary_prompt, source_check_prompt
+from ragevalkit.judging.prompts import (
+    grader_prompt,
+    run_summary_format,
+    run_summary_prompt,
+    source_check_prompt,
+)
 from ragevalkit.judging.schemas import Grade, SourceCheckResult
 from ragevalkit.llm import complete
 

@@ -7,10 +7,10 @@ from __future__ import annotations
 
 import re
 
-from ragevalkit.metrics import tokenize
 from ragevalkit.documents.text_cleaning import normalise
 from ragevalkit.generation import evidence as evidence_of
 from ragevalkit.generation.planning import Task
+from ragevalkit.metrics import tokenize
 
 SIMILARITY_LIMIT = 0.75        # two questions this alike count as the same question
 RESTATES_LIMIT = 0.6           # a follow-up that repeats this much of the earlier questions is not a follow-up

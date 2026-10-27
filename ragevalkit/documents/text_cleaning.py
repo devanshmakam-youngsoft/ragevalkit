@@ -1,7 +1,6 @@
 """Cleaning document text and cutting it into numbered sentences."""
 import re
 
-
 _DASHES = str.maketrans({"‐": "-", "‑": "-", "‒": "-", "–": "-", "—": "-", "−": "-",
                          "‘": "'", "’": "'", "“": '"', "”": '"', " ": " ", "­": ""})
 

@@ -10,7 +10,13 @@ import pandas as pd
 from ragevalkit import metrics, recording
 from ragevalkit.config import Config
 from ragevalkit.evaluation.exceptions import RunBusy
-from ragevalkit.evaluation.function_adapter import answer_text_of, call_sync, detect_call_style, format_history, parameter_name_for
+from ragevalkit.evaluation.function_adapter import (
+    answer_text_of,
+    call_sync,
+    detect_call_style,
+    format_history,
+    parameter_name_for,
+)
 from ragevalkit.evaluation.material import select_material
 from ragevalkit.evaluation.run import Run, light_row
 from ragevalkit.evaluation.source_check import check_sources_by_keyword, parse_source_groups

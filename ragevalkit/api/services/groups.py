@@ -1,7 +1,7 @@
 """Groups and the test cases that carry them."""
+from ragevalkit.api.services.uploads import load_uploaded_spreadsheet
 from ragevalkit.config import Config
 from ragevalkit.exceptions import NotFoundError
-from ragevalkit.api.services.uploads import load_uploaded_spreadsheet
 from ragevalkit.storage.store import EvalStore
 
 

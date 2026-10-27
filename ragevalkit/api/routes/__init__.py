@@ -1,6 +1,17 @@
 """The HTTP routes, one file per area. Routers are listed in the order they are registered: the more specific
 ``/api/test-cases/import`` comes before ``/api/test-cases/{tc_id}``."""
-from ragevalkit.api.routes import auth, datasets, generation, groups, health, imports, recommendation, runs, test_cases, versions
+from ragevalkit.api.routes import (
+    auth,
+    datasets,
+    generation,
+    groups,
+    health,
+    imports,
+    recommendation,
+    runs,
+    test_cases,
+    versions,
+)
 
 DASHBOARD_ROUTERS = [
     auth.router, generation.router, imports.router, runs.router, versions.router, recommendation.router,

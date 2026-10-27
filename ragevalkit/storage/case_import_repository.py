@@ -2,11 +2,10 @@
 import logging
 from datetime import datetime, timezone
 
-
 from ragevalkit.storage.base import StoreBase
 from ragevalkit.storage.exceptions import GroupNotFound
 from ragevalkit.storage.records import clean_expected_sources
-from ragevalkit.test_cases.identity import latest_versions, case_id_for
+from ragevalkit.test_cases.identity import case_id_for, latest_versions
 
 logger = logging.getLogger(__name__)
 
