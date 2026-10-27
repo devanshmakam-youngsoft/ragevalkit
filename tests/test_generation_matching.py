@@ -3,7 +3,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from ragevalkit.docs import Chunk, normalise
+from ragevalkit.documents.models import Chunk
+from ragevalkit.documents.text_cleaning import normalise
 from ragevalkit.generator import LiteLLM, Task, parse_reply, validate
 
 MARKDOWN_PASSAGE = (

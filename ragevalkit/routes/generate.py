@@ -7,7 +7,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from pydantic import BaseModel
 
-from ragevalkit.docs import SUPPORTED_MESSAGE, SUPPORTED_SUFFIXES
+from ragevalkit.documents.constants import SUPPORTED_MESSAGE, SUPPORTED_SUFFIXES
 from ragevalkit.generator import CATEGORIES, GenerationBusy
 from ragevalkit.routes.deps import require_user
 

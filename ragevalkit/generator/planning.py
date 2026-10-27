@@ -4,7 +4,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from ragevalkit.docs import Chunk, ReadDocument, spread_order
+from ragevalkit.documents.models import Chunk, ReadDocument
+from ragevalkit.documents.ordering import spread_order
 
 
 @dataclass

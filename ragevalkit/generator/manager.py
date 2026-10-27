@@ -23,7 +23,9 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Callable
 
-from ragevalkit.docs import SUPPORTED_SUFFIXES, ReadDocument, read_document
+from ragevalkit.documents.constants import SUPPORTED_SUFFIXES
+from ragevalkit.documents.models import ReadDocument
+from ragevalkit.documents.reader import read_document
 from ragevalkit.documents.exceptions import DocumentError
 from ragevalkit.generation.exceptions import GenerationBusy
 from ragevalkit.generator.categories import (

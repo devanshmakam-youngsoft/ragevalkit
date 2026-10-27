@@ -8,7 +8,7 @@ from __future__ import annotations
 import re
 
 from ragevalkit.metrics import tokenize
-from ragevalkit.docs import normalise
+from ragevalkit.documents.text_cleaning import normalise
 from ragevalkit.generator import evidence as evidence_of
 from ragevalkit.generator.planning import Task
 

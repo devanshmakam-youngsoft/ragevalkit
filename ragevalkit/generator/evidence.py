@@ -9,7 +9,8 @@ import difflib
 import math
 import re
 
-from ragevalkit.docs import Chunk, clean, normalise
+from ragevalkit.documents.models import Chunk
+from ragevalkit.documents.text_cleaning import clean, normalise
 
 MIN_QUOTE_CHARS = 15
 MIN_FRAGMENT_WORDS = 4

@@ -5,7 +5,9 @@ from fastapi.testclient import TestClient
 
 from ragevalkit.casetypes import NON_RAG, RAG, is_non_rag
 from ragevalkit.config import Config
-from ragevalkit.docs import Chunk, normalise, read_document
+from ragevalkit.documents.models import Chunk
+from ragevalkit.documents.text_cleaning import normalise
+from ragevalkit.documents.reader import read_document
 from ragevalkit.documents.exceptions import DocumentError
 from ragevalkit.generator import CASE_TYPE, Task, validate
 from ragevalkit.generator.prompts import CATEGORY_RULES, build_messages, system_prompt
