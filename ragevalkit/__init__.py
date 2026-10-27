@@ -46,20 +46,16 @@ def _load_dotenv(path: str = ".env") -> None:
     except Exception:
         pass
 
-from ragevalkit import litellm_loader
-from ragevalkit.recording import step, note
+from ragevalkit import llm
+from ragevalkit.recording.steps import step
+from ragevalkit.recording.notes import note
 from ragevalkit.config import Config
 from ragevalkit.server import create_app
-from ragevalkit.exceptions import (
-    RagevalError,
-    ConfigError,
-    DatasetError,
-    StoreError,
-    VersionNotFound,
-    RunError,
-    RunBusy,
-    JudgeError,
-)
+from ragevalkit.exceptions import RagevalError, ConfigError
+from ragevalkit.datasets.exceptions import DatasetError
+from ragevalkit.storage.exceptions import StoreError, VersionNotFound
+from ragevalkit.evaluation.exceptions import RunError, RunBusy
+from ragevalkit.judging.exceptions import JudgeError
 
 __version__ = "0.1.3"
 __all__ = [
@@ -304,7 +300,7 @@ def serve(
     )
     if config.eval_env != "prod":
         try:
-            litellm_loader.load()   # once, here, before the server and its worker threads exist (see litellm_loader)
+            llm.load_litellm()   # once, here, before the server and its worker threads exist (see llm/loader.py)
         except ImportError:
             logging.getLogger(__name__).warning("litellm is not installed: judging and test case generation will not work.")
     app = create_app(

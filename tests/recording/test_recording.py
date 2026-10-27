@@ -14,18 +14,18 @@ from ragevalkit.server import create_app
 
 def run_question(body, detail="all"):
     """What the runner does around one call of the developer's function."""
-    recording._activate(detail)
+    recording.begin_question(detail)
     try:
         body()
     finally:
-        recording._deactivate()
-    return recording._collect()
+        recording.end_question()
+    return recording.collect_question()
 
 
 @pytest.fixture(autouse=True)
 def default_limits(monkeypatch):
-    monkeypatch.setitem(recording._limits, "value", 1000)
-    monkeypatch.setitem(recording._limits, "material", 20000)
+    monkeypatch.setitem(recording.LIMITS, "value", 1000)
+    monkeypatch.setitem(recording.LIMITS, "material", 20000)
 
 
 # ---- steps and notes from any thread --------------------------------------------------------------------
@@ -68,16 +68,16 @@ def test_steps_are_listed_in_the_order_they_started_not_the_order_they_finished(
 
 
 def test_a_step_that_finishes_after_its_question_is_over_does_not_land_in_the_next_one():
-    recording._activate("all")
+    recording.begin_question("all")
     late = recording.step("late")
     late.__enter__()
-    recording._deactivate()
-    assert recording._collect()["steps"] == []
+    recording.end_question()
+    assert recording.collect_question()["steps"] == []
 
-    recording._activate("all")
+    recording.begin_question("all")
     late.__exit__(None, None, None)                  # the slow thread from question 1 ends during question 2
-    recording._deactivate()
-    assert recording._collect()["steps"] == []
+    recording.end_question()
+    assert recording.collect_question()["steps"] == []
 
 
 def test_async_steps_run_together_are_all_recorded():
@@ -95,7 +95,7 @@ def test_nothing_is_recorded_outside_an_evaluation_run():
     with recording.step("outside") as s:
         s.material = "x"
     recording.note("k", "v")
-    assert recording._collect() == {"steps": [], "flags": {}}
+    assert recording.collect_question() == {"steps": [], "flags": {}}
 
 
 def test_detail_modes_keep_what_they_promise():
@@ -188,7 +188,7 @@ def test_shown_values_are_cut_with_a_marker_saying_how_much_is_missing():
 
 
 def test_material_is_cut_at_its_own_larger_limit(monkeypatch):
-    monkeypatch.setitem(recording._limits, "material", 50)
+    monkeypatch.setitem(recording.LIMITS, "material", 50)
 
     def body():
         with recording.step("search") as s:
@@ -201,7 +201,7 @@ def test_material_is_cut_at_its_own_larger_limit(monkeypatch):
 def test_the_limits_can_be_set():
     recording.configure(max_step_value_chars=7, max_material_chars=9)
     try:
-        assert recording._limits == {"value": 7, "material": 9}
+        assert recording.LIMITS == {"value": 7, "material": 9}
     finally:
         recording.configure(max_step_value_chars=1000, max_material_chars=20000)
 
@@ -212,7 +212,7 @@ def test_a_vector_is_summarised_not_stored():
         return [0.1] * 1536
 
     assert run_question(lambda: embed("q"))["steps"][0]["output"] == "[1536 numbers]"
-    assert recording._safe_repr([1, 2, 3]) == "[1, 2, 3]"           # a short list is shown as it is
+    assert recording.display_text([1, 2, 3]) == "[1, 2, 3]"           # a short list is shown as it is
 
 
 # ---- through the runner --------------------------------------------------------------------------------
@@ -244,6 +244,6 @@ def test_a_step_that_ran_several_times_has_its_time_added_up(tmp_path):
 def test_the_runner_applies_the_configured_limits(tmp_path):
     config = Config(store_path=tmp_path / "s.json", require_login=False, eval_secret="s", step_value_chars=30, material_chars=40)
     app = create_app(config, fn=lambda q: "a", generation_llm=lambda m: "{}")
-    assert recording._limits == {"value": 30, "material": 40}
+    assert recording.LIMITS == {"value": 30, "material": 40}
     recording.configure(max_step_value_chars=1000, max_material_chars=20000)
     del app

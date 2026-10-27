@@ -20,7 +20,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from ragevalkit.exceptions import DatasetError
+from ragevalkit.datasets.exceptions import DatasetError
 
 MAX_ROWS = 20_000
 MAX_BYTES = 10 * 1024 * 1024

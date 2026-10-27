@@ -22,9 +22,9 @@ CATEGORIES (see ``categories``; each becomes a group)
 Every generated test case has the type ``rag``: its answer has to come from the documents.
 
 Modules: ``prompts`` (what the model is told) · ``evidence`` (quotes are really in the document) ·
-``checks`` (the rules) · ``llm`` (the model client; the call itself is ``litellm_loader.complete``) · ``writer`` · ``planning`` · ``manager``.
+``checks`` (the rules) · ``llm`` (the model client; the call itself is ``llm.complete``) · ``writer`` · ``planning`` · ``manager``.
 """
-from ragevalkit.exceptions import GenerationBusy, GenerationError
+from ragevalkit.generation.exceptions import GenerationBusy, GenerationError
 from ragevalkit.generator.categories import CASE_TYPE, CATEGORIES, CATEGORY_LABELS
 from ragevalkit.generator.checks import validate
 from ragevalkit.generator.llm import LiteLLM, parse_reply

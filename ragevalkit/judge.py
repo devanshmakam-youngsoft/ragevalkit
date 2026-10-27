@@ -23,9 +23,9 @@ import time
 
 from pydantic import BaseModel, Field
 
-from ragevalkit import litellm_loader
+from ragevalkit.llm import complete
 from ragevalkit import prompts as _prompts
-from ragevalkit.exceptions import JudgeError
+from ragevalkit.judging.exceptions import JudgeError
 
 logger = logging.getLogger(__name__)
 
@@ -157,7 +157,7 @@ class Judge:
         self._grader_prompt = config.judge_prompt_override or _prompts.GRADER_PROMPT
 
     def _call(self, messages: list[dict], json_mode: bool = False) -> str:
-        return litellm_loader.complete(
+        return complete(
             messages, model=self.config.judge_model, api_key=self.config.judge_api_key,
             temperature=self.config.judge_temperature, json_mode=json_mode,
         )

@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 
 from ragevalkit.config import Config
 from ragevalkit.docs import Chunk, normalise, read_document, spread_order
-from ragevalkit.exceptions import DocumentError
+from ragevalkit.documents.exceptions import DocumentError
 from ragevalkit.generator import GenerationError, Task, generate_item, plan_tasks, validate
 from ragevalkit.server import create_app
 

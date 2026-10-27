@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import re
 
-from ragevalkit import lexical
+from ragevalkit.metrics import tokenize
 from ragevalkit.docs import normalise
 from ragevalkit.generator import evidence as evidence_of
 from ragevalkit.generator.planning import Task
@@ -43,7 +43,7 @@ def check_text(question: str, answer: str, *, standalone: bool) -> str | None:
 
 
 def similarity(a: str, b: str) -> float:
-    x, y = set(lexical.tokenize(a)), set(lexical.tokenize(b))
+    x, y = set(tokenize(a)), set(tokenize(b))
     return len(x & y) / len(x | y) if x | y else 0.0
 
 
@@ -53,8 +53,8 @@ def _check_indirect(question: str, quotes: list[str], passages: list[str]) -> st
     words = normalise(question).split()
     if any(" ".join(words[i:i + 4]) in joined for i in range(len(words) - 3)):
         return "the question copies four or more words in a row from the passages; rephrase it in everyday words"
-    q_tokens = set(lexical.tokenize(question))
-    if q_tokens and len(q_tokens & set(lexical.tokenize(" ".join(quotes)))) / len(q_tokens) > RESTATES_LIMIT:
+    q_tokens = set(tokenize(question))
+    if q_tokens and len(q_tokens & set(tokenize(" ".join(quotes)))) / len(q_tokens) > RESTATES_LIMIT:
         return "the question uses too many of the evidence's own words; make it more indirect"
     return None
 
@@ -65,8 +65,8 @@ def _check_follow_up(question: str, earlier: list[str]) -> str | None:
         return (f'this follow-up ("{question}") could be asked on its own, so it is just another direct question; rewrite it so it '
                 'depends on the previous answer by referring back to it ("it", "that", "those", "in that case", "and what about ...?") '
                 'without naming the topic again')
-    q_tokens = set(lexical.tokenize(question))
-    seen = set(lexical.tokenize(" ".join(earlier)))
+    q_tokens = set(tokenize(question))
+    seen = set(tokenize(" ".join(earlier)))
     if len(q_tokens) >= 4 and len(q_tokens & seen) / len(q_tokens) > RESTATES_LIMIT:
         return 'this follow-up repeats the earlier question\'s words instead of referring back; say "it" or "that" rather than naming the topic again'
     return None

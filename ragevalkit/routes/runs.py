@@ -10,9 +10,10 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Resp
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from ragevalkit.dataset import REQUIRED_COLUMNS, DatasetError, load_dataset
+from ragevalkit.datasets.loader import REQUIRED_COLUMNS, load_dataset
+from ragevalkit.dataset import DatasetError
 from ragevalkit.routes.deps import require_user
-from ragevalkit.exceptions import ConflictError, GroupNotFound
+from ragevalkit.storage.exceptions import ConflictError, GroupNotFound
 from ragevalkit.recommend import group_overview, recommend
 from ragevalkit.runner import RunBusy
 from ragevalkit.store import RunSelection, VersionNotFound, valid_version

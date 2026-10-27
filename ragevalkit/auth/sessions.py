@@ -1,27 +1,9 @@
-"""Static-user login with an HMAC-signed, expiring session token (no database, no extra dependencies)."""
+"""HMAC-signed, expiring session tokens (no database, no extra dependencies)."""
 import base64
 import hashlib
 import hmac
 import json
 import time
-
-
-def parse_users(spec: str) -> dict[str, str]:
-    """'alice:pw1,bob:pw2' -> {'alice': 'pw1', 'bob': 'pw2'} (a password may contain ':')."""
-    users = {}
-    for item in spec.split(","):
-        name, sep, password = item.strip().partition(":")
-        if name and sep:
-            users[name.strip().lower()] = password
-    return users
-
-
-def check_password(users: dict[str, str], username: str, password: str) -> str | None:
-    """Return the canonical username if the credentials match. Compares in constant time either way."""
-    name = username.strip().lower()
-    expected = users.get(name)
-    ok = hmac.compare_digest((expected or "\0").encode(), password.encode())
-    return name if expected is not None and ok else None
 
 
 def _sign(secret: str, payload: str) -> str:

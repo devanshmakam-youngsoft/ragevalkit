@@ -1,97 +1,49 @@
-"""ragevalkit exception hierarchy.
+"""Base exception types for ragevalkit.
 
-All library exceptions inherit from RagevalError so callers can catch the
-base class to handle any ragevalkit error, or a specific subclass for
-fine-grained handling.
+Every library error inherits from ``RagevalError``, so callers can catch the base class to handle any ragevalkit
+error, or a specific subclass for fine-grained handling. Each feature keeps its own errors in its own package:
+
+    ragevalkit.datasets.exceptions     DatasetError
+    ragevalkit.documents.exceptions    DocumentError
+    ragevalkit.storage.exceptions      StoreError, VersionNotFound, ConflictError, GroupNotFound
+    ragevalkit.evaluation.exceptions   RunError, RunBusy
+    ragevalkit.generation.exceptions   GenerationError, GenerationBusy
+    ragevalkit.judging.exceptions      JudgeError
+
+All of them are also importable from the top level, which is the supported way:
 
     from ragevalkit import RagevalError, JudgeError, DatasetError
 """
+import importlib
 
 
 class RagevalError(Exception):
     """Base class for all ragevalkit exceptions."""
 
 
-# ---------------------------------------------------------------------------
-# Configuration
-# ---------------------------------------------------------------------------
-
 class ConfigError(RagevalError):
     """Invalid or conflicting value passed to serve() or Config."""
 
 
-# ---------------------------------------------------------------------------
-# Dataset
-# ---------------------------------------------------------------------------
-
-class DatasetError(RagevalError):
-    """Dataset file is missing, unreadable, or fails column validation."""
-
-
-class DocumentError(RagevalError):
-    """An uploaded document could not be read (scanned, password-protected, unsupported or empty)."""
-
-
-# ---------------------------------------------------------------------------
-# Store
-# ---------------------------------------------------------------------------
-
-class StoreError(RagevalError):
-    """TinyDB storage operation failed."""
+# Before the errors moved next to their features, all of them were imported from this module. This lookup keeps
+# `from ragevalkit.exceptions import JudgeError` working. It has to be lazy: the feature modules import
+# RagevalError from here, so importing them eagerly would be circular.
+_MOVED = {
+    "DatasetError": "ragevalkit.datasets.exceptions",
+    "DocumentError": "ragevalkit.documents.exceptions",
+    "StoreError": "ragevalkit.storage.exceptions",
+    "VersionNotFound": "ragevalkit.storage.exceptions",
+    "ConflictError": "ragevalkit.storage.exceptions",
+    "GroupNotFound": "ragevalkit.storage.exceptions",
+    "RunError": "ragevalkit.evaluation.exceptions",
+    "RunBusy": "ragevalkit.evaluation.exceptions",
+    "GenerationError": "ragevalkit.generation.exceptions",
+    "GenerationBusy": "ragevalkit.generation.exceptions",
+    "JudgeError": "ragevalkit.judging.exceptions",
+}
 
 
-class VersionNotFound(StoreError):
-    """Requested version does not exist in the store."""
-
-    def __init__(self, version: str | None = None):
-        msg = f"Version {version!r} not found" if version else "Version not found"
-        super().__init__(msg)
-        self.version = version
-
-
-class ConflictError(StoreError):
-    """A change would clash with existing data (e.g. a duplicate group name)."""
-
-
-class GroupNotFound(StoreError):
-    """Requested test-case group does not exist."""
-
-    def __init__(self, group_id: str | None = None):
-        msg = f"Group {group_id!r} not found" if group_id else "Group not found"
-        super().__init__(msg)
-        self.group_id = group_id
-
-
-# ---------------------------------------------------------------------------
-# Runner
-# ---------------------------------------------------------------------------
-
-class RunError(RagevalError):
-    """Eval run could not start or complete."""
-
-
-class RunBusy(RunError):
-    """Another evaluation is already in progress."""
-
-    def __init__(self, msg: str = "Another evaluation is already running"):
-        super().__init__(msg)
-
-
-# ---------------------------------------------------------------------------
-# Writing test cases from documents
-# ---------------------------------------------------------------------------
-
-class GenerationError(RagevalError):
-    """A question could not be written that follows every rule."""
-
-
-class GenerationBusy(RagevalError):
-    """Another generation is already running."""
-
-
-# ---------------------------------------------------------------------------
-# Judge
-# ---------------------------------------------------------------------------
-
-class JudgeError(RagevalError):
-    """LLM judge failed to return a valid response after all retries."""
+def __getattr__(name: str):
+    if name in _MOVED:
+        return getattr(importlib.import_module(_MOVED[name]), name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

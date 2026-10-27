@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 
-from ragevalkit import litellm_loader
+from ragevalkit.llm import complete
 
 
 class LiteLLM:
@@ -17,7 +17,7 @@ class LiteLLM:
         return self.config.generator_model or self.config.judge_model
 
     def __call__(self, messages: list[dict]) -> str:
-        return litellm_loader.complete(messages, model=self.model, api_key=self.config.judge_api_key, json_mode=True)
+        return complete(messages, model=self.model, api_key=self.config.judge_api_key, json_mode=True)
 
 
 def parse_reply(raw: str | None) -> dict | None:

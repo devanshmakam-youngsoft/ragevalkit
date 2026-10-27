@@ -41,8 +41,8 @@ import pandas as pd
 from tinydb import Query, TinyDB
 from tinydb.operations import delete
 
-from ragevalkit.dataset import compute_fingerprint
-from ragevalkit.exceptions import ConflictError, GroupNotFound, VersionNotFound
+from ragevalkit.datasets.loader import compute_fingerprint
+from ragevalkit.storage.exceptions import ConflictError, GroupNotFound, VersionNotFound
 
 logger = logging.getLogger(__name__)
 

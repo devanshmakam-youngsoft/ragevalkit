@@ -5,7 +5,8 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Response, UploadFile
 
-from ragevalkit.exceptions import ConflictError, DatasetError, GroupNotFound
+from ragevalkit.storage.exceptions import ConflictError, GroupNotFound
+from ragevalkit.datasets.exceptions import DatasetError
 from ragevalkit.importing import (
     FIELD_LABELS, FIELDS, MAX_BYTES, clean_mapping, detect_mapping, parse_rows, read_table, template_workbook,
 )

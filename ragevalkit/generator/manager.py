@@ -24,7 +24,8 @@ from pathlib import Path
 from typing import Callable
 
 from ragevalkit.docs import SUPPORTED_SUFFIXES, ReadDocument, read_document
-from ragevalkit.exceptions import DocumentError, GenerationBusy
+from ragevalkit.documents.exceptions import DocumentError
+from ragevalkit.generation.exceptions import GenerationBusy
 from ragevalkit.generator.categories import (
     CASE_TYPE, CATEGORIES, CATEGORY_LABELS, DEFAULT_PER_CATEGORY, DEFAULT_TURNS, MAX_TURNS, MIN_TURNS,
 )

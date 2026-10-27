@@ -3,7 +3,8 @@ import asyncio
 from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel
 
-from ragevalkit.auth import check_password, make_token, parse_users
+from ragevalkit.auth.passwords import check_password, parse_users
+from ragevalkit.auth.sessions import make_token
 from ragevalkit.routes.deps import current_user
 
 router = APIRouter(prefix="/api/auth")

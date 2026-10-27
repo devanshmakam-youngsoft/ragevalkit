@@ -59,11 +59,11 @@ from typing import Callable
 
 import pandas as pd
 
-from ragevalkit import lexical, recording
+from ragevalkit import metrics, recording
 from ragevalkit.casetypes import is_non_rag
 from ragevalkit.config import Config
 from ragevalkit.dataset import parse_source_groups
-from ragevalkit.exceptions import RunBusy
+from ragevalkit.evaluation.exceptions import RunBusy
 from ragevalkit.judge import Judge
 from ragevalkit.store import EvalStore, build_group_stats, build_summary, finish_insights, stats_for_llm
 
@@ -390,7 +390,7 @@ class RunManager:
         material, sources, step_inputs, step_outputs, flags)."""
         _recording_active = self._record_mode != "off"
         if _recording_active:
-            recording._activate(detail=self._record_detail)
+            recording.begin_question(detail=self._record_detail)
         t0  = time.perf_counter()
         exc = None
         result = None
@@ -408,10 +408,10 @@ class RunManager:
             exc = e
         finally:
             if _recording_active:
-                recording._deactivate()
+                recording.end_question()
 
         elapsed   = round(time.perf_counter() - t0, 3)
-        collected = recording._collect()
+        collected = recording.collect_question()
         steps     = collected["steps"]
         flags     = collected["flags"]
 
@@ -545,12 +545,12 @@ class RunManager:
         if out["status"] == "ok" and not conversational:
             gen = out["generated_answer"]
             if self.config.run_keyword_recall:
-                out["keyword_recall"] = lexical.keyword_recall(row.expected_answer, gen)
+                out["keyword_recall"] = metrics.keyword_recall(row.expected_answer, gen)
             if self.config.run_bm25:
-                out["bm25_score"] = lexical.bm25_score(row.expected_answer, gen)
+                out["bm25_score"] = metrics.bm25_score(row.expected_answer, gen)
             if self.config.run_semantic_similarity:
                 try:
-                    out["semantic_similarity"] = lexical.semantic_similarity(
+                    out["semantic_similarity"] = metrics.semantic_similarity(
                         row.expected_answer, gen, self.config.embedding_model
                     )
                 except Exception as e:

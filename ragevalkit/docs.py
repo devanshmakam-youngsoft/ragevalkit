@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from functools import cached_property
 from pathlib import Path
 
-from ragevalkit.exceptions import DocumentError
+from ragevalkit.documents.exceptions import DocumentError
 
 SUPPORTED_SUFFIXES = (".pdf", ".docx", ".txt", ".md", ".markdown")
 TARGET_CHARS = 3500          # size of one passage handed to the model

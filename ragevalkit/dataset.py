@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from ragevalkit.exceptions import DatasetError  # re-exported for backward compat
+from ragevalkit.datasets.exceptions import DatasetError
 
 REQUIRED_COLUMNS = ["chat_id", "turn_no", "type", "question", "expected_answer"]
 # Optional: kept automatically if present in the file (no extra_columns config needed).

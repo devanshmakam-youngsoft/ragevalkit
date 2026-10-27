@@ -166,7 +166,7 @@ def test_update_by_slot_rewrites_the_existing_case_and_stays_idempotent(store):
 
 
 def test_an_unknown_group_id_is_rejected(store):
-    from ragevalkit.exceptions import GroupNotFound
+    from ragevalkit.storage.exceptions import GroupNotFound
     with pytest.raises(GroupNotFound):
         store.import_cases([row(2, "c1", 1, "q")], group_ids=["grp_nope"])
 

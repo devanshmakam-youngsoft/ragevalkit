@@ -1,6 +1,6 @@
 from fastapi import HTTPException, Request
 
-from ragevalkit.auth import read_token
+from ragevalkit.auth.sessions import read_token
 
 
 def current_user(request: Request) -> str | None:

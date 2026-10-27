@@ -4,7 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from ragevalkit.config import Config
-from ragevalkit.exceptions import ConflictError, GroupNotFound
+from ragevalkit.storage.exceptions import ConflictError, GroupNotFound
 from ragevalkit.server import create_app
 from ragevalkit.store import EvalStore
 

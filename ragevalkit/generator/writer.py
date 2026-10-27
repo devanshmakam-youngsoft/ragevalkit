@@ -5,7 +5,7 @@ import logging
 import time
 from typing import Callable
 
-from ragevalkit.exceptions import GenerationError
+from ragevalkit.generation.exceptions import GenerationError
 from ragevalkit.generator.checks import validate
 from ragevalkit.generator.llm import parse_reply
 from ragevalkit.generator.planning import Task
