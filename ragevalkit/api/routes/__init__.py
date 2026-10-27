@@ -5,6 +5,7 @@ from ragevalkit.api.routes import (
     datasets,
     generation,
     groups,
+    guides,
     health,
     imports,
     recommendation,
@@ -15,7 +16,7 @@ from ragevalkit.api.routes import (
 
 DASHBOARD_ROUTERS = [
     auth.router, generation.router, imports.router, runs.router, versions.router, recommendation.router,
-    test_cases.router, groups.router, datasets.router,
+    test_cases.router, groups.router, datasets.router, guides.router,
 ]
 HEALTH_ROUTER = health.router
 
