@@ -50,7 +50,7 @@ from ragevalkit import llm
 from ragevalkit.recording.steps import step
 from ragevalkit.recording.notes import note
 from ragevalkit.config import Config
-from ragevalkit.server import create_app
+from ragevalkit.api import create_app
 from ragevalkit.exceptions import RagevalError, ConfigError
 from ragevalkit.datasets.exceptions import DatasetError
 from ragevalkit.storage.exceptions import StoreError, VersionNotFound

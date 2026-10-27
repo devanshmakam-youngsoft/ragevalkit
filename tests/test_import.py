@@ -10,7 +10,7 @@ from ragevalkit.config import Config
 from ragevalkit.test_cases.importing.table_reader import detect_mapping
 from ragevalkit.test_cases.importing.row_parser import parse_rows, split_labels
 from ragevalkit.test_cases.importing.template import template_workbook
-from ragevalkit.server import create_app
+from ragevalkit.api import create_app
 from ragevalkit.storage.store import EvalStore
 
 

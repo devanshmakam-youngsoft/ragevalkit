@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import Callable
 
 from ragevalkit.documents.constants import SUPPORTED_SUFFIXES
+from ragevalkit.exceptions import InvalidInput, NotFoundError
 from ragevalkit.documents.models import ReadDocument
 from ragevalkit.documents.reader import read_document
 from ragevalkit.documents.exceptions import DocumentError
@@ -80,11 +81,11 @@ class GenerationManager:
         """Create a review batch and start writing into it. ``files`` are (name, path) pairs; ``workdir`` is deleted once read."""
         categories = [c for c in CATEGORIES if c in categories]
         if not categories:
-            raise ValueError("Choose at least one category")
+            raise InvalidInput("Choose at least one category")
         if not 1 <= per_category <= self.config.generate_per_category_max:
-            raise ValueError(f"Questions per category must be between 1 and {self.config.generate_per_category_max}")
+            raise InvalidInput(f"Questions per category must be between 1 and {self.config.generate_per_category_max}")
         if not MIN_TURNS <= turns <= MAX_TURNS:
-            raise ValueError(f"A conversation needs between {MIN_TURNS} and {MAX_TURNS} turns")
+            raise InvalidInput(f"A conversation needs between {MIN_TURNS} and {MAX_TURNS} turns")
         with self._lock:
             if self._active:
                 raise GenerationBusy("Another generation is already running")
@@ -188,7 +189,7 @@ class GenerationManager:
     def _editable(self, batch_id: str) -> dict:
         batch = self.store.get_batch(batch_id)
         if batch is None:
-            raise KeyError(batch_id)
+            raise NotFoundError("These generated test cases are no longer available")
         if batch["status"] == "running":
             raise GenerationBusy("Wait for generation to finish before editing")
         return batch
@@ -198,14 +199,14 @@ class GenerationManager:
         batch = self._editable(batch_id)
         item = next((i for i in batch["items"] if i["item_id"] == item_id), None)
         if item is None:
-            raise KeyError(item_id)
+            raise NotFoundError("Item not found")
         if len(turns) != len(item["turns"]):
-            raise ValueError("The number of turns cannot change")
+            raise InvalidInput("The number of turns cannot change")
         for turn, new in zip(item["turns"], turns):
             question, answer = str(new.get("question", "")).strip(), str(new.get("expected_answer", "")).strip()
             problem = check_text(question, answer, standalone=False)
             if problem:
-                raise ValueError(problem[0].upper() + problem[1:])
+                raise InvalidInput(problem[0].upper() + problem[1:])
             turn["question"], turn["expected_answer"] = question, answer
         self.store.save_batch(batch)
         return item
@@ -214,7 +215,7 @@ class GenerationManager:
         batch = self._editable(batch_id)
         remaining = [i for i in batch["items"] if i["item_id"] != item_id]
         if len(remaining) == len(batch["items"]):
-            raise KeyError(item_id)
+            raise NotFoundError("Item not found")
         batch["items"] = remaining
         self.store.save_batch(batch)
 
@@ -237,13 +238,13 @@ class GenerationManager:
         Anything not chosen is discarded with it."""
         batch = self.store.get_batch(batch_id)
         if batch is None:
-            raise KeyError(batch_id)
+            raise NotFoundError("These generated test cases are no longer available")
         if batch["status"] == "running":
             raise GenerationBusy("Wait for generation to finish, or cancel it first")
         wanted = set(item_ids) if item_ids is not None else None
         chosen = [it for it in batch["items"] if wanted is None or it["item_id"] in wanted]
         if not chosen:
-            raise ValueError("There is nothing to approve")
+            raise InvalidInput("There is nothing to approve")
 
         chat_ids = self._chat_ids(chosen)
         rows = []

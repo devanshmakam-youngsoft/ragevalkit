@@ -14,7 +14,7 @@ from ragevalkit.documents.reader import read_document
 from ragevalkit.documents.ordering import spread_order
 from ragevalkit.documents.exceptions import DocumentError
 from ragevalkit.generation import GenerationError, Task, generate_item, plan_tasks, validate
-from ragevalkit.server import create_app
+from ragevalkit.api import create_app
 
 
 # ---- helpers ------------------------------------------------------------------------------

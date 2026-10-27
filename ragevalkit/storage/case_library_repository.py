@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 
 from tinydb import Query
 
+from ragevalkit.exceptions import InvalidInput
 from ragevalkit.storage.base import StoreBase
 from ragevalkit.storage.exceptions import GroupNotFound
 from ragevalkit.storage.selection import RunSelection, cases_to_dataframe
@@ -123,16 +124,16 @@ class CaseLibraryRepository(StoreBase):
         if "chat_id" in updates:
             updates["chat_id"] = str(updates["chat_id"]).strip()
             if not updates["chat_id"]:
-                raise ValueError("Chat ID cannot be empty")
+                raise InvalidInput("Chat ID cannot be empty")
         if "turn_no" in updates:
             try:
                 updates["turn_no"] = int(updates["turn_no"])
             except (TypeError, ValueError):
-                raise ValueError("Turn number must be a whole number") from None
+                raise InvalidInput("Turn number must be a whole number") from None
             if updates["turn_no"] < 1:
-                raise ValueError("Turn number must be 1 or higher")
+                raise InvalidInput("Turn number must be 1 or higher")
         if "question" in updates and not str(updates["question"]).strip():
-            raise ValueError("Question cannot be empty")
+            raise InvalidInput("Question cannot be empty")
 
         now = datetime.now(timezone.utc).isoformat()
         with self._lock:
@@ -171,7 +172,7 @@ class CaseLibraryRepository(StoreBase):
         Raises GroupNotFound for an unknown group, ValueError for a bad ``status``.
         """
         if status not in ("active", "inactive", "all"):
-            raise ValueError(f"status must be 'active', 'inactive' or 'all', got {status!r}")
+            raise InvalidInput(f"status must be 'active', 'inactive' or 'all', got {status!r}")
         group_ids = list(dict.fromkeys(group_ids))
         tc_ids = list(dict.fromkeys(tc_ids))
 

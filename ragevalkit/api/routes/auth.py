@@ -1,18 +1,17 @@
+"""Signing in and out."""
 import asyncio
 
-from fastapi import APIRouter, HTTPException, Request, Response
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
+from ragevalkit.api.dependencies import current_user, get_config
+from ragevalkit.api.schemas import LoginBody
 from ragevalkit.auth.passwords import check_password, parse_users
 from ragevalkit.auth.sessions import make_token
-from ragevalkit.routes.deps import current_user
+from ragevalkit.config import Config
 
-router = APIRouter(prefix="/api/auth")
+router = APIRouter(prefix="/api/auth", tags=["auth"])
 
-
-class LoginBody(BaseModel):
-    username: str
-    password: str
+FAILED_LOGIN_DELAY_SECONDS = 0.6      # slows down password guessing
 
 
 def _secure(request: Request) -> bool:
@@ -20,12 +19,11 @@ def _secure(request: Request) -> bool:
 
 
 @router.post("/login")
-async def login(body: LoginBody, request: Request, response: Response) -> dict:
-    cfg = request.app.state.config
+async def login(body: LoginBody, request: Request, response: Response, cfg: Config = Depends(get_config)) -> dict:
     if cfg.require_login:
         user = check_password(parse_users(cfg.eval_users), body.username, body.password)
         if user is None:
-            await asyncio.sleep(0.6)
+            await asyncio.sleep(FAILED_LOGIN_DELAY_SECONDS)
             raise HTTPException(status_code=401, detail="Invalid username or password")
     else:
         # Guest mode: any non-empty username is accepted as-is
@@ -44,14 +42,14 @@ async def login(body: LoginBody, request: Request, response: Response) -> dict:
 
 
 @router.post("/logout")
-def logout(request: Request, response: Response) -> dict:
-    response.delete_cookie(request.app.state.config.session_cookie, path="/")
+def logout(response: Response, cfg: Config = Depends(get_config)) -> dict:
+    response.delete_cookie(cfg.session_cookie, path="/")
     return {"ok": True}
 
 
 @router.get("/me")
 def me(request: Request) -> dict:
-    # Always require a session cookie — login is always shown first
+    # Always require a session cookie: login is always shown first
     user = current_user(request)
     if user is None:
         raise HTTPException(status_code=401, detail="Not signed in")

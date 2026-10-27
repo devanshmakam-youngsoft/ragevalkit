@@ -9,7 +9,7 @@ import pytest
 from ragevalkit import recording
 from ragevalkit.config import Config
 from ragevalkit.evaluation.material import select_material
-from ragevalkit.server import create_app
+from ragevalkit.api import create_app
 
 
 def run_question(body, detail="all"):

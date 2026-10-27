@@ -6,6 +6,7 @@ import pandas as pd
 from tinydb import Query
 from tinydb.operations import delete
 
+from ragevalkit.exceptions import InvalidInput
 from ragevalkit.storage.base import StoreBase
 from ragevalkit.storage.exceptions import ConflictError, GroupNotFound
 from ragevalkit.storage.records import clean_expected_sources, new_group_id
@@ -33,7 +34,7 @@ class GroupsRepository(StoreBase):
         """Create a named group. Returns group_id. Raises ConflictError if the name is in use."""
         name = name.strip()
         if not name:
-            raise ValueError("Group name cannot be empty")
+            raise InvalidInput("Group name cannot be empty")
         gid = new_group_id()
         now = datetime.now(timezone.utc).isoformat()
         with self._lock:
@@ -46,7 +47,7 @@ class GroupsRepository(StoreBase):
         """Rename a group. Raises ConflictError if another group already has that name."""
         name = name.strip()
         if not name:
-            raise ValueError("Group name cannot be empty")
+            raise InvalidInput("Group name cannot be empty")
         with self._lock:
             Q = Query()
             if not self._is_live_group(group_id):
