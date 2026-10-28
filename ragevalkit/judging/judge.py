@@ -24,6 +24,7 @@ import time
 from ragevalkit.judging.exceptions import JudgeError
 from ragevalkit.judging.insights import check_insights, parse_insights
 from ragevalkit.judging.prompts import (
+    grader_format,
     grader_prompt,
     run_summary_format,
     run_summary_prompt,
@@ -38,7 +39,7 @@ logger = logging.getLogger(__name__)
 class Judge:
     def __init__(self, config):
         self.config = config
-        self._grader_prompt = config.judge_prompt_override or grader_prompt
+        self._grader_prompt = (config.judge_prompt_override or grader_prompt) + grader_format
 
     def _call(self, messages: list[dict], json_mode: bool = False) -> str:
         return complete(

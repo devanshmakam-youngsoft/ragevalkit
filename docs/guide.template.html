@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ragevalkit guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f6f1e5; --surface: #fffdf6; --surface-2: #f0ead9; --border: #ddd5bf;
+  --fg: #1a1916; --muted: #6b6657; --brand: #00917f; --brand-soft: #d8f1ec;
+  --coral: #f2573a; --sun: #f6b800; --plum: #8a4fd0; --good: #14934f; --warn: #b98000; --bad: #d93c36;
+  --hl: #ffe27a; --code-bg: #fbf8ee; --code-fg: #2b2a25;
+  --tok-k: #b4381f; --tok-s: #14734a; --tok-c: #8a8574; --tok-n: #8a4fd0; --tok-f: #0a6f9a; --tok-d: #a35a00; --tok-b: #0a6f9a;
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  --bg: #11110f; --surface: #1a1a17; --surface-2: #242420; --border: #36352f;
+  --fg: #f1ede0; --muted: #a09b8c; --brand: #2fd3bb; --brand-soft: #123530;
+  --coral: #ff7a5c; --sun: #ffcf3f; --plum: #b585f2; --good: #5fdc92; --warn: #f0be4a; --bad: #ff7b72;
+  --hl: #6b5500; --code-bg: #15150f; --code-fg: #e9e5d6;
+  --tok-k: #ff8a70; --tok-s: #7fdcaa; --tok-c: #8d887a; --tok-n: #c7a2f5; --tok-f: #6cc4ee; --tok-d: #f0be4a; --tok-b: #6cc4ee;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --bg: #11110f; --surface: #1a1a17; --surface-2: #242420; --border: #36352f;
+    --fg: #f1ede0; --muted: #a09b8c; --brand: #2fd3bb; --brand-soft: #123530;
+    --coral: #ff7a5c; --sun: #ffcf3f; --plum: #b585f2; --good: #5fdc92; --warn: #f0be4a; --bad: #ff7b72;
+    --hl: #6b5500; --code-bg: #15150f; --code-fg: #e9e5d6;
+    --tok-k: #ff8a70; --tok-s: #7fdcaa; --tok-c: #8d887a; --tok-n: #c7a2f5; --tok-f: #6cc4ee; --tok-d: #f0be4a; --tok-b: #6cc4ee;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 24px; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.65 "Inter", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+a { color: var(--brand); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code { font: 0.88em "JetBrains Mono", ui-monospace, monospace; background: var(--surface-2); padding: 0.12em 0.4em; border-radius: 4px; }
+
+.layout { display: grid; grid-template-columns: 250px minmax(0, 1fr); max-width: 1180px; margin: 0 auto; }
+nav.toc { position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto; padding: 32px 20px 32px 28px; border-right: 1px solid var(--border); }
+nav.toc .brand { font: 500 22px/1 "Fraunces", Georgia, serif; margin-bottom: 4px; }
+nav.toc .brand mark { background: linear-gradient(transparent 55%, var(--hl) 55%); color: inherit; }
+nav.toc .ver { color: var(--muted); font-size: 12px; margin-bottom: 22px; }
+nav.toc a { display: block; padding: 5px 10px; margin: 1px 0; border-radius: 6px; color: var(--muted); font-size: 14px; border-left: 2px solid transparent; }
+nav.toc a:hover { color: var(--fg); text-decoration: none; background: var(--surface-2); }
+nav.toc a.on { color: var(--fg); font-weight: 600; border-left-color: var(--brand); background: var(--brand-soft); }
+main { padding: 44px 48px 96px; min-width: 0; }
+main > section, main > header { max-width: 780px; }
+
+header.hero h1 { font: 500 44px/1.1 "Fraunces", Georgia, serif; letter-spacing: -0.01em; margin: 0 0 14px; }
+header.hero h1 mark { background: linear-gradient(transparent 58%, var(--hl) 58%); color: inherit; }
+header.hero p.lead { font-size: 19px; color: var(--muted); margin: 0 0 28px; max-width: 640px; }
+.paths { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; margin: 0 0 8px; }
+.paths a { display: block; padding: 14px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; color: var(--fg); transition: transform .12s, border-color .12s; }
+.paths a:hover { text-decoration: none; border-color: var(--brand); transform: translateY(-2px); }
+.paths b { display: block; font-size: 15px; margin-bottom: 2px; }
+.paths span { font-size: 13px; color: var(--muted); line-height: 1.45; display: block; }
+
+section { margin: 0 0 64px; }
+h2 { font: 500 30px/1.2 "Fraunces", Georgia, serif; margin: 0 0 6px; letter-spacing: -0.005em; padding-top: 8px; }
+h2 .num { color: var(--brand); font-family: "JetBrains Mono", monospace; font-size: 14px; display: block; margin-bottom: 6px; letter-spacing: 0.08em; }
+h3 { font: 600 17px/1.3 "Inter", sans-serif; margin: 34px 0 6px; }
+p { margin: 10px 0; }
+p.intro { color: var(--muted); font-size: 17px; margin-bottom: 20px; }
+ul, ol { padding-left: 22px; } li { margin: 5px 0; }
+
+.note { margin: 18px 0; padding: 14px 18px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); border-left: 4px solid var(--brand); }
+.note.tip { border-left-color: var(--sun); } .note.good { border-left-color: var(--good); }
+.note > b:first-child { display: block; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.note p { margin: 6px 0; }
+
+figure.code { margin: 16px 0; background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+figure.code figcaption { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px 8px 16px; background: var(--surface-2); border-bottom: 1px solid var(--border); font: 12px "JetBrains Mono", monospace; color: var(--muted); }
+figure.code pre { margin: 0; padding: 16px 18px; overflow-x: auto; font: 13px/1.6 "JetBrains Mono", ui-monospace, monospace; color: var(--code-fg); tab-size: 4; }
+figure.code code { background: none; padding: 0; font: inherit; }
+.copy { font: 600 11px "Inter", sans-serif; padding: 4px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--muted); cursor: pointer; }
+.copy:hover { color: var(--fg); border-color: var(--brand); }
+.c { color: var(--tok-c); font-style: italic; } .s { color: var(--tok-s); } .k { color: var(--tok-k); font-weight: 500; }
+.n { color: var(--tok-n); } .f { color: var(--tok-f); font-weight: 500; } .d { color: var(--tok-d); } .b { color: var(--tok-b); }
+pre.cmd { position: relative; margin: 14px 0; padding: 14px 70px 14px 16px; background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; font: 13px/1.6 "JetBrains Mono", monospace; color: var(--code-fg); }
+pre.cmd .copy { position: absolute; top: 8px; right: 8px; }
+.pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; width: min(1060px, calc(100vw - 370px)); }
+.pair > div { min-width: 0; }
+.pair h4 { margin: 0 0 -4px; font-size: 14px; }
+.pair h4 span { color: var(--muted); font-weight: 400; }
+@media (max-width: 1350px) { .pair { grid-template-columns: minmax(0, 1fr); width: 100%; } }
+
+.table-wrap { overflow-x: auto; margin: 14px 0; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); padding: 10px 14px; background: var(--surface-2); border-bottom: 1px solid var(--border); }
+td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+td p { margin: 0 0 6px; } td pre { margin: 6px 0; padding: 8px 10px; background: var(--code-bg); border-radius: 6px; font: 12px/1.5 "JetBrains Mono", monospace; overflow-x: auto; }
+.yes { color: var(--good); font-weight: 600; } .no { color: var(--muted); }
+
+.flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; margin: 22px 0; }
+.flow div { flex: 1 1 150px; padding: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; font-size: 14px; }
+.flow div b { display: block; margin-bottom: 3px; }
+.flow div.arrow { flex: 0 0 auto; border: 0; background: none; padding: 14px 0; color: var(--muted); font-size: 20px; align-self: center; }
+.flow div:nth-child(1) { border-top: 3px solid var(--brand); } .flow div:nth-child(3) { border-top: 3px solid var(--sun); }
+.flow div:nth-child(5) { border-top: 3px solid var(--coral); } .flow div:nth-child(7) { border-top: 3px solid var(--plum); }
+
+.tabs { margin: 16px 0; }
+.tabs [role=tablist] { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
+.tabs [role=tab] { font: 600 13px "Inter", sans-serif; padding: 7px 14px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--muted); cursor: pointer; }
+.tabs [role=tab][aria-selected=true] { background: var(--brand); border-color: var(--brand); color: #fff; }
+.tabs [role=tabpanel][hidden] { display: none; }
+
+details.fix { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; margin: 10px 0; }
+details.fix summary { cursor: pointer; padding: 13px 16px; font-weight: 600; list-style: none; display: flex; gap: 10px; align-items: baseline; }
+details.fix summary::-webkit-details-marker { display: none; }
+details.fix summary::before { content: "+"; font-family: "JetBrains Mono", monospace; color: var(--brand); width: 14px; }
+details.fix[open] summary::before { content: "\2013"; }
+details.fix .body { padding: 0 16px 14px 40px; }
+details.fix .body p { margin: 6px 0; }
+details.fix .why { color: var(--muted); }
+.filter { width: 100%; max-width: 460px; padding: 10px 14px; margin: 6px 0 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--fg); font: 15px "Inter", sans-serif; }
+.filter:focus { outline: 2px solid var(--brand); outline-offset: 1px; }
+.mock { font-size: 13.5px; }
+.mock td, .mock th { padding: 8px 12px; }
+kbd { font: 12px "JetBrains Mono", monospace; padding: 2px 6px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 4px; background: var(--surface); }
+
+@media (max-width: 860px) {
+  .layout { grid-template-columns: 1fr; }
+  nav.toc { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--border); padding: 20px; display: flex; flex-wrap: wrap; gap: 2px 8px; }
+  nav.toc .brand, nav.toc .ver { width: 100%; margin-bottom: 4px; }
+  main { padding: 28px 20px 64px; }
+  header.hero h1 { font-size: 34px; }
+}
+</style>
+</head>
+<body>
+<div class="layout">
+<nav class="toc" aria-label="Guide sections"><div class="brand">rag<mark>evalkit</mark></div><div class="ver">version {{version}}</div></nav>
+<main>
+
+<header class="hero" id="top">
+  <h1>Measure your assistant, <mark>version by version.</mark></h1>
+  <p class="lead">ragevalkit replays your test questions through your own function, grades every answer, and shows which version of your pipeline is the one to ship. This guide takes you from the first run to your own judge, with code you can copy.</p>
+  <div class="paths">
+    <a href="#quick-start"><b>Start from zero</b><span>Install, run, and read your first result.</span></a>
+    <a href="#function"><b>Connect my function</b><span>Question-only, with history, or with a session id.</span></a>
+    <a href="#steps"><b>Record what happens inside</b><span>Steps with <code>with</code> or decorators, and why each.</span></a>
+    <a href="#frameworks"><b>I use LangGraph or an agent</b><span>Steps from inside nodes, threads and async code.</span></a>
+    <a href="#no-retrieval"><b>My bot has no retrieval</b><span>Greeting bots and tool agents.</span></a>
+    <a href="#judge"><b>Use my own judge</b><span>Your function, your rubric, your model.</span></a>
+    <a href="#troubleshooting"><b>Something looks off</b><span>Symptoms, likely reasons, what to do.</span></a>
+  </div>
+</header>
+
+<!-- ============================================================ 1 -->
+<section id="overview">
+  <h2><span class="num">01</span>What you get</h2>
+  <p class="intro">Three things happen when you press <b>Execute session</b>.</p>
+  <div class="flow">
+    <div><b>Your function</b>ragevalkit calls it once per test question, in order, like a real user would.</div><div class="arrow">&rarr;</div>
+    <div><b>Grading</b>An AI judge scores each answer and the text your pipeline retrieved. Text metrics run alongside.</div><div class="arrow">&rarr;</div>
+    <div><b>Comparison</b>Every run is saved as a version, so you can see what got better and which one to ship.</div><div class="arrow">&rarr;</div>
+    <div><b>Dashboard</b>Scores, step timings, findings with suggestions, every answer, an Excel export.</div>
+  </div>
+  <p>Your pipeline code stays as it is. You add a small entry file that calls <code>serve(your_function)</code>; the production app never imports ragevalkit unless you choose to record steps.</p>
+</section>
+
+<!-- ============================================================ 2 -->
+<section id="quick-start">
+  <h2><span class="num">02</span>Quick start</h2>
+  <p class="intro">Five minutes, no database, no extra services.</p>
+  <h3>1. Install</h3>
+  <pre class="cmd">pip install git+https://github.com/devanshmakam-youngsoft/ragevalkit.git<button type="button" class="copy">Copy</button></pre>
+  <p>Put the key of the AI model that will judge your answers in a <code>.env</code> file next to your script (ragevalkit reads it for you). For the default judge that is <code>GROQ_API_KEY</code>; any <a href="https://docs.litellm.ai/docs/providers">LiteLLM provider</a> works, and <a href="#judge">you can skip the AI judge entirely</a>.</p>
+  <h3>2. Serve your function</h3>
+  <p>Create <code>eval_entry.py</code> beside your pipeline. Any function that turns a question into an answer works:</p>
+  <pre class="cmd">import ragevalkit
+from my_app import answer_question          # your existing pipeline
+
+ragevalkit.serve(answer_question, port=8002, require_login=False)<button type="button" class="copy">Copy</button></pre>
+  <pre class="cmd">python eval_entry.py<button type="button" class="copy">Copy</button></pre>
+  <p>The dashboard opens at <code>http://localhost:8002</code>. Without <code>require_login=False</code> the sign-in is <code>admin</code> / <code>admin123</code> (change it with <code>users=</code>).</p>
+  <h3>3. Add test cases and run</h3>
+  <ol>
+    <li>Open <b>Test Cases</b>. Add a case with <b>+ New test case</b>, bring many in with <b>Import</b> (Excel, CSV or pasted rows), or let ragevalkit write them from your own documents with <b>Generate from documents</b>.</li>
+    <li>Click <b>Execute session</b>, name the version (<code>1</code>, <code>v2</code>, <code>rerank-on</code>&hellip;), pick the groups or cases to run, and start.</li>
+    <li>When it finishes, open the version for scores, step timings, findings with suggestions, and every question's answer.</li>
+  </ol>
+  <div class="note good"><b>Tip</b><p>Keep evaluation in its own entry file. Your production API keeps running exactly as before, and <code>step()</code> and <code>note()</code> inside your pipeline do nothing outside an evaluation.</p></div>
+</section>
+
+<!-- ============================================================ 3 -->
+<section id="function">
+  <h2><span class="num">03</span>Connect your function</h2>
+  <p class="intro">ragevalkit looks at the <em>parameter names</em> of your function to decide what to pass. There are three shapes.</p>
+
+  <div class="tabs" data-tabs>
+    <div role="tablist">
+      <button role="tab" aria-selected="true">1 · Question only</button>
+      <button role="tab" aria-selected="false">2 · With history</button>
+      <button role="tab" aria-selected="false">3 · With a session id</button>
+    </div>
+    <div role="tabpanel">
+      <p>Every question is answered on its own. The simplest shape, and right for single-turn pipelines.</p>
+      {{example:function_shapes.py#answer_only}}
+    </div>
+    <div role="tabpanel" hidden>
+      <p>Your chatbot is <b>stateless</b>: it rebuilds the prompt from the earlier turns each time. ragevalkit keeps the conversation of each <code>chat_id</code> and hands you the earlier turns as <code>history</code> (empty on the first turn).</p>
+      {{example:function_shapes.py#answer_with_history}}
+    </div>
+    <div role="tabpanel" hidden>
+      <p>Your backend is <b>stateful</b>: it remembers the conversation itself. ragevalkit passes one session id per chat, the same for every turn of that chat and different for the next.</p>
+      {{example:function_shapes.py#SESSIONS,answer_in_session}}
+    </div>
+  </div>
+
+  <h3>How ragevalkit chooses</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>If a parameter is named&hellip;</th><th>ragevalkit passes&hellip;</th></tr></thead>
+    <tbody>
+      <tr><td><code>session_id</code>, <code>session</code>, <code>thread_id</code>, <code>conversation_id</code>, <code>user_id</code></td><td>the session id of the chat (shape 3)</td></tr>
+      <tr><td><code>history</code>, <code>chat_history</code>, <code>messages</code>, <code>conversation</code>, <code>turns</code>, <code>context</code></td><td>the earlier turns (shape 2)</td></tr>
+      <tr><td>anything else</td><td>nothing: the first parameter is always the question</td></tr>
+    </tbody>
+  </table></div>
+  <p>If a function has both kinds, the session id wins. Other parameters need a default value, because ragevalkit only passes the question and one extra.</p>
+  <div class="note"><b>Good to know</b><p>A parameter called <code>context</code> is treated as history. If yours means something else, rename it, or list your own names with <code>history_params=[&hellip;]</code>.</p></div>
+
+  <h3>Other things your function can do</h3>
+  <p>Return a dictionary or a Pydantic model, be <code>async</code>, use your own parameter names, or receive the history as chat messages.</p>
+  {{example:function_shapes.py#answer_as_dict,answer_async,answer_with_other_names,answer_with_openai_history}}
+  <p>The keys tried for the answer, in order, are <code>answer</code>, <code>response</code>, <code>output</code>, <code>result</code>, <code>text</code>, <code>content</code>, <code>message</code>, <code>generated_text</code>, <code>generation</code>, <code>completion</code>. Use <code>answer_keys=[&hellip;]</code> to add your own.</p>
+
+  <h3>Evaluate a bot that is already deployed</h3>
+  <p>No access to its code? Your function can simply call it over HTTP, and ragevalkit scores whatever comes back.</p>
+  {{example:call_existing_api.py}}
+</section>
+
+<!-- ============================================================ 4 -->
+<section id="steps">
+  <h2><span class="num">04</span>Record what happens inside</h2>
+  <p class="intro">Scoring only the final answer tells you <em>that</em> a version got better, not <em>why</em>. Recording steps tells you where the time goes, what was retrieved, and which documents were used.</p>
+  <p>Mark the stages of your pipeline (search, re-rank, the model call&hellip;) and ragevalkit shows, for every question:</p>
+  <ul>
+    <li><b>How long each step took</b>, as the &ldquo;where the time goes&rdquo; bar on the version page.</li>
+    <li><b>The retrieved text</b>, which the judge scores as <em>context quality</em>.</li>
+    <li><b>The documents used</b>, checked against the sources you expected.</li>
+    <li><b>Notes</b> you attach: intent, tool called, difficulty&hellip; anything you want next to the question.</li>
+  </ul>
+
+  <h3 id="with-vs-decorator">Two ways to mark a step: <code>with</code> or a decorator</h3>
+  <p>Both write the same record. Here is one pipeline written both ways, with the same helpers and the same two steps.</p>
+  {{example:steps_two_ways.py#DOCUMENTS,search,write_answer}}
+  <div class="pair">
+    <div>
+      <h4>With <code>with</code> blocks <span>&mdash; you say what is recorded</span></h4>
+      {{example:steps_two_ways.py#pipeline_with_blocks}}
+    </div>
+    <div>
+      <h4>With decorators <span>&mdash; the function is the step</span></h4>
+      {{example:steps_two_ways.py#retrieve,generate,pipeline_with_decorators}}
+    </div>
+  </div>
+  <p>Run the question &ldquo;Can I get a refund?&rdquo; through each and this is what the dashboard keeps:</p>
+  <div class="table-wrap"><table class="mock">
+    <thead><tr><th>Recorded for the step</th><th><code>with</code> block</th><th>Decorator</th></tr></thead>
+    <tbody>
+      <tr><td>Step name and how long it took</td><td class="yes">yes</td><td class="yes">yes</td></tr>
+      <tr><td>Material (the text the judge scores)</td><td class="yes">what you assign to <code>s.material</code></td><td class="yes">the return value, when you write <code>material=True</code></td></tr>
+      <tr><td>Sources (checked against <code>expected_sources</code>)</td><td class="yes">what you assign to <code>s.sources</code></td><td class="no">not available: use a <code>with</code> block</td></tr>
+      <tr><td>Inputs of the step</td><td class="no">not recorded</td><td class="yes">every argument, by name</td></tr>
+      <tr><td>Output of the step</td><td class="no">not recorded</td><td class="yes">the return value</td></tr>
+      <tr><td>Works on a part of a function</td><td class="yes">yes</td><td class="no">the whole function is the step</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Which one should I use?</h3>
+  <ul>
+    <li><b>Use <code>with</code></b> for the retrieval step whenever you want a source check, and for anything that is only <em>part</em> of a function. You decide exactly what counts as material and sources.</li>
+    <li><b>Use a decorator</b> when a function already is one clear stage and returns what you would call its result. Inputs and output show up in the step details with no extra code, which is handy when you are tracking down a wrong answer.</li>
+    <li><b>Mix them freely.</b> A pipeline can use decorators for the model call and a <code>with</code> block for the search.</li>
+  </ul>
+
+  <h3 id="material">Say which step retrieved the text</h3>
+  <p>The judge reads <b>only the steps that declare material</b>: a <code>with</code> block that sets <code>s.material</code>, or a decorator with <code>material=True</code>. Steps that do not declare it are timing only, which is exactly what you want for a re-ranker or the model call.</p>
+  {{example:rag_pipeline.py#rag_pipeline}}
+  <div class="note tip"><b>Tip: declare it once</b>
+    <p>If several steps set <code>s.material</code>, the judge reads all of them one after another: routing details, search settings and the context, sometimes the same context twice. Context quality then looks lower than it is. Let <em>one</em> step (the retrieval) declare the material and keep the others timing-only. Put details you still want to see in <code>ragevalkit.note(&hellip;)</code>.</p></div>
+  <p>If no step declares anything, ragevalkit falls back to the output of decorated steps and writes a warning to the log that says how to be precise.</p>
+
+  <h3>Notes</h3>
+  <p><code>ragevalkit.note("intent", "billing")</code> attaches a short fact to the question being evaluated. It appears beside the question in the results. Names such as <code>password</code>, <code>token</code> or <code>api_key</code> are never stored.</p>
+
+  <h3>What you can rely on</h3>
+  <ul>
+    <li><b>Nothing happens in production.</b> Outside an evaluation, <code>step()</code> and <code>note()</code> record nothing and add almost no overhead, so the same code can ship.</li>
+    <li><b>Secrets stay out.</b> Decorated functions record their arguments, and any argument named like a secret is shown as <code>[REDACTED]</code>.</li>
+    <li><b>Long values are shortened</b> with a marker saying how much was left out (<code>step_value_chars</code>, default 1000; the judge reads up to <code>material_chars</code>, default 20000).</li>
+    <li><b>Less detail on request.</b> <code>record_detail="selected"</code> keeps only steps that set material or sources; <code>"off"</code> keeps names and timings; <code>record_mode="off"</code> records no steps at all.</li>
+  </ul>
+</section>
+
+<!-- ============================================================ 5 -->
+<section id="frameworks">
+  <h2><span class="num">05</span>LangGraph, agents and threads</h2>
+  <p class="intro">Steps belong to <em>the question being evaluated</em>, not to the place they are written. Whichever node, thread or async task runs your code, the step lands on the right question.</p>
+  <p>That means all of these work, and the example below uses the first three:</p>
+  <ul>
+    <li>a <b>node that calls a decorated function</b> (the decorator records the call wherever it is made from);</li>
+    <li>a <b>node with a <code>with</code> block</b> inside it;</li>
+    <li>a <b>decorator on the node itself</b>, including nodes that take a LangGraph <code>config</code> parameter;</li>
+    <li>nodes that run <b>in parallel</b>, <b>async nodes</b> (<code>ainvoke</code>), and steps started from a thread pool.</li>
+  </ul>
+  {{example:langgraph_agent.py}}
+  <p>The version page then shows <code>rewrite</code>, <code>retrieval</code> and <code>llm</code> with their times, the retrieved text and the source <code>refunds.pdf</code>. We ran this exact file, plus variants with parallel branches and async nodes, while writing this guide.</p>
+  <div class="note"><b>Good to know</b>
+    <p>A decorated node returns a state update such as <code>{"docs": [&hellip;]}</code>, so with <code>material=True</code> the material would be that dictionary as text. For the node that does retrieval, a <code>with</code> block lets you set clean material and sources.</p>
+    <p>Steps that run in parallel each report their own time, so together they can add up to more than the question's response time. That is expected.</p></div>
+</section>
+
+<!-- ============================================================ 6 -->
+<section id="no-retrieval">
+  <h2><span class="num">06</span>A bot with no retrieval</h2>
+  <p class="intro">Greeting bots, small talk and tool agents have no &ldquo;retrieved context&rdquo; to score. Tell ragevalkit, and they are graded on the answer alone.</p>
+  {{example:no_retrieval_bot.py}}
+  <ol>
+    <li><b>Mark the test cases <code>non-rag</code></b> (a <code>type</code> column when importing, or the type box on a test case). Their context quality is then left out instead of scored as 0.</li>
+    <li><b>Do not declare material</b> in your steps. Tool calls and intent checks are timing-only steps.</li>
+    <li><b>Set <code>material_weight=0</code></b> so the recommendation looks at answer quality only.</li>
+    <li>Write the <b>expected answer as a behaviour</b> when exact words do not matter: <em>&ldquo;Greets the user politely and offers help&rdquo;</em>, <em>&ldquo;States that order A100 has shipped&rdquo;</em>. The judge grades the behaviour.</li>
+  </ol>
+  <p>Notes such as <code>intent</code> and <code>tool_called</code> appear beside each question, which makes it easy to see which tool a wrong answer used.</p>
+</section>
+
+<!-- ============================================================ 7 -->
+<section id="test-cases">
+  <h2><span class="num">07</span>Test cases</h2>
+  <p class="intro">A test case is a question, the answer you expect, and where it sits in a conversation.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Column</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>question</code></td><td>The only column you must have.</td></tr>
+      <tr><td><code>expected_answer</code></td><td>What a good answer says. Wording can differ; the judge compares meaning.</td></tr>
+      <tr><td><code>chat_id</code>, <code>turn_no</code></td><td>Cases with the same <code>chat_id</code> form one conversation, replayed in <code>turn_no</code> order. Leave them out and every question is its own chat.</td></tr>
+      <tr><td><code>type</code></td><td><code>rag</code> (default: the answer comes from your documents) or <code>non-rag</code> (greetings, small talk, tools: graded on the answer only).</td></tr>
+      <tr><td><code>expected_sources</code></td><td>Documents the pipeline should retrieve. <code>a.pdf | b.pdf</code> means both are needed; <code>a.pdf , a_v2.pdf</code> means either one.</td></tr>
+      <tr><td><code>groups</code></td><td>Labels, for example <code>Billing; Refunds</code>. A case can carry any number of groups.</td></tr>
+    </tbody>
+  </table></div>
+  <ul>
+    <li><b>Import</b> takes Excel, CSV or pasted rows, shows what will be added, updated or skipped before saving anything, and returns the rows it could not use so you can fix and re-import. Importing the same file twice changes nothing.</li>
+    <li><b>Groups</b> are labels. Run one group, several, or hand-picked cases. A case in two selected groups runs once.</li>
+    <li><b>Generate from documents</b> writes questions from your PDF, Word, text or Markdown files (up to 5 files of 50 MB). Each answer comes with the sentences of the document that prove it, and nothing is added until you review and press <b>Add</b>. The text of the documents goes to the model you set with <code>generator_model</code>; a local <code>ollama/&hellip;</code> model keeps it on your machine.</li>
+    <li>A conversation&rsquo;s later turns need the earlier ones, so by default a run also includes the earlier turns of each case you picked. You can switch that off in the Execute dialog.</li>
+    <li>Your own column names? <code>column_map={"user_query": "question", "gold_answer": "expected_answer"}</code>. <a href="#hooks">Example below.</a></li>
+  </ul>
+</section>
+
+<!-- ============================================================ 8 -->
+<section id="results">
+  <h2><span class="num">08</span>Reading the results</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>You see</th><th>It means</th></tr></thead>
+    <tbody>
+      <tr><td><b>Answer quality</b> (0&ndash;10)</td><td>The judge compares the answer with your expected answer for facts and intent.</td></tr>
+      <tr><td><b>Context quality</b> (0&ndash;10)</td><td>Did the retrieved text contain what was needed to answer? Left out for <code>non-rag</code> cases.</td></tr>
+      <tr><td><b>Response time</b> and the step bar</td><td>From question to final answer, and how it splits across your steps.</td></tr>
+      <tr><td><b>Key words, wording, meaning</b></td><td>Text metrics that need no AI: shared key words, similar phrasing (BM25), similar meaning (sentence embeddings).</td></tr>
+      <tr><td><b>Watch-outs &amp; suggestions</b></td><td>The AI&rsquo;s plain-language findings: each thing to look at, paired with the next step to try.</td></tr>
+      <tr><td><b>Recommended version</b></td><td>Versions are compared on the test cases they all ran, so adding cases later never hides an older version. The score weighs answer and context quality (60/40 by default); versions within a small tolerance are tied and the fastest wins.</td></tr>
+      <tr><td><b>Problems during this run</b></td><td>Anything that went wrong, in plain words, with <em>Show technical details</em> and a <em>Download log</em> button. The same problem on many questions is listed once with a count.</td></tr>
+    </tbody>
+  </table></div>
+  <p>Archive a version to take it out of comparisons without deleting it; delete it to remove it and its results. From any version you can download an Excel report with a summary sheet and one row per question.</p>
+</section>
+
+<!-- ============================================================ 9 -->
+<section id="judge">
+  <h2><span class="num">09</span>Your own judge</h2>
+  <p class="intro">Three levels, from a different model to no AI at all.</p>
+
+  <h3>Level 1: another model</h3>
+  <p><code>judge_model</code> takes any <a href="https://docs.litellm.ai/docs/providers">LiteLLM</a> model name, with its key in <code>.env</code> or <code>judge_api_key=</code>: <code>"openai/gpt-4o-mini"</code>, <code>"gemini/gemini-1.5-pro"</code>, <code>"groq/llama-3.3-70b-versatile"</code>, <code>"ollama/llama3"</code>.</p>
+
+  <h3>Level 2: your own rubric</h3>
+  <p>Keep the AI judge but tell it how <em>your</em> answers should be graded. Describe only the grading: ragevalkit adds the reply format itself. <code>summary_prompt</code> does the same for the written findings.</p>
+  {{example:custom_judge_prompt.py}}
+
+  <h3>Level 3: your own function</h3>
+  <p>For exact checks, rules, a JSON schema, or your own scoring service, replace the AI judge with a function. It receives the question, the expected answer, the generated answer and the retrieved material, and returns <code>answer_marks</code> (0&ndash;10) with an optional comment, plus <code>material_marks</code> if you grade the context too.</p>
+  {{example:custom_judge.py}}
+  <div class="note"><b>Good to know</b><p>The written findings at the end of a run are produced by the judge model even when you use <code>judge_fn</code>. Without a key for it the run still finishes and the version says the findings could not be written.</p></div>
+</section>
+
+<!-- ============================================================ 10 -->
+<section id="hooks">
+  <h2><span class="num">10</span>Extra scores and hooks</h2>
+  <p class="intro">Add your own metrics, carry your own spreadsheet columns, and react when a run finishes.</p>
+  {{example:metrics_and_hooks.py}}
+  <ul>
+    <li><b><code>extra_metrics</code></b>: each function gets <code>(expected_answer, generated_answer)</code> and returns a number. A metric that fails on a question is reported as a problem and the run goes on.</li>
+    <li><b><code>on_complete</code></b>: called once when a run ends, with the summary and the rows (<code>None</code> instead of a summary if the run failed). Post to Slack, fail a CI job, write to a database.</li>
+    <li><b><code>session_id_fn</code></b>: choose the session id sent for each chat, for example to replay a conversation against a stateful backend with a stable id.</li>
+    <li><b><code>conversational_types</code></b>: row types that skip context scoring and text metrics, besides <code>non-rag</code>.</li>
+    <li><b><code>source_check_mode</code></b>: <code>"keyword"</code> (default, ignores path and extension, ignores case), <code>"llm"</code> (tolerates different spellings of a name) or <code>"off"</code>.</li>
+  </ul>
+</section>
+
+<!-- ============================================================ 11 -->
+<section id="running">
+  <h2><span class="num">11</span>Running it for your team</h2>
+  <ul>
+    <li><b>Sign-in.</b> <code>users="alice:pw1,bob:pw2"</code> sets the accounts. Sessions last 12 hours; set <code>secret=</code> to a fixed value if people should stay signed in across restarts. <code>require_login=False</code> skips the sign-in for local work.</li>
+    <li><b>Data.</b> Everything is in one JSON file (<code>store_path</code>, default <code>eval_store.json</code>). Copy it to back it up or move it to another machine.</li>
+    <li><b>Logs.</b> <code>eval_logs/</code> sits beside it: <code>server.log</code>, one file per run in <code>runs/</code>, one per generation in <code>generation/</code>, each with full details. <code>log_dir=</code> moves them. Keys and passwords are hidden before anything is written.</li>
+    <li><b>Production safety.</b> <code>eval_env="prod"</code> turns the dashboard and every evaluation route off; only <code>/api/health</code> answers.</li>
+    <li><b>This guide.</b> It is on by default. <code>show_guide=False</code> hides the Help link and stops serving the guide.</li>
+    <li><b>Versions.</b> Give every release its own version name, and run the same test cases each time. Pin ragevalkit to a tag in <code>requirements.txt</code> (<code>&hellip;ragevalkit.git@&lt;tag&gt;</code>) so everyone evaluates with the same code.</li>
+  </ul>
+</section>
+
+<!-- ============================================================ 12 -->
+<section id="troubleshooting">
+  <h2><span class="num">12</span>When something looks off</h2>
+  <p class="intro">Start with the <b>Problems during this run</b> box on the version page: it says what went wrong in plain words, and <em>Show technical details</em> gives the error. The full log is the <em>Download log</em> button, or <code>eval_logs/runs/</code>. Then look for your symptom here.</p>
+  <input class="filter" id="fix-filter" type="search" placeholder="Search symptoms: login, context, sources, port&hellip;" aria-label="Search symptoms">
+
+  <details class="fix"><summary>Every question says &ldquo;No answer: the assistant returned an error&rdquo;</summary><div class="body">
+    <p class="why">Your function raised an error. The run itself is fine: ragevalkit marks the question failed, records why, and carries on.</p>
+    <p><b>Do:</b> open <em>Problems during this run</em> and <em>Show technical details</em>; the last lines name the error. Call your function by hand with one of the questions. Common causes: a key your own pipeline needs is missing from <code>.env</code>, a file path that only works from another folder, the vector index was not loaded before <code>serve()</code> (load it first, as your app does at start-up), or the function needs a second argument that has no default.</p></div></details>
+
+  <details class="fix"><summary>&ldquo;The question was answered, but the AI judge could not grade it&rdquo;</summary><div class="body">
+    <p class="why">The judge model did not answer. The usual reasons are shown in the message: a missing or wrong API key, a model name that does not exist, a rate limit, or no network.</p>
+    <p><b>Do:</b> put the provider&rsquo;s key in <code>.env</code> (<code>GROQ_API_KEY</code>, <code>OPENAI_API_KEY</code>&hellip;) or pass <code>judge_api_key=</code>; write the model as <code>provider/model</code>; for a rate limit, wait a minute or run fewer questions. Or <a href="#judge">use your own judge function</a>, which needs no model.</p></div></details>
+
+  <details class="fix"><summary>&ldquo;The AI could not write the findings for this run&rdquo;</summary><div class="body">
+    <p class="why">The findings come from the judge model, even when you use <code>judge_fn</code>.</p>
+    <p><b>Do:</b> the same checks as above (key, model name, network). The scores and every answer are saved; only the written findings are missing.</p></div></details>
+
+  <details class="fix"><summary>Context quality is blank or very low</summary><div class="body">
+    <p class="why">No step declared the retrieved text, or the case type says no retrieval is expected.</p>
+    <p><b>Do:</b> in your retrieval step set <code>s.material = &hellip;</code> (or use <code>@ragevalkit.step("retrieval", material=True)</code>). If the bot has no retrieval, mark the cases <code>non-rag</code> and use <code>material_weight=0</code>. See <a href="#material">Say which step retrieved the text</a>.</p></div></details>
+
+  <details class="fix"><summary>Context quality is lower than the retrieval deserves</summary><div class="body">
+    <p class="why">More than one step declares material, so the judge reads routing details, search settings or the same text twice, and the end can be cut off at <code>material_chars</code>.</p>
+    <p><b>Do:</b> open a question&rsquo;s <em>Retrieved text</em> and check it holds only the passages. Let one step declare the material; keep the other steps timing-only and put their details in <code>ragevalkit.note()</code>.</p></div></details>
+
+  <details class="fix"><summary>The step-time bar only shows &ldquo;Not in a step&rdquo;</summary><div class="body">
+    <p class="why">No step ran during the questions, or recording was reduced.</p>
+    <p><b>Do:</b> check that your pipeline calls <code>ragevalkit.step(&hellip;)</code> on the path the questions take; check <code>record_mode</code> is not <code>"off"</code>; with <code>record_detail="selected"</code> only steps that set material or sources are kept.</p></div></details>
+
+  <details class="fix"><summary>Step times add up to more than the response time</summary><div class="body">
+    <p class="why">One step sits inside another (the outer one includes the inner one&rsquo;s time), or steps run in parallel.</p>
+    <p><b>Do:</b> for nesting, make the steps follow each other instead of wrapping each other. Parallel steps are expected to overlap.</p></div></details>
+
+  <details class="fix"><summary>Sources say &ldquo;not checked&rdquo;, or &ldquo;some missing&rdquo; when they were found</summary><div class="body">
+    <p class="why">Not checked: the test case has no <code>expected_sources</code>, <code>source_check_mode</code> is <code>"off"</code>, or no step reported sources. Missing although retrieved: the names differ.</p>
+    <p><b>Do:</b> report sources with a <code>with</code> block and <code>s.sources = [&hellip;]</code> (decorators cannot report them). Compare the names the step reported with <code>expected_sources</code>; the keyword check ignores case, folders and file extensions, so <code>docs/Refunds.pdf</code> matches <code>refunds</code>. Different spellings of the same document? Try <code>source_check_mode="llm"</code>.</p></div></details>
+
+  <details class="fix"><summary>A step shows no inputs or output</summary><div class="body">
+    <p class="why">Inputs and outputs are recorded only for decorated functions.</p>
+    <p><b>Do:</b> use the decorator for that step, or record what you need with <code>ragevalkit.note()</code>. Arguments named like secrets show as <code>[REDACTED]</code> on purpose.</p></div></details>
+
+  <details class="fix"><summary>&ldquo;Another evaluation is already running&rdquo;</summary><div class="body">
+    <p class="why">One evaluation runs at a time.</p>
+    <p><b>Do:</b> wait for it, or press <b>Stop</b> on the version in progress; a stopped run keeps its partial results.</p></div></details>
+
+  <details class="fix"><summary>&ldquo;Version &hellip; already exists&rdquo; or &ldquo;Version may only contain letters, digits&hellip;&rdquo;</summary><div class="body">
+    <p class="why">Version names are unique, and use letters, digits, <code>.</code>, <code>_</code> or <code>-</code> (up to 20 characters).</p>
+    <p><b>Do:</b> choose a new name, or tick the option to replace the existing version.</p></div></details>
+
+  <details class="fix"><summary>&ldquo;No runnable test cases in the selection&rdquo;</summary><div class="body">
+    <p class="why">The groups you picked are empty, or their cases are all inactive.</p>
+    <p><b>Do:</b> add cases to the group, or mark them active. The Execute dialog shows how many cases will run before you start.</p></div></details>
+
+  <details class="fix"><summary>A function with a parameter called <code>context</code> or <code>user_id</code> gets the wrong thing</summary><div class="body">
+    <p class="why">Those names are on the lists ragevalkit uses to recognise history and session parameters.</p>
+    <p><b>Do:</b> rename the parameter, or set <code>history_params=[&hellip;]</code> and <code>session_params=[&hellip;]</code> to your own names. See <a href="#function">Connect your function</a>.</p></div></details>
+
+  <details class="fix"><summary>The answer shows as a dictionary or object text instead of the answer</summary><div class="body">
+    <p class="why">Your function returned a dictionary or object, and none of its keys is a known answer key.</p>
+    <p><b>Do:</b> return a string, or add your key with <code>answer_keys=["my_key"]</code>.</p></div></details>
+
+  <details class="fix"><summary>I cannot sign in, or I am signed out after a restart</summary><div class="body">
+    <p class="why">The default account is <code>admin</code> / <code>admin123</code> unless you set <code>users=</code>. Without a fixed <code>secret=</code> a new one is made on every start, which ends existing sessions.</p>
+    <p><b>Do:</b> set <code>users=</code> and <code>secret=</code>, or <code>require_login=False</code> locally.</p></div></details>
+
+  <details class="fix"><summary>&ldquo;Missing required column(s)&rdquo; when importing</summary><div class="body">
+    <p class="why">The file does not have the columns the older dataset upload needs.</p>
+    <p><b>Do:</b> use <b>Test Cases &rarr; Import</b>, which only needs a question column and lets you pick which column is which; or add <code>column_map=</code> to <code>serve()</code>.</p></div></details>
+
+  <details class="fix"><summary>Generating test cases: &ldquo;has no selectable text&rdquo;, &ldquo;password-protected&rdquo; or &ldquo;old Word files&rdquo;</summary><div class="body">
+    <p class="why">The file cannot be read as text: a scanned PDF, a protected file, or a <code>.doc</code>.</p>
+    <p><b>Do:</b> upload a text-based PDF, remove the password, or save <code>.doc</code> files as <code>.docx</code>. Plain <code>.txt</code> and <code>.md</code> always work.</p></div></details>
+
+  <details class="fix"><summary>The dashboard looks old after an update, or a new option is not recognised</summary><div class="body">
+    <p class="why">The environment still has the previous version of ragevalkit, or the browser kept the old page.</p>
+    <p><b>Do:</b> reinstall with <code>pip install --force-reinstall --no-deps git+https://github.com/devanshmakam-youngsoft/ragevalkit.git</code>, then refresh the page with <kbd>Ctrl</kbd>+<kbd>F5</kbd>.</p></div></details>
+
+  <details class="fix"><summary>&ldquo;Address already in use&rdquo;, or the page does not open</summary><div class="body">
+    <p class="why">Another program is using the port, or the browser did not start.</p>
+    <p><b>Do:</b> pick another one with <code>port=8003</code> and open <code>http://localhost:8003</code> yourself.</p></div></details>
+
+  <details class="fix"><summary>&ldquo;Semantic similarity failed&rdquo; in the problems list</summary><div class="body">
+    <p class="why">The small local model for the &ldquo;meaning&rdquo; score could not load, usually the first time on a machine with no internet.</p>
+    <p><b>Do:</b> connect once so it can download, or set <code>run_semantic_similarity=False</code>. All other scores are unaffected.</p></div></details>
+
+  <details class="fix"><summary>Where are the logs, and what should I send when asking for help?</summary><div class="body">
+    <p><b>Do:</b> on the version page press <em>Download log</em>, or open <code>eval_logs/runs/</code> next to your <code>eval_store.json</code>. For an error outside a run (a message with a reference number), search <code>eval_logs/server.log</code> for that reference. Keys and passwords are already hidden.</p></div></details>
+</section>
+
+<!-- ============================================================ 13 -->
+<section id="reference">
+  <h2><span class="num">13</span><code>serve()</code> reference</h2>
+  <p class="intro">Every option, with its default. Only <code>fn</code> is required.</p>
+  {{serve_reference}}
+</section>
+
+<!-- ============================================================ 14 -->
+<section id="notes">
+  <h2><span class="num">14</span>Good to know</h2>
+  <ul>
+    <li><b>One evaluation runs at a time.</b> Finished results are saved as they complete. A run that is in progress lives in the running server, so if the server is restarted, start that version again.</li>
+    <li><b>The dashboard is served on this computer</b> (<code>127.0.0.1</code>). To share it with a team, run it on a shared machine behind your usual network setup, with sign-in on.</li>
+    <li><b>Documents sent to a model.</b> Generating test cases sends the text of your documents to <code>generator_model</code> (the judge model by default). Choose one you are comfortable sending them to.</li>
+    <li><b>Supported documents:</b> PDF with selectable text, <code>.docx</code>, <code>.txt</code> and <code>.md</code>.</li>
+    <li><b>Judge versions.</b> ragevalkit pins its LiteLLM dependency to a tested range, so installs stay on versions that have been checked.</li>
+  </ul>
+</section>
+
+</main>
+</div>
+
+<script>
+(function () {
+  // sidebar from the section headings, with the section in view highlighted
+  var nav = document.querySelector("nav.toc");
+  var sections = Array.prototype.slice.call(document.querySelectorAll("main > section"));
+  sections.forEach(function (section) {
+    var heading = section.querySelector("h2");
+    var link = document.createElement("a");
+    link.href = "#" + section.id;
+    link.textContent = heading.textContent.replace(/^\d+/, "").trim();
+    link.dataset.for = section.id;
+    nav.appendChild(link);
+  });
+  var links = nav.querySelectorAll("a");
+  function highlight(id) { links.forEach(function (l) { l.classList.toggle("on", l.dataset.for === id); }); }
+  if ("IntersectionObserver" in window) {
+    var visible = {};
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { visible[e.target.id] = e.isIntersecting; });
+      var first = sections.filter(function (s) { return visible[s.id]; })[0];
+      if (first) highlight(first.id);
+    }, { rootMargin: "0px 0px -65% 0px" });
+    sections.forEach(function (s) { observer.observe(s); });
+  }
+
+  // copy buttons
+  document.addEventListener("click", function (event) {
+    var button = event.target.closest(".copy");
+    if (!button) return;
+    var box = button.closest("figure.code, pre.cmd");
+    var code = box.querySelector("code") || box;
+    var clone = code.cloneNode(true);
+    clone.querySelectorAll(".copy").forEach(function (b) { b.remove(); });
+    var text = clone.textContent.replace(/\s+$/, "") + "\n";
+    function done() { button.textContent = "Copied"; setTimeout(function () { button.textContent = "Copy"; }, 1400); }
+    if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, function () {});
+    else { var area = document.createElement("textarea"); area.value = text; document.body.appendChild(area); area.select(); document.execCommand("copy"); area.remove(); done(); }
+  });
+
+  // tabs
+  document.querySelectorAll("[data-tabs]").forEach(function (group) {
+    var tabs = group.querySelectorAll("[role=tab]"), panels = group.querySelectorAll("[role=tabpanel]");
+    tabs.forEach(function (tab, index) {
+      tab.addEventListener("click", function () {
+        tabs.forEach(function (t, i) { t.setAttribute("aria-selected", i === index); panels[i].hidden = i !== index; });
+      });
+    });
+  });
+
+  // troubleshooting search, and opening the entry a link points at
+  var filter = document.getElementById("fix-filter");
+  var entries = document.querySelectorAll("details.fix");
+  if (filter) filter.addEventListener("input", function () {
+    var words = filter.value.toLowerCase().split(/\s+/).filter(Boolean);
+    entries.forEach(function (entry) {
+      var text = entry.textContent.toLowerCase();
+      entry.style.display = words.every(function (w) { return text.indexOf(w) !== -1; }) ? "" : "none";
+      if (words.length && entry.style.display === "") entry.open = true;
+    });
+  });
+})();
+</script>
+</body>
+</html>

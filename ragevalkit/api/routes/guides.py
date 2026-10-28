@@ -1,19 +1,20 @@
-"""The guides, so they can be read inside the dashboard."""
+"""The guide, so it can be read inside the dashboard, and which optional parts the dashboard shows."""
 from fastapi import APIRouter, Depends
 from fastapi.responses import HTMLResponse
 
-from ragevalkit.api.dependencies import require_user
-from ragevalkit.api.services.guides import find_guide, list_guides
+from ragevalkit.api.dependencies import get_config, require_user
+from ragevalkit.api.services.guides import enabled_features, guide_page
+from ragevalkit.config import Config
 
-router = APIRouter(prefix="/api/help", tags=["help"], dependencies=[Depends(require_user)])
-
-
-@router.get("/guides")
-def guides() -> list[dict]:
-    return list_guides()
+router = APIRouter(prefix="/api", tags=["help"], dependencies=[Depends(require_user)])
 
 
-@router.get("/guides/{guide_id}")
-def read_guide(guide_id: str) -> HTMLResponse:
-    """A guide as a complete page, meant for an iframe on the Help page."""
-    return HTMLResponse(find_guide(guide_id).path.read_text(encoding="utf-8"))
+@router.get("/features")
+def features(cfg: Config = Depends(get_config)) -> dict:
+    return enabled_features(cfg)
+
+
+@router.get("/help/guide")
+def read_guide(cfg: Config = Depends(get_config)) -> HTMLResponse:
+    """The guide as a complete page, meant for an iframe on the Help page."""
+    return HTMLResponse(guide_page(cfg))

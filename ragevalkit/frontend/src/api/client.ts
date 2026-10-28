@@ -1,5 +1,5 @@
 import { apiPath } from "./base";
-import type { DatasetInfo, GenBatch, Guide, Issue, GenItem, GenLimits, GenSummary, GenTurn, Group, GroupHistory, ImportMapping, ImportPreview, ImportResult, RecoResult, RunPreview, RunSelection, RunState, TestCase, VersionDetail, VersionSummary } from "./types";
+import type { DatasetInfo, Features, GenBatch, Issue, GenItem, GenLimits, GenSummary, GenTurn, Group, GroupHistory, ImportMapping, ImportPreview, ImportResult, RecoResult, RunPreview, RunSelection, RunState, TestCase, VersionDetail, VersionSummary } from "./types";
 
 /** Fired when any call comes back 401 so the app can return to the login page. */
 export const authEvents = new EventTarget();
@@ -66,8 +66,9 @@ export const api = {
   /** What went wrong so far in a run, in plain language, each with its technical detail. */
   runIssues: (runId: string) =>
     fetch(apiPath(`runs/${runId}/issues`)).then((r) => json<{ issues: Issue[]; issue_total: number; error: string | null; error_detail: string }>(r)),
-  guides: () => fetch(apiPath("help/guides")).then((r) => json<Guide[]>(r)),
-  guideUrl: (id: string) => apiPath(`help/guides/${encodeURIComponent(id)}`),
+  /** Which optional parts of the dashboard are switched on (the Help page, for now). */
+  features: () => fetch(apiPath("features")).then((r) => json<Features>(r)),
+  guideUrl: () => apiPath("help/guide"),
   stopRun: (runId: string) =>
     fetch(apiPath(`runs/${runId}/stop`), { method: "POST" }).then((r) => json<{ run_id: string; message: string }>(r)),
   archiveRun: (runId: string) =>

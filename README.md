@@ -8,7 +8,7 @@ Evaluate any RAG pipeline, chatbot or agent. You give ragevalkit a Python functi
 - Plain-language findings for every run: each watch-out paired with what to do about it
 - Excel export, optional login, and one JSON file for storage (TinyDB), so there is nothing to set up
 
-**More:** the dashboard's **Help** page has the guides; the same pages are in the repository: [ragevalkit/guides/developer-guide.html](ragevalkit/guides/developer-guide.html) is the full reference and [ragevalkit/guides/how-it-works.html](ragevalkit/guides/how-it-works.html) explains how it works inside, folder by folder.
+**More:** the dashboard's **Help** page is the full guide, with runnable examples for the common setups (function shapes, steps, LangGraph, bots without retrieval, your own judge) and a troubleshooting section. The same page is in the repository at [ragevalkit/guides/developer-guide.html](ragevalkit/guides/developer-guide.html), and its code is in [examples/](examples/).
 
 ---
 
@@ -86,6 +86,7 @@ The most used `serve()` parameters (the full list, with every default, is in the
 | `fn` | required | Your pipeline function |
 | `port` | `8001` | Port for the dashboard |
 | `store_path` | `"eval_store.json"` | TinyDB file that holds everything |
+| `show_guide` | `True` | Show the guide on the dashboard's Help page; `False` hides the link and stops serving it |
 | `log_dir` | `None` | Folder for log files; default `eval_logs` next to `store_path` (see [Logs and problems](#logs-and-problems)) |
 | `require_login` | `True` | Show the login page; `False` lets anyone in as a guest |
 | `users` | `"admin:admin123"` | `"user:password"` pairs, comma separated |
@@ -230,11 +231,27 @@ ragevalkit/
   recommendation/   which version to ship
   run_summary/      the numbers saved for each run
   recording/        step() and note()
-  metrics/  datasets/  documents/  llm/  auth/  config/  logs/  guides/
+  metrics/  datasets/  documents/  llm/  auth/  config/  logs/
+  guides/           the built guide (developer-guide.html), shown on the Help page
   frontend/         dashboard source: pages/, dialogs/, components/, context/, api/, hooks/, lib/, styles/
   static/           the built dashboard
 tests/              mirrors the package folders
+examples/           the runnable code the guide shows; every file is run by tests/examples
+docs/               guide.template.html, the guide's source
+scripts/            build_guide.py
 ```
+
+### The guide
+
+`ragevalkit/guides/developer-guide.html` is built from `docs/guide.template.html`. Its code comes from the files in
+`examples/` (run by `tests/examples`) and its `serve()` reference comes from the function's own signature and docstring, so
+it cannot drift. After changing the template, an example or `serve()`, rebuild it:
+
+```bash
+python scripts/build_guide.py
+```
+
+`tests/guides` fails when the built guide is out of date.
 
 ### Dashboard
 

@@ -6,7 +6,7 @@ class JudgeSettings(Settings):
     # Any LiteLLM model string: "groq/...", "gemini/...", "openai/...", "ollama/..."
     judge_model: str = "groq/openai/gpt-oss-120b"
     judge_api_key: str = ""        # optional; LiteLLM also reads env vars automatically
-    judge_prompt_override: str = ""  # replaces the built-in grading prompt entirely when set
+    judge_prompt_override: str = ""  # replaces the built-in grading rubric when set; the JSON reply format is always added
     judge_temperature: float | None = None
     judge_retries: int = 3
 

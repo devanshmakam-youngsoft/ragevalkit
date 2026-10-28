@@ -16,6 +16,9 @@ class ServerSettings(Settings):
 
     store_path: Path = Path("eval_store.json")
 
+    # Show the Help page (the guide) in the dashboard
+    show_guide: bool = True
+
     # Folder for log files; empty means "eval_logs" beside the results store
     log_dir: Path | None = None
 

@@ -149,10 +149,9 @@ export interface Issue {
   count: number;
 }
 
-export interface Guide {
-  id: string;
-  title: string;
-  description: string;
+/** What the server has switched on: the guide (serve(show_guide=...)). */
+export interface Features {
+  guide: boolean;
 }
 
 export interface VersionDetail {

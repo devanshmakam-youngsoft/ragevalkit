@@ -5,6 +5,7 @@ import { ThemeToggle } from "./ThemeToggle";
 import { Breadcrumbs, type Crumb } from "./Breadcrumbs";
 import { ExecuteModal } from "../dialogs/ExecuteModal";
 import { useRun } from "../context/RunContext";
+import { useFeatures } from "../hooks/features";
 
 /**
  * Frozen header: title on the left; Execute button, theme switch and sign-out on the right.
@@ -18,6 +19,7 @@ export function TopBar({ action, crumbs }: { action?: ReactNode; crumbs?: Crumb[
   const { pathname } = useLocation();
   const inTestCases = pathname.startsWith("/test-cases");
   const inHelp = pathname.startsWith("/help");
+  const features = useFeatures();
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-bg pt-[5px]">
@@ -30,7 +32,7 @@ export function TopBar({ action, crumbs }: { action?: ReactNode; crumbs?: Crumb[
             <p className="mt-1.5 text-xs text-muted">Evaluation runs, scored version by version</p>
           </Link>
           <nav aria-label="Main" className="flex items-center gap-5">
-            {([["Dashboard", "/", !inTestCases && !inHelp], ["Test Cases", "/test-cases", inTestCases], ["Help", "/help", inHelp]] as const).map(([label, to, on]) => (
+            {([["Dashboard", "/", !inTestCases && !inHelp], ["Test Cases", "/test-cases", inTestCases], ...(features?.guide ? [["Help", "/help", inHelp] as const] : [])] as const).map(([label, to, on]) => (
               <Link key={to} to={to} aria-current={on ? "page" : undefined}
                 className={`border-b-2 py-1 text-sm font-medium transition ${on ? "border-brand text-fg" : "border-transparent text-muted hover:text-fg"}`}>
                 {label}

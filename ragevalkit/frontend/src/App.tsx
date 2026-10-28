@@ -29,7 +29,6 @@ export default function App() {
             <Route path="/test-cases/groups" element={<Groups />} />
             <Route path="/test-cases/groups/:groupId" element={<TestCases />} />
             <Route path="/help" element={<Help />} />
-            <Route path="/help/:guideId" element={<Help />} />
             {/* older links */}
             <Route path="/groups" element={<Navigate to="/test-cases/groups" replace />} />
             <Route path="/datasets" element={<Navigate to="/test-cases/groups" replace />} />

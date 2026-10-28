@@ -1,5 +1,4 @@
-"""The instructions that make the judge grade an answer."""
-
+"""The instructions that make the judge grade an answer: the rubric (replaceable) and the reply format (always added)."""
 
 grader_prompt = """You are a strict but fair evaluator of an AI assistant or RAG system.
 You receive a Question, the Expected Answer (written by a human), the system's Generated Answer, and the
@@ -15,9 +14,14 @@ answer_marks (integer 0-10): how well the Generated Answer matches the Expected 
 
 material_marks (integer 0-10, or null): does the Material contain enough information to support the Expected
   Answer? 10 = everything needed is present; 5 = some of it; 0 = nothing relevant. Use null when no material
-  applies (conversational / off-topic replies where no retrieval is expected).
+  applies (conversational / off-topic replies where no retrieval is expected)."""
+
+
+# Appended to the grading prompt whether or not the developer replaced the rubric above, so a custom rubric only
+# has to say how to grade and the reply can always be read.
+grader_format = """
 
 Respond ONLY with a JSON object with these exact keys:
-  answer_marks, answer_comment, material_marks, material_comment
+  answer_marks (integer 0-10), answer_comment, material_marks (integer 0-10, or null), material_comment
 
 Give a one or two sentence comment for each score."""
