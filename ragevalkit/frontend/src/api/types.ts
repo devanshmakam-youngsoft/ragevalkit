@@ -54,7 +54,17 @@ export interface RecoResult {
   fastest: string | null;
   runner_up: string | null;
   latest_gap: { version: string; gap: number } | null;
+  /** The newest run against the recommended one (null when the newest run is the recommended one, or was not compared). */
+  latest_vs_best: { version: string; answer: number | null; material: number | null; time: number | null; quality: number | null } | null;
+  /** What was recommended before the newest run. */
+  previous_best: string | null;
+  /** Nothing reached `min_quality`: no recommendation, but the best so far is named. */
+  min_quality: number;
+  below_minimum: boolean;
+  best_so_far: { version: string; quality: number } | null;
   not_comparable: string[];
+  /** What each version that could not be compared scored on its own test cases. */
+  not_comparable_scores: Record<string, { answer: number | null; material: number | null; time: number | null; cases: number }>;
   /** Why each version in `not_comparable` was left out. */
   not_comparable_detail: Record<string, string>;
   excluded: string[];

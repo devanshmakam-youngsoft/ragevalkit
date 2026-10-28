@@ -41,6 +41,7 @@ def serve(
     answer_weight: float = 0.6,
     material_weight: float = 0.4,
     recommendation_tolerance: float = 0.25,
+    recommendation_min_quality: float = 5.0,
     max_response_time: float | None = None,
     # --- built-in metrics ---
     run_keyword_recall: bool = True,
@@ -129,6 +130,8 @@ def serve(
         answer_weight: Weight of ``answer_marks`` in the version recommendation score.
         material_weight: Weight of ``material_marks``. Set to ``0`` for systems with no retrieval.
         recommendation_tolerance: Versions within this quality-score delta are considered tied.
+        recommendation_min_quality: A version is only recommended when its overall score (0 to 10) reaches this.
+            Below it the dashboard says no version is good enough yet and shows the best so far. Default ``5.0``.
         max_response_time: Exclude version candidates slower than this (seconds) from recommendation.
         run_keyword_recall: Compute keyword recall between expected and generated answers.
         run_bm25: Compute BM25 lexical similarity score.
@@ -241,6 +244,7 @@ def serve(
         answer_weight=answer_weight,
         material_weight=material_weight,
         recommendation_tolerance=recommendation_tolerance,
+        recommendation_min_quality=recommendation_min_quality,
         max_response_time=max_response_time,
         run_keyword_recall=run_keyword_recall,
         run_bm25=run_bm25,

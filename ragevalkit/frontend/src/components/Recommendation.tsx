@@ -49,6 +49,16 @@ function Side({ title, v, group, reco }: { title: string; v: VersionSummary; gro
 
 const pct = (n: number) => Math.round(n * 100);
 
+const signed = (n: number | null, digits = 1) => (n == null ? "–" : `${n > 0 ? "+" : n < 0 ? "−" : "±"}${Math.abs(n).toFixed(digits)}`);
+
+/** How the latest run differs from the recommended one, in words: "answer −0.4 · context +0.1 · 1.2s slower". */
+function changeText(d: { answer: number | null; material: number | null; time: number | null }) {
+  const parts = [`answer ${signed(d.answer)}`];
+  if (d.material != null) parts.push(`context ${signed(d.material)}`);
+  if (d.time != null && Math.abs(d.time) >= 0.05) parts.push(`${Math.abs(d.time).toFixed(1)}s ${d.time > 0 ? "slower" : "faster"}`);
+  return parts.join(" · ");
+}
+
 /** The call-to-action panel: which version to ship, why, and what the alternatives trade away. */
 export function Recommendation({ reco, versions, archivedCount, overrides, onChange, groupName }: {
   reco: RecoResult | null;
@@ -92,7 +102,16 @@ export function Recommendation({ reco, versions, archivedCount, overrides, onCha
               <Link to={`/v/${best.version}`} className="mono mt-1 inline-block text-xs text-brand hover:underline">open full results ›</Link>
             </>
           ) : (
-            <div className="num mt-2 text-[28px] leading-tight text-muted">{reco ? "None yet" : "…"}</div>
+            <>
+              <div className="num mt-2 text-[28px] leading-tight text-muted">{reco ? "None yet" : "…"}</div>
+              {reco?.below_minimum && reco.best_so_far && (
+                <div className="mt-2 text-xs text-muted">
+                  Best so far:{" "}
+                  <Link to={`/v/${reco.best_so_far.version}`} className="mono font-medium text-brand hover:underline">v{reco.best_so_far.version}</Link>
+                  <span className="mono"> · {fmt(reco.best_so_far.quality)}/10</span>
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -116,26 +135,51 @@ export function Recommendation({ reco, versions, archivedCount, overrides, onCha
               </p>
             )}
             {reco.basis_note && <p className="mt-1 text-xs text-warn">{reco.basis_note}</p>}
+            {reco.previous_best && reco.previous_best !== reco.best && (
+              <p className="mt-1 text-xs text-muted">The latest run moved the recommendation from v{reco.previous_best} to v{reco.best}.</p>
+            )}
           </div>
         ) : (
-          <p className="text-sm text-muted">
-            {reco?.budget_miss && reco.fastest
+          <div className="text-sm text-muted">
+            {reco?.below_minimum ? (
+              <>
+                <p>{reco.reason}</p>
+                <p className="mt-1 text-xs">
+                  A version needs an overall score of at least {reco.min_quality} out of 10 to be recommended. If that looks too low, check that the
+                  test cases ask about what your pipeline knows, then run it again.
+                </p>
+              </>
+            ) : reco?.budget_miss && reco.fastest
               ? `No version responds within ${reco.max_time}s. The fastest is v${reco.fastest}.`
               : reco ? "No comparable, fully graded version to recommend yet." : "Working it out…"}
-          </p>
+          </div>
         )}
 
         <div className="space-y-1.5 border-line lg:border-l lg:pl-6">
           {fastest && best && <Side title="Fastest" v={fastest} group={groupName} reco={reco} />}
           {runnerUp && <Side title="Runner-up" v={runnerUp} group={groupName} reco={reco} />}
+          {reco?.latest_vs_best && best && (
+            <div className="text-[13px] leading-snug">
+              <span className="label mr-2">Latest</span>
+              <Link to={`/v/${reco.latest_vs_best.version}`} className="mono font-medium text-brand hover:underline">v{reco.latest_vs_best.version}</Link>
+              <span className="text-muted"> vs v{best.version}: {changeText(reco.latest_vs_best)}</span>
+            </div>
+          )}
           {reco?.latest_gap && (
             <div className="text-[13px]" style={{ color: "var(--bad)" }}>
               Latest v{reco.latest_gap.version} scores {reco.latest_gap.gap.toFixed(1)} lower overall.
             </div>
           )}
-          {reco?.not_comparable.map((id) => (
-            <div key={`n${id}`} className="text-xs text-muted">Not compared: v{id} {reco.not_comparable_detail[id] ?? "ran different test cases"}.</div>
-          ))}
+          {reco?.not_comparable.map((id) => {
+            const own = reco.not_comparable_scores?.[id];
+            return (
+              <div key={`n${id}`} className="text-xs text-muted">
+                Not compared: <Link to={`/v/${id}`} className="mono text-brand hover:underline">v{id}</Link>
+                {own && <> (answer {fmt(own.answer)}, context {fmt(own.material)})</>} {reco.not_comparable_detail[id] ?? "ran different test cases"}.
+                {" "}Run the same test cases on both versions to compare them.
+              </div>
+            );
+          })}
           {reco?.excluded.map((id) => (
             <div key={`e${id}`} className="text-xs text-muted">Left out: v{id} — {reco.excluded_detail[id] ?? "failed rows or stopped early"}.</div>
           ))}

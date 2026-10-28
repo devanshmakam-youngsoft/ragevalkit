@@ -11,6 +11,7 @@ def recommendation_settings(cfg: Config, tolerance: float | None = None, max_tim
         "answer_weight": cfg.answer_weight,
         "material_weight": cfg.material_weight,
         "tolerance": cfg.recommendation_tolerance if tolerance is None else tolerance,
+        "min_quality": cfg.recommendation_min_quality,
         "max_time": cfg.max_response_time if max_time is None else (max_time if max_time > 0 else None),
     }
 

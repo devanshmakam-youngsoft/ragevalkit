@@ -16,7 +16,7 @@ def _reference_rows(views: list[dict]) -> int:
     return best_rows
 
 
-def recommend_on_totals(active: list[dict], *, group, answer_weight, material_weight, tolerance, max_time) -> dict:
+def recommend_on_totals(active: list[dict], *, group, answer_weight, material_weight, tolerance, max_time, min_quality: float = 0.0) -> dict:
     views = []
     for idx, summary in enumerate(active):
         view = version_view(summary, group)
@@ -24,7 +24,7 @@ def recommend_on_totals(active: list[dict], *, group, answer_weight, material_we
             continue
         views.append({**view, "version": str(summary["version"]), "date": summary.get("date"),
                       "stopped": bool(summary.get("stopped")), "idx": idx})
-    result = empty_result(answer_weight, material_weight, tolerance, max_time, len(views))
+    result = empty_result(answer_weight, material_weight, tolerance, max_time, len(views), min_quality)
     if not views:
         return result
 
@@ -33,11 +33,13 @@ def recommend_on_totals(active: list[dict], *, group, answer_weight, material_we
     result["not_comparable"] = [x["version"] for x in views if x["rows"] != rows]
     for v in result["not_comparable"]:
         result["not_comparable_detail"][v] = "ran a different number of test cases"
+        own = next(x for x in views if x["version"] == v)
+        result["not_comparable_scores"][v] = {"answer": own["answer"], "material": own["material"], "time": own["time"], "cases": own["rows"]}
     result["excluded"] = [x["version"] for x in views if x["rows"] == rows and not complete(x)]
     eligible = [x for x in views if complete(x)]
     result["_all"] = views
     result["_views"] = views
     return choose_best(
         eligible, result, answer_weight=answer_weight, material_weight=material_weight,
-        tolerance=tolerance, max_time=max_time, latest=views[-1],
+        tolerance=tolerance, max_time=max_time, latest=views[-1], min_quality=min_quality,
     )

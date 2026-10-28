@@ -12,7 +12,7 @@ def shared_case_keys(views: list[dict]) -> set[str]:
     return set.intersection(*sets) if sets else set()
 
 
-def recommend_on_shared_cases(active: list[dict], *, group, answer_weight, material_weight, tolerance, max_time) -> dict:
+def recommend_on_shared_cases(active: list[dict], *, group, answer_weight, material_weight, tolerance, max_time, min_quality: float = 0.0) -> dict:
     views = []
     for idx, summary in enumerate(active):
         entries = summary["case_scores"]
@@ -24,7 +24,7 @@ def recommend_on_shared_cases(active: list[dict], *, group, answer_weight, mater
             "version": str(summary["version"]), "idx": idx, "stopped": bool(summary.get("stopped")),
             "cases": {e["k"]: e for e in entries}, "ran": len(entries),
         })
-    result = empty_result(answer_weight, material_weight, tolerance, max_time, len(views))
+    result = empty_result(answer_weight, material_weight, tolerance, max_time, len(views), min_quality)
     if not views:
         return result
 
@@ -50,6 +50,11 @@ def recommend_on_shared_cases(active: list[dict], *, group, answer_weight, mater
     for v in dropped:
         overlap = len(set(v["cases"]) & shared)
         result["not_comparable"].append(v["version"])
+        entries = list(v["cases"].values())
+        result["not_comparable_scores"][v["version"]] = {      # what it scored on its own cases, so a good one is not hidden
+            "answer": mean_of_present(e.get("a") for e in entries), "material": mean_of_present(e.get("m") for e in entries),
+            "time": mean_of_present(e.get("t") for e in entries), "cases": v["ran"],
+        }
         result["not_comparable_detail"][v["version"]] = (
             f"ran {v['ran']} test cases but shares only {overlap} with the versions it was compared against"
         )
@@ -81,5 +86,5 @@ def recommend_on_shared_cases(active: list[dict], *, group, answer_weight, mater
     latest = newest if any(v is newest for v in pool) else None
     return choose_best(
         complete, result, answer_weight=answer_weight, material_weight=material_weight,
-        tolerance=tolerance, max_time=max_time, latest=latest,
+        tolerance=tolerance, max_time=max_time, latest=latest, min_quality=min_quality,
     )

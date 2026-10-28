@@ -19,10 +19,17 @@ def overall_quality(view: dict, answer_weight: float, material_weight: float, us
     return (answer_weight * answer + material_weight * material) / total
 
 
-def empty_result(answer_weight: float, material_weight: float, tolerance: float, max_time: float | None, considered: int) -> dict:
+def empty_result(
+    answer_weight: float, material_weight: float, tolerance: float, max_time: float | None, considered: int,
+    min_quality: float = 0.0,
+) -> dict:
     return {
         "best": None, "reason": "", "fastest": None, "runner_up": None, "latest_gap": None,
-        "not_comparable": [], "not_comparable_detail": {}, "excluded": [], "excluded_detail": {},
+        # the newest run against the recommended one, when both were compared; and what was recommended before it ran
+        "latest_vs_best": None, "previous_best": None,
+        # nothing reached min_quality: no recommendation, but the best so far is named
+        "min_quality": min_quality, "below_minimum": False, "best_so_far": None,
+        "not_comparable": [], "not_comparable_detail": {}, "not_comparable_scores": {}, "excluded": [], "excluded_detail": {},
         "budget_miss": False, "basis": "weighted", "basis_note": "",
         "weights": {"answer": answer_weight, "material": material_weight},
         "tolerance": tolerance, "max_time": max_time, "qualities": {}, "considered": considered,
@@ -31,7 +38,13 @@ def empty_result(answer_weight: float, material_weight: float, tolerance: float,
     }
 
 
-def choose_best(best_pool: list[dict], result: dict, *, answer_weight, material_weight, tolerance, max_time, latest) -> dict:
+def _delta(latest: float | None, best: float | None) -> float | None:
+    return None if latest is None or best is None else round(latest - best, 3)
+
+
+def choose_best(
+    best_pool: list[dict], result: dict, *, answer_weight, material_weight, tolerance, max_time, latest, min_quality: float = 0.0,
+) -> dict:
     """Shared by both comparison paths: from versions with ``answer``/``material``/``time``/``idx`` pick the winner."""
     eligible = best_pool
     have_material = [x for x in eligible if x["material"] is not None]
@@ -70,7 +83,14 @@ def choose_best(best_pool: list[dict], result: dict, *, answer_weight, material_
         return result
 
     top = max(x["q"] for x in fits)
-    tied = [x for x in fits if x["q"] >= top - tolerance]
+    if top < min_quality:
+        leader = max(fits, key=lambda x: (x["q"], -speed(x), x["idx"]))
+        result.update(
+            below_minimum=True, best_so_far={"version": leader["version"], "quality": round(leader["q"], 3)},
+            reason=f"No version scores {min_quality:g} or more yet; v{leader['version']} is the best so far ({leader['q']:.1f}).",
+        )
+        return result
+    tied = [x for x in fits if x["q"] >= top - tolerance and x["q"] >= min_quality]
     # fastest of the tied versions; then higher quality; then the newer run
     best = min(tied, key=lambda x: (speed(x), -x["q"], -x["idx"]))
 
@@ -87,7 +107,15 @@ def choose_best(best_pool: list[dict], result: dict, *, answer_weight, material_
     runner_up = min(rest, key=lambda x: (-x["q"], speed(x))) if rest else None
     gap = best["q"] - latest["q"] if latest in fits and latest is not best else 0
 
+    versus = None
+    if latest in fits and latest is not best:
+        versus = {
+            "version": latest["version"], "answer": _delta(latest["answer"], best["answer"]),
+            "material": _delta(latest["material"], best["material"]) if use_material else None,
+            "time": _delta(latest["time"], best["time"]), "quality": _delta(latest["q"], best["q"]),
+        }
     result.update(
+        latest_vs_best=versus,
         best=best["version"], reason=reason,
         fastest=fastest["version"] if fastest is not best else None,
         runner_up=runner_up["version"] if runner_up else None,

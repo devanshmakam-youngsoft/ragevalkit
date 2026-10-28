@@ -20,6 +20,12 @@ test case (``case_scores``), so versions are compared **on the test cases they s
    context quality weighted by ``serve()`` (default 60/40). Context quality only counts when every
    compared version has it; otherwise all are compared on answer quality alone, and the result says so.
 5. Versions within ``tolerance`` of the best overall score are tied; the fastest of them is recommended.
+6. A version is only recommended when its overall score reaches ``recommendation_min_quality`` (default 5 out of 10).
+   Below that the result has no ``best``, but names ``best_so_far`` so the dashboard can say "none good enough yet".
+
+Around the answer the result also carries: ``not_comparable_scores`` (what each version that could not be compared scored
+on its own cases, so a good one is not hidden), ``latest_vs_best`` (the newest run against the recommended one) and
+``previous_best`` (what was recommended before the newest run).
 
 Runs saved before per-case scores existed are filled in from their saved results the first time they
 are needed (see ``EvalStore.list_versions_for_comparison``). If a run has none at all, the older
@@ -28,9 +34,10 @@ whole-run comparison (same number of questions) is used instead.
 from ragevalkit.recommendation.constants import (
     DEFAULT_ANSWER_WEIGHT,
     DEFAULT_MATERIAL_WEIGHT,
+    DEFAULT_MIN_QUALITY,
     DEFAULT_TOLERANCE,
 )
 from ragevalkit.recommendation.engine import recommend
 from ragevalkit.recommendation.group_overview import group_overview
 
-__all__ = ["DEFAULT_ANSWER_WEIGHT", "DEFAULT_MATERIAL_WEIGHT", "DEFAULT_TOLERANCE", "group_overview", "recommend"]
+__all__ = ["DEFAULT_ANSWER_WEIGHT", "DEFAULT_MATERIAL_WEIGHT", "DEFAULT_MIN_QUALITY", "DEFAULT_TOLERANCE", "group_overview", "recommend"]

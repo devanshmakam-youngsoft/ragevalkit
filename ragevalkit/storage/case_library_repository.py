@@ -238,6 +238,7 @@ class CaseLibraryRepository(StoreBase):
             for (chat, turn), ids in slots.items() if len(ids) > 1
         ]
 
+        ran_groups = {g for tid in chosen for g in groups_of_tc.get(tid, ()) if g in group_ids}
         names_of_tc = {
             tid: sorted(group_names[g] for g in gids if g in group_names)
             for tid, gids in groups_of_tc.items()
@@ -247,7 +248,7 @@ class CaseLibraryRepository(StoreBase):
             selected=len(chosen),
             context=len(context),
             missing=missing,
-            group_names=[group_names[g] for g in group_ids],
+            group_names=[group_names[g] for g in group_ids if g in ran_groups],      # only groups that had cases in this run
             collisions=collisions,
         )
 

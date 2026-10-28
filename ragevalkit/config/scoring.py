@@ -7,6 +7,7 @@ class ScoringSettings(Settings):
     answer_weight: float = 0.6
     material_weight: float = 0.4
     recommendation_tolerance: float = 0.25
+    recommendation_min_quality: float = 5.0     # below this overall score (0-10) nothing is recommended
     max_response_time: float | None = None
 
     # Text metrics to run
