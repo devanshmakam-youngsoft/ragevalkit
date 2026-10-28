@@ -64,3 +64,4 @@ ignore = ["E701", "E702", "E731"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["ragevalkit"]
+known-local-folder = ["shared_pipeline", "production_app"]

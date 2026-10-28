@@ -60,8 +60,11 @@ header.hero p.lead { font-size: 19px; color: var(--muted); margin: 0 0 28px; max
 .paths b { display: block; font-size: 15px; margin-bottom: 2px; }
 .paths span { font-size: 13px; color: var(--muted); line-height: 1.45; display: block; }
 
+main { counter-reset: section; }
+main > section { counter-increment: section; }
 section { margin: 0 0 64px; }
 h2 { font: 500 30px/1.2 "Fraunces", Georgia, serif; margin: 0 0 6px; letter-spacing: -0.005em; padding-top: 8px; }
+h2 .num::before { content: counter(section, decimal-leading-zero); }
 h2 .num { color: var(--brand); font-family: "JetBrains Mono", monospace; font-size: 14px; display: block; margin-bottom: 6px; letter-spacing: 0.08em; }
 h3 { font: 600 17px/1.3 "Inter", sans-serif; margin: 34px 0 6px; }
 p { margin: 10px 0; }
@@ -147,6 +150,7 @@ kbd { font: 12px "JetBrains Mono", monospace; padding: 2px 6px; border: 1px soli
     <a href="#steps"><b>Record what happens inside</b><span>Steps with <code>with</code> or decorators, and why each.</span></a>
     <a href="#frameworks"><b>I use LangGraph or an agent</b><span>Steps from inside nodes, threads and async code.</span></a>
     <a href="#no-retrieval"><b>My bot has no retrieval</b><span>Greeting bots and tool agents.</span></a>
+    <a href="#setups"><b>LangChain, agents, CI, production</b><span>Whole setups, ready to adapt.</span></a>
     <a href="#judge"><b>Use my own judge</b><span>Your function, your rubric, your model.</span></a>
     <a href="#troubleshooting"><b>Something looks off</b><span>Symptoms, likely reasons, what to do.</span></a>
   </div>
@@ -154,7 +158,7 @@ kbd { font: 12px "JetBrains Mono", monospace; padding: 2px 6px; border: 1px soli
 
 <!-- ============================================================ 1 -->
 <section id="overview">
-  <h2><span class="num">01</span>What you get</h2>
+  <h2><span class="num"></span>What you get</h2>
   <p class="intro">Three things happen when you press <b>Execute session</b>.</p>
   <div class="flow">
     <div><b>Your function</b>ragevalkit calls it once per test question, in order, like a real user would.</div><div class="arrow">&rarr;</div>
@@ -167,7 +171,7 @@ kbd { font: 12px "JetBrains Mono", monospace; padding: 2px 6px; border: 1px soli
 
 <!-- ============================================================ 2 -->
 <section id="quick-start">
-  <h2><span class="num">02</span>Quick start</h2>
+  <h2><span class="num"></span>Quick start</h2>
   <p class="intro">Five minutes, no database, no extra services.</p>
   <h3>1. Install</h3>
   <pre class="cmd">pip install git+https://github.com/devanshmakam-youngsoft/ragevalkit.git<button type="button" class="copy">Copy</button></pre>
@@ -191,7 +195,7 @@ ragevalkit.serve(answer_question, port=8002, require_login=False)<button type="b
 
 <!-- ============================================================ 3 -->
 <section id="function">
-  <h2><span class="num">03</span>Connect your function</h2>
+  <h2><span class="num"></span>Connect your function</h2>
   <p class="intro">ragevalkit looks at the <em>parameter names</em> of your function to decide what to pass. There are three shapes.</p>
 
   <div class="tabs" data-tabs>
@@ -238,7 +242,7 @@ ragevalkit.serve(answer_question, port=8002, require_login=False)<button type="b
 
 <!-- ============================================================ 4 -->
 <section id="steps">
-  <h2><span class="num">04</span>Record what happens inside</h2>
+  <h2><span class="num"></span>Record what happens inside</h2>
   <p class="intro">Scoring only the final answer tells you <em>that</em> a version got better, not <em>why</em>. Recording steps tells you where the time goes, what was retrieved, and which documents were used.</p>
   <p>Mark the stages of your pipeline (search, re-rank, the model call&hellip;) and ragevalkit shows, for every question:</p>
   <ul>
@@ -286,7 +290,7 @@ ragevalkit.serve(answer_question, port=8002, require_login=False)<button type="b
   {{example:rag_pipeline.py#rag_pipeline}}
   <div class="note tip"><b>Tip: declare it once</b>
     <p>If several steps set <code>s.material</code>, the judge reads all of them one after another: routing details, search settings and the context, sometimes the same context twice. Context quality then looks lower than it is. Let <em>one</em> step (the retrieval) declare the material and keep the others timing-only. Put details you still want to see in <code>ragevalkit.note(&hellip;)</code>.</p></div>
-  <p>If no step declares anything, ragevalkit falls back to the output of decorated steps and writes a warning to the log that says how to be precise.</p>
+  <p>Sources work the same way: the sources of every step are put together (each document once), so report them in the retrieval step only. If no step declares material, ragevalkit falls back to the output of decorated steps and writes a warning to the log that says how to be precise.</p>
 
   <h3>Notes</h3>
   <p><code>ragevalkit.note("intent", "billing")</code> attaches a short fact to the question being evaluated. It appears beside the question in the results. Names such as <code>password</code>, <code>token</code> or <code>api_key</code> are never stored.</p>
@@ -302,7 +306,7 @@ ragevalkit.serve(answer_question, port=8002, require_login=False)<button type="b
 
 <!-- ============================================================ 5 -->
 <section id="frameworks">
-  <h2><span class="num">05</span>LangGraph, agents and threads</h2>
+  <h2><span class="num"></span>LangGraph, agents and threads</h2>
   <p class="intro">Steps belong to <em>the question being evaluated</em>, not to the place they are written. Whichever node, thread or async task runs your code, the step lands on the right question.</p>
   <p>That means all of these work, and the example below uses the first three:</p>
   <ul>
@@ -320,7 +324,7 @@ ragevalkit.serve(answer_question, port=8002, require_login=False)<button type="b
 
 <!-- ============================================================ 6 -->
 <section id="no-retrieval">
-  <h2><span class="num">06</span>A bot with no retrieval</h2>
+  <h2><span class="num"></span>A bot with no retrieval</h2>
   <p class="intro">Greeting bots, small talk and tool agents have no &ldquo;retrieved context&rdquo; to score. Tell ragevalkit, and they are graded on the answer alone.</p>
   {{example:no_retrieval_bot.py}}
   <ol>
@@ -332,9 +336,39 @@ ragevalkit.serve(answer_question, port=8002, require_login=False)<button type="b
   <p>Notes such as <code>intent</code> and <code>tool_called</code> appear beside each question, which makes it easy to see which tool a wrong answer used.</p>
 </section>
 
+<!-- ============================================================ setups -->
+<section id="setups">
+  <h2><span class="num"></span>Setups you will recognise</h2>
+  <p class="intro">Complete examples for the way real assistants are built. Each file is run by the tests, so you can copy it and replace the stand-ins with your own code.</p>
+
+  <h3>A LangChain chain</h3>
+  <p>Steps work inside runnables, including the branches LangChain runs in parallel threads. Here a vector search and a keyword search run side by side and a merge step declares the retrieved text once.</p>
+  {{example:langchain_chain.py}}
+
+  <h3>An agent that calls tools in a loop</h3>
+  <p>The model asks for a tool, gets the result, and decides again. Two things are worth knowing: a step that runs several times has its times <b>added up</b> (the <code>llm</code> step below runs once per loop), and when the tool results are how the agent gets its facts, declaring them as material lets the judge check that the answer is supported by them.</p>
+  {{example:tool_agent.py}}
+
+  <h3>Production and evaluation, side by side</h3>
+  <p>Your pipeline module keeps its <code>step()</code> and <code>note()</code> calls; they do nothing in production. Production imports the module as it always did, and a separate entry file serves it for evaluation.</p>
+  <div class="pair">
+    <div><h4>The pipeline <span>&mdash; used by both</span></h4>{{example:shared_pipeline.py#answer_question}}</div>
+    <div><h4>Production <span>&mdash; unchanged</span></h4>{{example:production_app.py}}</div>
+  </div>
+  <h4>The evaluation entry point</h4>
+  {{example:eval_entry.py}}
+  <pre class="cmd">uvicorn production_app:app --port 8000     # production
+python eval_entry.py                       # evaluation, only when you want it<button type="button" class="copy">Copy</button></pre>
+
+  <h3>Run it from CI</h3>
+  <p>Keep a ragevalkit server running on a shared machine, and let your build start an evaluation of a group of test cases and fail when quality drops. The script uses only the standard library and the same API the dashboard uses.</p>
+  {{example:ci_gate.py}}
+  <pre class="cmd">EVAL_URL=http://eval-server:8002 EVAL_GROUP=Billing EVAL_MINIMUM=7.5 python ci_gate.py<button type="button" class="copy">Copy</button></pre>
+</section>
+
 <!-- ============================================================ 7 -->
 <section id="test-cases">
-  <h2><span class="num">07</span>Test cases</h2>
+  <h2><span class="num"></span>Test cases</h2>
   <p class="intro">A test case is a question, the answer you expect, and where it sits in a conversation.</p>
   <div class="table-wrap"><table>
     <thead><tr><th>Column</th><th>Meaning</th></tr></thead>
@@ -347,6 +381,18 @@ ragevalkit.serve(answer_question, port=8002, require_login=False)<button type="b
       <tr><td><code>groups</code></td><td>Labels, for example <code>Billing; Refunds</code>. A case can carry any number of groups.</td></tr>
     </tbody>
   </table></div>
+  <h3>A sample file</h3>
+  <p>Five test cases in a CSV. You can import this exact file: <b>Test Cases &rarr; Import</b>, then check the preview before anything is saved.</p>
+  {{example:test_cases.csv}}
+  <ul>
+    <li><code>refund-1</code> is a <b>two-turn conversation</b>: both rows share a <code>chat_id</code> and are replayed in <code>turn_no</code> order. The second question only makes sense after the first.</li>
+    <li>Row 3 needs <b>both</b> documents (<code>|</code>); row 4 accepts <b>either</b> one (<code>,</code>, in quotes because the cell contains a comma).</li>
+    <li><code>hello-1</code> is <code>non-rag</code> and its expected answer is a <b>behaviour</b>, not exact words.</li>
+    <li>The <code>groups</code> column creates the groups <code>Billing</code>, <code>Shipping</code> and <code>Small talk</code>.</li>
+  </ul>
+  <h3>Checking that the right documents were retrieved</h3>
+  <p>Report the documents your retrieval step used with <code>s.sources</code> and list the expected ones in <code>expected_sources</code>. ragevalkit compares them and shows what was found and what is missing.</p>
+  {{example:source_checks.py}}
   <ul>
     <li><b>Import</b> takes Excel, CSV or pasted rows, shows what will be added, updated or skipped before saving anything, and returns the rows it could not use so you can fix and re-import. Importing the same file twice changes nothing.</li>
     <li><b>Groups</b> are labels. Run one group, several, or hand-picked cases. A case in two selected groups runs once.</li>
@@ -358,7 +404,7 @@ ragevalkit.serve(answer_question, port=8002, require_login=False)<button type="b
 
 <!-- ============================================================ 8 -->
 <section id="results">
-  <h2><span class="num">08</span>Reading the results</h2>
+  <h2><span class="num"></span>Reading the results</h2>
   <div class="table-wrap"><table>
     <thead><tr><th>You see</th><th>It means</th></tr></thead>
     <tbody>
@@ -376,7 +422,7 @@ ragevalkit.serve(answer_question, port=8002, require_login=False)<button type="b
 
 <!-- ============================================================ 9 -->
 <section id="judge">
-  <h2><span class="num">09</span>Your own judge</h2>
+  <h2><span class="num"></span>Your own judge</h2>
   <p class="intro">Three levels, from a different model to no AI at all.</p>
 
   <h3>Level 1: another model</h3>
@@ -394,7 +440,7 @@ ragevalkit.serve(answer_question, port=8002, require_login=False)<button type="b
 
 <!-- ============================================================ 10 -->
 <section id="hooks">
-  <h2><span class="num">10</span>Extra scores and hooks</h2>
+  <h2><span class="num"></span>Extra scores and hooks</h2>
   <p class="intro">Add your own metrics, carry your own spreadsheet columns, and react when a run finishes.</p>
   {{example:metrics_and_hooks.py}}
   <ul>
@@ -408,7 +454,8 @@ ragevalkit.serve(answer_question, port=8002, require_login=False)<button type="b
 
 <!-- ============================================================ 11 -->
 <section id="running">
-  <h2><span class="num">11</span>Running it for your team</h2>
+  <h2><span class="num"></span>Running it for your team</h2>
+  {{example:team_setup.py}}
   <ul>
     <li><b>Sign-in.</b> <code>users="alice:pw1,bob:pw2"</code> sets the accounts. Sessions last 12 hours; set <code>secret=</code> to a fixed value if people should stay signed in across restarts. <code>require_login=False</code> skips the sign-in for local work.</li>
     <li><b>Data.</b> Everything is in one JSON file (<code>store_path</code>, default <code>eval_store.json</code>). Copy it to back it up or move it to another machine.</li>
@@ -421,7 +468,7 @@ ragevalkit.serve(answer_question, port=8002, require_login=False)<button type="b
 
 <!-- ============================================================ 12 -->
 <section id="troubleshooting">
-  <h2><span class="num">12</span>When something looks off</h2>
+  <h2><span class="num"></span>When something looks off</h2>
   <p class="intro">Start with the <b>Problems during this run</b> box on the version page: it says what went wrong in plain words, and <em>Show technical details</em> gives the error. The full log is the <em>Download log</em> button, or <code>eval_logs/runs/</code>. Then look for your symptom here.</p>
   <input class="filter" id="fix-filter" type="search" placeholder="Search symptoms: login, context, sources, port&hellip;" aria-label="Search symptoms">
 
@@ -511,14 +558,14 @@ ragevalkit.serve(answer_question, port=8002, require_login=False)<button type="b
 
 <!-- ============================================================ 13 -->
 <section id="reference">
-  <h2><span class="num">13</span><code>serve()</code> reference</h2>
+  <h2><span class="num"></span><code>serve()</code> reference</h2>
   <p class="intro">Every option, with its default. Only <code>fn</code> is required.</p>
   {{serve_reference}}
 </section>
 
 <!-- ============================================================ 14 -->
 <section id="notes">
-  <h2><span class="num">14</span>Good to know</h2>
+  <h2><span class="num"></span>Good to know</h2>
   <ul>
     <li><b>One evaluation runs at a time.</b> Finished results are saved as they complete. A run that is in progress lives in the running server, so if the server is restarted, start that version again.</li>
     <li><b>The dashboard is served on this computer</b> (<code>127.0.0.1</code>). To share it with a team, run it on a shared machine behind your usual network setup, with sign-in on.</li>

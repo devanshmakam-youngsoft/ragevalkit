@@ -118,9 +118,10 @@ def code_card(source: str, title: str, *, lang: str = "python") -> str:
 def example_block(spec: str) -> str:
     name, _, selection = spec.removeprefix("example:").partition("#")
     source = (EXAMPLES / name).read_text(encoding="utf-8").replace("\r\n", "\n")
+    lang = "python" if name.endswith(".py") else "text"
     if selection:
-        return code_card(excerpt(source, selection.split(",")), f"examples/{name}  (excerpt)")
-    return code_card(source, f"examples/{name}")
+        return code_card(excerpt(source, selection.split(",")), f"examples/{name}  (excerpt)", lang=lang)
+    return code_card(source, f"examples/{name}", lang=lang)
 
 
 # ---- the serve() reference --------------------------------------------------------------------------------------

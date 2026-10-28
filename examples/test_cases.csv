@@ -1,0 +1,6 @@
+chat_id,turn_no,type,question,expected_answer,expected_sources,groups
+refund-1,1,rag,Can I get a refund?,Within 30 days of purchase,refunds.pdf,Billing
+refund-1,2,rag,And for an annual plan?,Annual plans are refunded pro rata,refunds.pdf,Billing
+ship-1,1,rag,When will my order ship?,Within 2 business days,shipping.pdf | tracking.pdf,Shipping
+ship-2,1,rag,How do I track my parcel?,Use the tracking link in the shipping email,"tracking.pdf , tracking_v2.pdf",Shipping
+hello-1,1,non-rag,Hello!,Greets the user politely and offers help,,Small talk

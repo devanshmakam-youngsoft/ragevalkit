@@ -2,6 +2,8 @@
 serve it, then driven through a run, and what the dashboard would show is checked."""
 import json
 import runpy
+import socket
+import sys
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -10,6 +12,8 @@ from types import SimpleNamespace
 
 import pandas as pd
 import pytest
+import uvicorn
+from fastapi.testclient import TestClient
 
 from ragevalkit.api import create_app
 from ragevalkit.config import Config
@@ -239,3 +243,128 @@ def test_an_already_deployed_bot_is_evaluated_over_http(serve_example, monkeypat
     assert [r["generated_answer"] for r in rows] == ["echo: Hi?", "echo: And?"]
     assert received[0]["session_id"] == received[1]["session_id"] != ""
     assert steps_of(rows[0]) == ["http_call"]
+
+
+# ---- test_cases.csv ---------------------------------------------------------------------------------------------
+
+def test_the_sample_test_case_file_imports_as_described(served_function):
+    app = served_function(lambda question: "x")
+    client = TestClient(app)
+    sample = (EXAMPLES / "test_cases.csv").read_bytes()
+    preview = client.post("/api/test-cases/import/preview", files={"file": ("test_cases.csv", sample, "text/csv")}).json()
+    assert preview["counts"]["new"] == 5 and not preview["problems"]
+    client.post("/api/test-cases/import", files={"file": ("test_cases.csv", sample, "text/csv")}).raise_for_status()
+
+    cases = {c["question"]: c for c in client.get("/api/test-cases").json()}
+    assert len(cases) == 5
+    assert cases["Hello!"]["type"] == "non-rag"
+    assert (cases["And for an annual plan?"]["chat_id"], cases["And for an annual plan?"]["turn_no"]) == ("refund-1", 2)
+    assert cases["When will my order ship?"]["expected_sources"] == "shipping.pdf | tracking.pdf"
+    assert cases["How do I track my parcel?"]["expected_sources"] == "tracking.pdf , tracking_v2.pdf"
+    assert sorted(g["name"] for g in client.get("/api/groups").json()) == ["Billing", "Shipping", "Small talk"]
+
+
+# ---- source_checks.py -------------------------------------------------------------------------------------------
+
+def test_expected_sources_with_and_or_are_checked(serve_example):
+    app = serve_example("source_checks.py")
+    rows = evaluate(app, [
+        ("c1", 1, "Can I get a refund?", "30 days"),
+        ("c2", 1, "Can I get a refund?", "30 days"),
+        ("c3", 1, "Can I get a refund?", "30 days"),
+    ], extra={"expected_sources": ["refunds.pdf", "refunds.pdf | shipping.pdf", "refunds_v2.pdf , Refunds.PDF"]})
+    assert [r["source_match"] for r in rows] == [True, False, True]
+    assert rows[1]["missing_sources"] == ["shipping.pdf"]
+
+
+# ---- shared_pipeline.py, production_app.py, eval_entry.py -------------------------------------------------------
+
+@pytest.fixture
+def example_modules(monkeypatch):
+    monkeypatch.syspath_prepend(str(EXAMPLES))
+    for name in ("shared_pipeline", "production_app"):
+        sys.modules.pop(name, None)
+    yield
+    for name in ("shared_pipeline", "production_app"):
+        sys.modules.pop(name, None)
+
+
+def test_production_runs_the_same_pipeline_with_steps_doing_nothing(example_modules):
+    from ragevalkit.recording.recorder import current_recorder
+
+    import production_app
+    reply = TestClient(production_app.app).post("/chat", json={"message": "Can I get a refund?"}).json()
+    assert reply == {"reply": "Refunds are allowed within 30 days of purchase."}
+    assert current_recorder() is None
+
+
+def test_the_evaluation_entry_records_the_same_pipeline(example_modules, serve_example):
+    row = evaluate(serve_example("eval_entry.py"), [("c1", 1, "Can I get a refund?", "30 days")])[0]
+    assert steps_of(row) == ["retrieval", "llm"]
+    assert row["sources"] == ["refunds.pdf"] and row["material"] == "Refunds are allowed within 30 days of purchase."
+
+
+# ---- tool_agent.py ----------------------------------------------------------------------------------------------
+
+def test_an_agent_loop_adds_up_repeated_steps_and_keeps_tool_results_as_material(serve_example):
+    row = evaluate(serve_example("tool_agent.py"), [("c1", 1, "Can I return this? Where is order A200?", "x")])[0]
+    assert steps_of(row) == ["llm", "lookup_order", "lookup_policy"]
+    assert "Order A200 still being packed." in row["material"] and "returned within 30 days" in row["material"]
+    assert row["flags"]["tools_used"] == "lookup_order, lookup_policy"
+    assert row["generated_answer"] == "Order A200 still being packed. Items can be returned within 30 days."
+
+
+# ---- langchain_chain.py -----------------------------------------------------------------------------------------
+
+def test_steps_in_parallel_langchain_branches_are_recorded(serve_example):
+    pytest.importorskip("langchain_core")
+    row = evaluate(serve_example("langchain_chain.py"), [("c1", 1, "Can I get a refund?", "30 days")])[0]
+    assert steps_of(row)[0] == "rewrite" and steps_of(row)[-2:] == ["retrieval", "llm"]
+    assert {"vector_search", "keyword_search"} <= set(steps_of(row))
+    assert row["material"] == "Refunds are allowed within 30 days of purchase." and row["sources"] == ["refunds.pdf"]
+
+
+# ---- team_setup.py ----------------------------------------------------------------------------------------------
+
+def test_the_team_setup_example_is_a_valid_configuration(serve_example):
+    config = serve_example("team_setup.py").state.config
+    assert config.eval_users == "alice:pw-for-alice,bob:pw-for-bob" and config.eval_secret == "change-me"
+    assert (config.answer_weight, config.material_weight, config.recommendation_tolerance, config.max_response_time) == (0.7, 0.3, 0.2, 8.0)
+    assert config.generator_model == "ollama/llama3" and config.logs_dir == Path("evals/logs") and config.store_path == Path("evals/eval_store.json")
+
+
+# ---- ci_gate.py -------------------------------------------------------------------------------------------------
+
+@pytest.fixture
+def running_server(tmp_path):
+    """A real server on a free port, with a group of test cases, the way ci_gate.py meets it."""
+    config = Config(store_path=tmp_path / "ci_store.json", require_login=False, run_semantic_similarity=False, run_bm25=False)
+    app = create_app(config, fn=lambda question: "Refunds are allowed within 30 days.", judge_fn=JUDGE)
+    app.state.manager._llm_judge = SimpleNamespace(summarize_run=lambda stats: None)
+    store = app.state.store
+    group = store.create_group("Billing")
+    store.import_into_group(group, pd.DataFrame([("c1", 1, "rag", "Refunds?", "30 days")], columns=COLUMNS))
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        port = probe.getsockname()[1]
+    server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning"))
+    thread = threading.Thread(target=server.run, daemon=True)
+    thread.start()
+    deadline = time.time() + 10
+    while not server.started and time.time() < deadline:
+        time.sleep(0.05)
+    yield f"http://127.0.0.1:{port}"
+    server.should_exit = True
+    thread.join(10)
+    store.close()
+
+
+@pytest.mark.parametrize("minimum,exit_code", [("7", 0), ("9", 1)])
+def test_the_ci_script_passes_or_fails_the_build_on_answer_quality(running_server, monkeypatch, minimum, exit_code, capsys):
+    monkeypatch.setenv("EVAL_URL", running_server)
+    monkeypatch.setenv("EVAL_MINIMUM", minimum)
+    monkeypatch.setenv("EVAL_VERSION", f"ci-{minimum}")
+    script = runpy.run_path(str(EXAMPLES / "ci_gate.py"), run_name="ci_gate")
+    script["POLL_SECONDS"] = 0.2
+    assert script["run_gate"]() == exit_code
+    assert "answer quality 8" in capsys.readouterr().out

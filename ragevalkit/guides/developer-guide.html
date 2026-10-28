@@ -60,8 +60,11 @@ header.hero p.lead { font-size: 19px; color: var(--muted); margin: 0 0 28px; max
 .paths b { display: block; font-size: 15px; margin-bottom: 2px; }
 .paths span { font-size: 13px; color: var(--muted); line-height: 1.45; display: block; }
 
+main { counter-reset: section; }
+main > section { counter-increment: section; }
 section { margin: 0 0 64px; }
 h2 { font: 500 30px/1.2 "Fraunces", Georgia, serif; margin: 0 0 6px; letter-spacing: -0.005em; padding-top: 8px; }
+h2 .num::before { content: counter(section, decimal-leading-zero); }
 h2 .num { color: var(--brand); font-family: "JetBrains Mono", monospace; font-size: 14px; display: block; margin-bottom: 6px; letter-spacing: 0.08em; }
 h3 { font: 600 17px/1.3 "Inter", sans-serif; margin: 34px 0 6px; }
 p { margin: 10px 0; }
@@ -147,6 +150,7 @@ kbd { font: 12px "JetBrains Mono", monospace; padding: 2px 6px; border: 1px soli
     <a href="#steps"><b>Record what happens inside</b><span>Steps with <code>with</code> or decorators, and why each.</span></a>
     <a href="#frameworks"><b>I use LangGraph or an agent</b><span>Steps from inside nodes, threads and async code.</span></a>
     <a href="#no-retrieval"><b>My bot has no retrieval</b><span>Greeting bots and tool agents.</span></a>
+    <a href="#setups"><b>LangChain, agents, CI, production</b><span>Whole setups, ready to adapt.</span></a>
     <a href="#judge"><b>Use my own judge</b><span>Your function, your rubric, your model.</span></a>
     <a href="#troubleshooting"><b>Something looks off</b><span>Symptoms, likely reasons, what to do.</span></a>
   </div>
@@ -154,7 +158,7 @@ kbd { font: 12px "JetBrains Mono", monospace; padding: 2px 6px; border: 1px soli
 
 <!-- ============================================================ 1 -->
 <section id="overview">
-  <h2><span class="num">01</span>What you get</h2>
+  <h2><span class="num"></span>What you get</h2>
   <p class="intro">Three things happen when you press <b>Execute session</b>.</p>
   <div class="flow">
     <div><b>Your function</b>ragevalkit calls it once per test question, in order, like a real user would.</div><div class="arrow">&rarr;</div>
@@ -167,7 +171,7 @@ kbd { font: 12px "JetBrains Mono", monospace; padding: 2px 6px; border: 1px soli
 
 <!-- ============================================================ 2 -->
 <section id="quick-start">
-  <h2><span class="num">02</span>Quick start</h2>
+  <h2><span class="num"></span>Quick start</h2>
   <p class="intro">Five minutes, no database, no extra services.</p>
   <h3>1. Install</h3>
   <pre class="cmd">pip install git+https://github.com/devanshmakam-youngsoft/ragevalkit.git<button type="button" class="copy">Copy</button></pre>
@@ -191,7 +195,7 @@ ragevalkit.serve(answer_question, port=8002, require_login=False)<button type="b
 
 <!-- ============================================================ 3 -->
 <section id="function">
-  <h2><span class="num">03</span>Connect your function</h2>
+  <h2><span class="num"></span>Connect your function</h2>
   <p class="intro">ragevalkit looks at the <em>parameter names</em> of your function to decide what to pass. There are three shapes.</p>
 
   <div class="tabs" data-tabs>
@@ -294,7 +298,7 @@ BOT_URL = os.environ.get(<span class="s">&quot;BOT_URL&quot;</span>, <span class
 
 <!-- ============================================================ 4 -->
 <section id="steps">
-  <h2><span class="num">04</span>Record what happens inside</h2>
+  <h2><span class="num"></span>Record what happens inside</h2>
   <p class="intro">Scoring only the final answer tells you <em>that</em> a version got better, not <em>why</em>. Recording steps tells you where the time goes, what was retrieved, and which documents were used.</p>
   <p>Mark the stages of your pipeline (search, re-rank, the model call&hellip;) and ragevalkit shows, for every question:</p>
   <ul>
@@ -391,7 +395,7 @@ BOT_URL = os.environ.get(<span class="s">&quot;BOT_URL&quot;</span>, <span class
         <span class="k">return</span> call_llm(question, context)</code></pre></figure>
   <div class="note tip"><b>Tip: declare it once</b>
     <p>If several steps set <code>s.material</code>, the judge reads all of them one after another: routing details, search settings and the context, sometimes the same context twice. Context quality then looks lower than it is. Let <em>one</em> step (the retrieval) declare the material and keep the others timing-only. Put details you still want to see in <code>ragevalkit.note(&hellip;)</code>.</p></div>
-  <p>If no step declares anything, ragevalkit falls back to the output of decorated steps and writes a warning to the log that says how to be precise.</p>
+  <p>Sources work the same way: the sources of every step are put together (each document once), so report them in the retrieval step only. If no step declares material, ragevalkit falls back to the output of decorated steps and writes a warning to the log that says how to be precise.</p>
 
   <h3>Notes</h3>
   <p><code>ragevalkit.note("intent", "billing")</code> attaches a short fact to the question being evaluated. It appears beside the question in the results. Names such as <code>password</code>, <code>token</code> or <code>api_key</code> are never stored.</p>
@@ -407,7 +411,7 @@ BOT_URL = os.environ.get(<span class="s">&quot;BOT_URL&quot;</span>, <span class
 
 <!-- ============================================================ 5 -->
 <section id="frameworks">
-  <h2><span class="num">05</span>LangGraph, agents and threads</h2>
+  <h2><span class="num"></span>LangGraph, agents and threads</h2>
   <p class="intro">Steps belong to <em>the question being evaluated</em>, not to the place they are written. Whichever node, thread or async task runs your code, the step lands on the right question.</p>
   <p>That means all of these work, and the example below uses the first three:</p>
   <ul>
@@ -487,7 +491,7 @@ app = graph.<span class="b">compile</span>()
 
 <!-- ============================================================ 6 -->
 <section id="no-retrieval">
-  <h2><span class="num">06</span>A bot with no retrieval</h2>
+  <h2><span class="num"></span>A bot with no retrieval</h2>
   <p class="intro">Greeting bots, small talk and tool agents have no &ldquo;retrieved context&rdquo; to score. Tell ragevalkit, and they are graded on the answer alone.</p>
   <figure class="code"><figcaption><span>examples/no_retrieval_bot.py</span><button type="button" class="copy" aria-label="Copy the code">Copy</button></figcaption><pre><code><span class="s">&quot;&quot;&quot;A bot with no retrieval (greetings, small talk, a tool that looks up orders). There is no &quot;context&quot; to score.&quot;&quot;&quot;</span>
 <span class="k">import</span> ragevalkit
@@ -534,9 +538,224 @@ ORDERS = {<span class="s">&quot;A100&quot;</span>: <span class="s">&quot;shipped
   <p>Notes such as <code>intent</code> and <code>tool_called</code> appear beside each question, which makes it easy to see which tool a wrong answer used.</p>
 </section>
 
+<!-- ============================================================ setups -->
+<section id="setups">
+  <h2><span class="num"></span>Setups you will recognise</h2>
+  <p class="intro">Complete examples for the way real assistants are built. Each file is run by the tests, so you can copy it and replace the stand-ins with your own code.</p>
+
+  <h3>A LangChain chain</h3>
+  <p>Steps work inside runnables, including the branches LangChain runs in parallel threads. Here a vector search and a keyword search run side by side and a merge step declares the retrieved text once.</p>
+  <figure class="code"><figcaption><span>examples/langchain_chain.py</span><button type="button" class="copy" aria-label="Copy the code">Copy</button></figcaption><pre><code><span class="s">&quot;&quot;&quot;A LangChain chain. Steps work inside runnables, including the branches LangChain runs in parallel threads.&quot;&quot;&quot;</span>
+<span class="k">from</span> langchain_core.runnables <span class="k">import</span> RunnableLambda, RunnableParallel
+
+<span class="k">import</span> ragevalkit
+
+DOCUMENTS = {
+    <span class="s">&quot;refunds.pdf&quot;</span>: <span class="s">&quot;Refunds are allowed within 30 days of purchase.&quot;</span>,
+    <span class="s">&quot;shipping.pdf&quot;</span>: <span class="s">&quot;Orders ship within 2 business days.&quot;</span>,
+}
+
+
+<span class="d">@</span><span class="d">ragevalkit</span><span class="d">.</span><span class="d">step</span>(<span class="s">&quot;rewrite&quot;</span>)
+<span class="k">def</span> <span class="f">rewrite</span>(question: <span class="b">str</span>) -&gt; <span class="b">str</span>:
+    <span class="k">return</span> question.lower().replace(<span class="s">&quot;?&quot;</span>, <span class="s">&quot;&quot;</span>)
+
+
+<span class="k">def</span> <span class="f">vector_search</span>(query: <span class="b">str</span>) -&gt; <span class="b">list</span>[<span class="b">tuple</span>[<span class="b">str</span>, <span class="b">str</span>]]:
+    <span class="k">with</span> ragevalkit.step(<span class="s">&quot;vector_search&quot;</span>):
+        <span class="k">return</span> [(name, text) <span class="k">for</span> name, text <span class="k">in</span> DOCUMENTS.items() <span class="k">if</span> <span class="b">any</span>(w <span class="k">in</span> text.lower() <span class="k">for</span> w <span class="k">in</span> query.split() <span class="k">if</span> <span class="b">len</span>(w) &gt; <span class="n">3</span>)]
+
+
+<span class="k">def</span> <span class="f">keyword_search</span>(query: <span class="b">str</span>) -&gt; <span class="b">list</span>[<span class="b">tuple</span>[<span class="b">str</span>, <span class="b">str</span>]]:
+    <span class="k">with</span> ragevalkit.step(<span class="s">&quot;keyword_search&quot;</span>):
+        <span class="k">return</span> [(name, text) <span class="k">for</span> name, text <span class="k">in</span> DOCUMENTS.items() <span class="k">if</span> query.split()[-<span class="n">1</span>] <span class="k">in</span> text.lower()]
+
+
+<span class="k">def</span> <span class="f">merge</span>(results: <span class="b">dict</span>) -&gt; <span class="b">str</span>:
+    <span class="s">&quot;&quot;&quot;Join what the parallel searches found. This is where the retrieved text is declared, once.&quot;&quot;&quot;</span>
+    unique = <span class="b">dict</span>(results[<span class="s">&quot;vector&quot;</span>] + results[<span class="s">&quot;keyword&quot;</span>])
+    <span class="k">with</span> ragevalkit.step(<span class="s">&quot;retrieval&quot;</span>) <span class="k">as</span> s:
+        s.material = <span class="s">&quot;\n&quot;</span>.join(unique.values())
+        s.sources = <span class="b">list</span>(unique)
+    <span class="k">return</span> s.material
+
+
+<span class="k">def</span> <span class="f">answer</span>(context: <span class="b">str</span>) -&gt; <span class="b">str</span>:
+    <span class="k">with</span> ragevalkit.step(<span class="s">&quot;llm&quot;</span>):
+        <span class="k">return</span> context.split(<span class="s">&quot;.&quot;</span>)[<span class="n">0</span>] + <span class="s">&quot;.&quot;</span> <span class="k">if</span> context <span class="k">else</span> <span class="s">&quot;I could not find that.&quot;</span>
+
+
+chain = (
+    RunnableLambda(rewrite)
+    | RunnableParallel(vector=RunnableLambda(vector_search), keyword=RunnableLambda(keyword_search))
+    | RunnableLambda(merge)
+    | RunnableLambda(answer)
+)
+
+
+<span class="k">def</span> <span class="f">pipeline</span>(question: <span class="b">str</span>) -&gt; <span class="b">str</span>:
+    <span class="k">return</span> chain.invoke(question)
+
+
+<span class="k">if</span> <span class="b">__name__</span> == <span class="s">&quot;__main__&quot;</span>:
+    ragevalkit.serve(pipeline)</code></pre></figure>
+
+  <h3>An agent that calls tools in a loop</h3>
+  <p>The model asks for a tool, gets the result, and decides again. Two things are worth knowing: a step that runs several times has its times <b>added up</b> (the <code>llm</code> step below runs once per loop), and when the tool results are how the agent gets its facts, declaring them as material lets the judge check that the answer is supported by them.</p>
+  <figure class="code"><figcaption><span>examples/tool_agent.py</span><button type="button" class="copy" aria-label="Copy the code">Copy</button></figcaption><pre><code><span class="s">&quot;&quot;&quot;An agent that loops: the model asks for a tool, gets the result, and decides again until it can answer.&quot;&quot;&quot;</span>
+<span class="k">import</span> ragevalkit
+
+ORDERS = {<span class="s">&quot;A100&quot;</span>: <span class="s">&quot;shipped on 12 March&quot;</span>, <span class="s">&quot;A200&quot;</span>: <span class="s">&quot;still being packed&quot;</span>}
+RETURN_POLICY = <span class="s">&quot;Items can be returned within 30 days.&quot;</span>
+MAX_TURNS = <span class="n">5</span>
+
+
+<span class="k">def</span> <span class="f">lookup_order</span>(order_id: <span class="b">str</span>) -&gt; <span class="b">str</span>:
+    <span class="k">return</span> <span class="s">f&quot;Order {order_id} {ORDERS.get(order_id, &#x27;was not found&#x27;)}.&quot;</span>
+
+
+<span class="k">def</span> <span class="f">lookup_policy</span>(topic: <span class="b">str</span>) -&gt; <span class="b">str</span>:
+    <span class="k">return</span> RETURN_POLICY
+
+
+TOOLS = {<span class="s">&quot;lookup_order&quot;</span>: lookup_order, <span class="s">&quot;lookup_policy&quot;</span>: lookup_policy}
+
+
+<span class="k">def</span> <span class="f">model</span>(question: <span class="b">str</span>, results: <span class="b">list</span>[<span class="b">str</span>]) -&gt; <span class="b">dict</span>:
+    <span class="s">&quot;&quot;&quot;Stand-in for the LLM call: asks for the tools it needs, then writes the answer from what they returned.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="s">&quot;order&quot;</span> <span class="k">in</span> question.lower() <span class="k">and</span> <span class="k">not</span> <span class="b">any</span>(r.startswith(<span class="s">&quot;Order&quot;</span>) <span class="k">for</span> r <span class="k">in</span> results):
+        <span class="k">return</span> {<span class="s">&quot;tool&quot;</span>: <span class="s">&quot;lookup_order&quot;</span>, <span class="s">&quot;argument&quot;</span>: question.rstrip(<span class="s">&quot;?&quot;</span>).split()[-<span class="n">1</span>]}
+    <span class="k">if</span> <span class="s">&quot;return&quot;</span> <span class="k">in</span> question.lower() <span class="k">and</span> RETURN_POLICY <span class="k">not</span> <span class="k">in</span> results:
+        <span class="k">return</span> {<span class="s">&quot;tool&quot;</span>: <span class="s">&quot;lookup_policy&quot;</span>, <span class="s">&quot;argument&quot;</span>: <span class="s">&quot;returns&quot;</span>}
+    <span class="k">return</span> {<span class="s">&quot;answer&quot;</span>: <span class="s">&quot; &quot;</span>.join(results) <span class="k">or</span> <span class="s">&quot;I can help with orders and returns.&quot;</span>}
+
+
+<span class="k">def</span> <span class="f">support_agent</span>(question: <span class="b">str</span>) -&gt; <span class="b">str</span>:
+    results: <span class="b">list</span>[<span class="b">str</span>] = []
+    tools_used: <span class="b">list</span>[<span class="b">str</span>] = []
+    <span class="k">for</span> _ <span class="k">in</span> <span class="b">range</span>(MAX_TURNS):
+        <span class="k">with</span> ragevalkit.step(<span class="s">&quot;llm&quot;</span>):                      <span class="c"># runs once per loop: its times are added up</span>
+            decision = model(question, results)
+        <span class="k">if</span> <span class="s">&quot;answer&quot;</span> <span class="k">in</span> decision:
+            <span class="k">return</span> decision[<span class="s">&quot;answer&quot;</span>]
+        <span class="k">with</span> ragevalkit.step(decision[<span class="s">&quot;tool&quot;</span>]) <span class="k">as</span> s:      <span class="c"># one step per tool, named after the tool</span>
+            result = TOOLS[decision[<span class="s">&quot;tool&quot;</span>]](decision[<span class="s">&quot;argument&quot;</span>])
+            s.material = result                           <span class="c"># the tool results are this agent&#x27;s &quot;retrieved context&quot;</span>
+        results.append(result)
+        tools_used.append(decision[<span class="s">&quot;tool&quot;</span>])
+        ragevalkit.note(<span class="s">&quot;tools_used&quot;</span>, <span class="s">&quot;, &quot;</span>.join(tools_used))     <span class="c"># shown next to the question in the results</span>
+    <span class="k">return</span> <span class="s">&quot;Sorry, I could not finish that.&quot;</span>
+
+
+<span class="k">if</span> <span class="b">__name__</span> == <span class="s">&quot;__main__&quot;</span>:
+    ragevalkit.serve(support_agent)</code></pre></figure>
+
+  <h3>Production and evaluation, side by side</h3>
+  <p>Your pipeline module keeps its <code>step()</code> and <code>note()</code> calls; they do nothing in production. Production imports the module as it always did, and a separate entry file serves it for evaluation.</p>
+  <div class="pair">
+    <div><h4>The pipeline <span>&mdash; used by both</span></h4><figure class="code"><figcaption><span>examples/shared_pipeline.py  (excerpt)</span><button type="button" class="copy" aria-label="Copy the code">Copy</button></figcaption><pre><code><span class="k">def</span> <span class="f">answer_question</span>(question: <span class="b">str</span>) -&gt; <span class="b">str</span>:
+    <span class="c"># Outside an evaluation these do nothing, so they can stay in the code that ships.</span>
+    <span class="k">with</span> ragevalkit.step(<span class="s">&quot;retrieval&quot;</span>) <span class="k">as</span> s:
+        words = [word <span class="k">for</span> word <span class="k">in</span> question.lower().replace(<span class="s">&quot;?&quot;</span>, <span class="s">&quot;&quot;</span>).split() <span class="k">if</span> <span class="b">len</span>(word) &gt; <span class="n">3</span>]
+        found = {name: text <span class="k">for</span> name, text <span class="k">in</span> DOCUMENTS.items() <span class="k">if</span> <span class="b">any</span>(word <span class="k">in</span> text.lower() <span class="k">for</span> word <span class="k">in</span> words)}
+        s.material = <span class="s">&quot;\n&quot;</span>.join(found.values())
+        s.sources = <span class="b">list</span>(found)
+    <span class="k">with</span> ragevalkit.step(<span class="s">&quot;llm&quot;</span>):
+        <span class="k">return</span> <span class="b">next</span>(<span class="b">iter</span>(found.values()), <span class="s">&quot;I could not find that.&quot;</span>)</code></pre></figure></div>
+    <div><h4>Production <span>&mdash; unchanged</span></h4><figure class="code"><figcaption><span>examples/production_app.py</span><button type="button" class="copy" aria-label="Copy the code">Copy</button></figcaption><pre><code><span class="s">&quot;&quot;&quot;The production API. It never starts ragevalkit: the steps inside the pipeline are simply inactive here.&quot;&quot;&quot;</span>
+<span class="k">from</span> fastapi <span class="k">import</span> FastAPI
+
+<span class="k">from</span> shared_pipeline <span class="k">import</span> answer_question
+
+app = FastAPI()
+
+
+<span class="d">@</span><span class="d">app</span><span class="d">.</span><span class="d">post</span>(<span class="s">&quot;/chat&quot;</span>)
+<span class="k">def</span> <span class="f">chat</span>(body: <span class="b">dict</span>) -&gt; <span class="b">dict</span>:
+    <span class="k">return</span> {<span class="s">&quot;reply&quot;</span>: answer_question(body[<span class="s">&quot;message&quot;</span>])}</code></pre></figure></div>
+  </div>
+  <h4>The evaluation entry point</h4>
+  <figure class="code"><figcaption><span>examples/eval_entry.py</span><button type="button" class="copy" aria-label="Copy the code">Copy</button></figcaption><pre><code><span class="s">&quot;&quot;&quot;The evaluation entry point: run `python eval_entry.py` when you want to evaluate. Production never runs this file.&quot;&quot;&quot;</span>
+<span class="k">import</span> ragevalkit
+
+<span class="k">from</span> shared_pipeline <span class="k">import</span> answer_question
+
+<span class="k">if</span> <span class="b">__name__</span> == <span class="s">&quot;__main__&quot;</span>:
+    ragevalkit.serve(answer_question, port=<span class="n">8002</span>, require_login=<span class="k">False</span>)</code></pre></figure>
+  <pre class="cmd">uvicorn production_app:app --port 8000     # production
+python eval_entry.py                       # evaluation, only when you want it<button type="button" class="copy">Copy</button></pre>
+
+  <h3>Run it from CI</h3>
+  <p>Keep a ragevalkit server running on a shared machine, and let your build start an evaluation of a group of test cases and fail when quality drops. The script uses only the standard library and the same API the dashboard uses.</p>
+  <figure class="code"><figcaption><span>examples/ci_gate.py</span><button type="button" class="copy" aria-label="Copy the code">Copy</button></figcaption><pre><code><span class="s">&quot;&quot;&quot;Run an evaluation from a script (for example in CI) against a ragevalkit server that is already running,
+and fail the build when quality drops below a bar.
+
+    python ci_gate.py            # exit code 0: passed, 1: below the bar, 2: no result
+&quot;&quot;&quot;</span>
+<span class="k">import</span> http.cookiejar
+<span class="k">import</span> json
+<span class="k">import</span> os
+<span class="k">import</span> sys
+<span class="k">import</span> time
+<span class="k">import</span> urllib.error
+<span class="k">import</span> urllib.request
+<span class="k">import</span> uuid
+
+BASE_URL = os.environ.get(<span class="s">&quot;EVAL_URL&quot;</span>, <span class="s">&quot;http://localhost:8002&quot;</span>)
+USERNAME, PASSWORD = os.environ.get(<span class="s">&quot;EVAL_USER&quot;</span>, <span class="s">&quot;&quot;</span>), os.environ.get(<span class="s">&quot;EVAL_PASSWORD&quot;</span>, <span class="s">&quot;&quot;</span>)
+GROUP = os.environ.get(<span class="s">&quot;EVAL_GROUP&quot;</span>, <span class="s">&quot;Billing&quot;</span>)          <span class="c"># the group of test cases to run</span>
+VERSION = os.environ.get(<span class="s">&quot;EVAL_VERSION&quot;</span>, <span class="s">&quot;ci-&quot;</span> + time.strftime(<span class="s">&quot;%m%d-%H%M&quot;</span>))
+MINIMUM_ANSWER_QUALITY = <span class="b">float</span>(os.environ.get(<span class="s">&quot;EVAL_MINIMUM&quot;</span>, <span class="s">&quot;7&quot;</span>))
+WAIT_SECONDS = <span class="n">1800</span>
+POLL_SECONDS = <span class="n">5</span>
+
+opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+
+
+<span class="k">def</span> <span class="f">call</span>(path: <span class="b">str</span>, *, json_body: <span class="b">dict</span> | <span class="k">None</span> = <span class="k">None</span>, form: <span class="b">dict</span> | <span class="k">None</span> = <span class="k">None</span>):
+    <span class="s">&quot;&quot;&quot;One request to the dashboard&#x27;s API. Returns the decoded JSON answer.&quot;&quot;&quot;</span>
+    data, headers = <span class="k">None</span>, {}
+    <span class="k">if</span> json_body <span class="k">is</span> <span class="k">not</span> <span class="k">None</span>:
+        data, headers = json.dumps(json_body).encode(), {<span class="s">&quot;Content-Type&quot;</span>: <span class="s">&quot;application/json&quot;</span>}
+    <span class="k">if</span> form <span class="k">is</span> <span class="k">not</span> <span class="k">None</span>:
+        boundary = uuid.uuid4().<span class="b">hex</span>
+        data = <span class="s">b&quot;&quot;</span>.join(<span class="s">f&#x27;--{boundary}\r\nContent-Disposition: form-data; name=&quot;{k}&quot;\r\n\r\n{v}\r\n&#x27;</span>.encode() <span class="k">for</span> k, v <span class="k">in</span> form.items())
+        data += <span class="s">f&quot;--{boundary}--\r\n&quot;</span>.encode()
+        headers = {<span class="s">&quot;Content-Type&quot;</span>: <span class="s">f&quot;multipart/form-data; boundary={boundary}&quot;</span>}
+    <span class="k">with</span> opener.<span class="b">open</span>(urllib.request.Request(BASE_URL + <span class="s">&quot;/api/&quot;</span> + path, data=data, headers=headers), timeout=<span class="n">60</span>) <span class="k">as</span> response:
+        <span class="k">return</span> json.loads(response.read())
+
+
+<span class="k">def</span> <span class="f">run_gate</span>() -&gt; <span class="b">int</span>:
+    <span class="k">if</span> USERNAME:                                             <span class="c"># only needed when the server asks for a sign-in</span>
+        call(<span class="s">&quot;auth/login&quot;</span>, json_body={<span class="s">&quot;username&quot;</span>: USERNAME, <span class="s">&quot;password&quot;</span>: PASSWORD})
+    group = <span class="b">next</span>(g <span class="k">for</span> g <span class="k">in</span> call(<span class="s">&quot;groups&quot;</span>) <span class="k">if</span> g[<span class="s">&quot;name&quot;</span>] == GROUP)
+    call(<span class="s">&quot;runs&quot;</span>, form={<span class="s">&quot;version&quot;</span>: VERSION, <span class="s">&quot;group_ids&quot;</span>: json.dumps([group[<span class="s">&quot;group_id&quot;</span>]]), <span class="s">&quot;notes&quot;</span>: <span class="s">&quot;CI run&quot;</span>})
+
+    deadline = time.time() + WAIT_SECONDS
+    <span class="k">while</span> time.time() &lt; deadline:                            <span class="c"># a version appears when its run has finished</span>
+        <span class="k">try</span>:
+            summary = call(<span class="s">f&quot;versions/{VERSION}&quot;</span>)[<span class="s">&quot;summary&quot;</span>]
+            <span class="k">break</span>
+        <span class="k">except</span> urllib.error.HTTPError:
+            time.sleep(POLL_SECONDS)
+    <span class="k">else</span>:
+        <span class="b">print</span>(<span class="s">f&quot;No result after {WAIT_SECONDS} seconds: look at the dashboard or at eval_logs/.&quot;</span>)
+        <span class="k">return</span> <span class="n">2</span>
+
+    quality, failed = summary[<span class="s">&quot;avg_answer_marks&quot;</span>], summary[<span class="s">&quot;failed_rows&quot;</span>]
+    <span class="b">print</span>(<span class="s">f&quot;Version {VERSION}: answer quality {quality}, {failed} failed questions, {summary[&#x27;total_rows&#x27;]} questions&quot;</span>)
+    <span class="k">return</span> <span class="n">0</span> <span class="k">if</span> quality <span class="k">is</span> <span class="k">not</span> <span class="k">None</span> <span class="k">and</span> quality &gt;= MINIMUM_ANSWER_QUALITY <span class="k">and</span> failed == <span class="n">0</span> <span class="k">else</span> <span class="n">1</span>
+
+
+<span class="k">if</span> <span class="b">__name__</span> == <span class="s">&quot;__main__&quot;</span>:
+    sys.<span class="b">exit</span>(run_gate())</code></pre></figure>
+  <pre class="cmd">EVAL_URL=http://eval-server:8002 EVAL_GROUP=Billing EVAL_MINIMUM=7.5 python ci_gate.py<button type="button" class="copy">Copy</button></pre>
+</section>
+
 <!-- ============================================================ 7 -->
 <section id="test-cases">
-  <h2><span class="num">07</span>Test cases</h2>
+  <h2><span class="num"></span>Test cases</h2>
   <p class="intro">A test case is a question, the answer you expect, and where it sits in a conversation.</p>
   <div class="table-wrap"><table>
     <thead><tr><th>Column</th><th>Meaning</th></tr></thead>
@@ -549,6 +768,49 @@ ORDERS = {<span class="s">&quot;A100&quot;</span>: <span class="s">&quot;shipped
       <tr><td><code>groups</code></td><td>Labels, for example <code>Billing; Refunds</code>. A case can carry any number of groups.</td></tr>
     </tbody>
   </table></div>
+  <h3>A sample file</h3>
+  <p>Five test cases in a CSV. You can import this exact file: <b>Test Cases &rarr; Import</b>, then check the preview before anything is saved.</p>
+  <figure class="code"><figcaption><span>examples/test_cases.csv</span><button type="button" class="copy" aria-label="Copy the code">Copy</button></figcaption><pre><code>chat_id,turn_no,type,question,expected_answer,expected_sources,groups
+refund-1,1,rag,Can I get a refund?,Within 30 days of purchase,refunds.pdf,Billing
+refund-1,2,rag,And for an annual plan?,Annual plans are refunded pro rata,refunds.pdf,Billing
+ship-1,1,rag,When will my order ship?,Within 2 business days,shipping.pdf | tracking.pdf,Shipping
+ship-2,1,rag,How do I track my parcel?,Use the tracking link in the shipping email,&quot;tracking.pdf , tracking_v2.pdf&quot;,Shipping
+hello-1,1,non-rag,Hello!,Greets the user politely and offers help,,Small talk</code></pre></figure>
+  <ul>
+    <li><code>refund-1</code> is a <b>two-turn conversation</b>: both rows share a <code>chat_id</code> and are replayed in <code>turn_no</code> order. The second question only makes sense after the first.</li>
+    <li>Row 3 needs <b>both</b> documents (<code>|</code>); row 4 accepts <b>either</b> one (<code>,</code>, in quotes because the cell contains a comma).</li>
+    <li><code>hello-1</code> is <code>non-rag</code> and its expected answer is a <b>behaviour</b>, not exact words.</li>
+    <li>The <code>groups</code> column creates the groups <code>Billing</code>, <code>Shipping</code> and <code>Small talk</code>.</li>
+  </ul>
+  <h3>Checking that the right documents were retrieved</h3>
+  <p>Report the documents your retrieval step used with <code>s.sources</code> and list the expected ones in <code>expected_sources</code>. ragevalkit compares them and shows what was found and what is missing.</p>
+  <figure class="code"><figcaption><span>examples/source_checks.py</span><button type="button" class="copy" aria-label="Copy the code">Copy</button></figcaption><pre><code><span class="s">&quot;&quot;&quot;Check that the right documents were retrieved. The pipeline reports its sources; each test case lists the expected ones.&quot;&quot;&quot;</span>
+<span class="k">import</span> ragevalkit
+
+DOCUMENTS = {
+    <span class="s">&quot;refunds.pdf&quot;</span>: <span class="s">&quot;Refunds are allowed within 30 days of purchase.&quot;</span>,
+    <span class="s">&quot;shipping.pdf&quot;</span>: <span class="s">&quot;Orders ship within 2 business days.&quot;</span>,
+    <span class="s">&quot;tracking.pdf&quot;</span>: <span class="s">&quot;Use the tracking link in the shipping email.&quot;</span>,
+}
+
+
+<span class="k">def</span> <span class="f">pipeline</span>(question: <span class="b">str</span>) -&gt; <span class="b">str</span>:
+    words = [word <span class="k">for</span> word <span class="k">in</span> question.lower().replace(<span class="s">&quot;?&quot;</span>, <span class="s">&quot;&quot;</span>).split() <span class="k">if</span> <span class="b">len</span>(word) &gt; <span class="n">3</span>]
+    <span class="k">with</span> ragevalkit.step(<span class="s">&quot;retrieval&quot;</span>) <span class="k">as</span> s:
+        found = {name: text <span class="k">for</span> name, text <span class="k">in</span> DOCUMENTS.items() <span class="k">if</span> <span class="b">any</span>(word <span class="k">in</span> text.lower() <span class="k">for</span> word <span class="k">in</span> words)}
+        s.material = <span class="s">&quot;\n&quot;</span>.join(found.values())
+        s.sources = <span class="b">list</span>(found)          <span class="c"># what the check compares with the test case&#x27;s expected_sources</span>
+    <span class="k">return</span> <span class="b">next</span>(<span class="b">iter</span>(found.values()), <span class="s">&quot;I could not find that.&quot;</span>)
+
+
+<span class="c"># In the test case&#x27;s expected_sources column:</span>
+<span class="c">#   refunds.pdf                    that document must be retrieved</span>
+<span class="c">#   shipping.pdf | tracking.pdf    BOTH are needed (&quot;|&quot; means AND)</span>
+<span class="c">#   tracking.pdf , tracking_v2.pdf EITHER is enough (&quot;,&quot; means OR)</span>
+<span class="c"># The default &quot;keyword&quot; check ignores case, folders and extensions (&quot;docs/Refunds.PDF&quot; matches &quot;refunds&quot;).</span>
+<span class="c"># &quot;llm&quot; asks the judge model, which also copes with different spellings of a name.</span>
+<span class="k">if</span> <span class="b">__name__</span> == <span class="s">&quot;__main__&quot;</span>:
+    ragevalkit.serve(pipeline, source_check_mode=<span class="s">&quot;keyword&quot;</span>)</code></pre></figure>
   <ul>
     <li><b>Import</b> takes Excel, CSV or pasted rows, shows what will be added, updated or skipped before saving anything, and returns the rows it could not use so you can fix and re-import. Importing the same file twice changes nothing.</li>
     <li><b>Groups</b> are labels. Run one group, several, or hand-picked cases. A case in two selected groups runs once.</li>
@@ -560,7 +822,7 @@ ORDERS = {<span class="s">&quot;A100&quot;</span>: <span class="s">&quot;shipped
 
 <!-- ============================================================ 8 -->
 <section id="results">
-  <h2><span class="num">08</span>Reading the results</h2>
+  <h2><span class="num"></span>Reading the results</h2>
   <div class="table-wrap"><table>
     <thead><tr><th>You see</th><th>It means</th></tr></thead>
     <tbody>
@@ -578,7 +840,7 @@ ORDERS = {<span class="s">&quot;A100&quot;</span>: <span class="s">&quot;shipped
 
 <!-- ============================================================ 9 -->
 <section id="judge">
-  <h2><span class="num">09</span>Your own judge</h2>
+  <h2><span class="num"></span>Your own judge</h2>
   <p class="intro">Three levels, from a different model to no AI at all.</p>
 
   <h3>Level 1: another model</h3>
@@ -678,7 +940,7 @@ and the retrieved material, and returns the marks (0 to 10) with an optional com
 
 <!-- ============================================================ 10 -->
 <section id="hooks">
-  <h2><span class="num">10</span>Extra scores and hooks</h2>
+  <h2><span class="num"></span>Extra scores and hooks</h2>
   <p class="intro">Add your own metrics, carry your own spreadsheet columns, and react when a run finishes.</p>
   <figure class="code"><figcaption><span>examples/metrics_and_hooks.py</span><button type="button" class="copy" aria-label="Copy the code">Copy</button></figcaption><pre><code><span class="s">&quot;&quot;&quot;Extra scores, your own spreadsheet columns, and a hook that runs after every evaluation.&quot;&quot;&quot;</span>
 <span class="k">import</span> ragevalkit
@@ -732,7 +994,39 @@ and the retrieved material, and returns the marks (0 to 10) with an optional com
 
 <!-- ============================================================ 11 -->
 <section id="running">
-  <h2><span class="num">11</span>Running it for your team</h2>
+  <h2><span class="num"></span>Running it for your team</h2>
+  <figure class="code"><figcaption><span>examples/team_setup.py</span><button type="button" class="copy" aria-label="Copy the code">Copy</button></figcaption><pre><code><span class="s">&quot;&quot;&quot;Running ragevalkit for a team: accounts, where things are kept, models, and how the recommendation decides.&quot;&quot;&quot;</span>
+<span class="k">import</span> os
+
+<span class="k">import</span> ragevalkit
+
+
+<span class="k">def</span> <span class="f">answer_question</span>(question: <span class="b">str</span>) -&gt; <span class="b">str</span>:
+    <span class="k">return</span> <span class="s">&quot;Refunds are allowed within 30 days of purchase.&quot;</span>
+
+
+<span class="k">if</span> <span class="b">__name__</span> == <span class="s">&quot;__main__&quot;</span>:
+    ragevalkit.serve(
+        answer_question,
+        <span class="c"># --- where it runs and where things are kept ---</span>
+        port=<span class="n">8002</span>,
+        store_path=<span class="s">&quot;evals/eval_store.json&quot;</span>,      <span class="c"># results; copy this file to back it up</span>
+        log_dir=<span class="s">&quot;evals/logs&quot;</span>,                    <span class="c"># default: eval_logs next to the store</span>
+        <span class="c"># --- who may open it ---</span>
+        users=<span class="s">&quot;alice:pw-for-alice,bob:pw-for-bob&quot;</span>,
+        secret=os.environ.get(<span class="s">&quot;EVAL_SECRET&quot;</span>, <span class="s">&quot;change-me&quot;</span>),   <span class="c"># fixed, so people stay signed in across restarts</span>
+        <span class="c"># --- models ---</span>
+        judge_model=<span class="s">&quot;openai/gpt-4o-mini&quot;</span>,
+        generator_model=<span class="s">&quot;ollama/llama3&quot;</span>,         <span class="c"># writes test cases from documents: the text stays on this machine</span>
+        <span class="c"># --- how the recommendation decides ---</span>
+        answer_weight=<span class="n">0.7</span>,                       <span class="c"># answer quality counts for 70%...</span>
+        material_weight=<span class="n">0.3</span>,                     <span class="c"># ...and context quality for 30%</span>
+        recommendation_tolerance=<span class="n">0.2</span>,            <span class="c"># versions this close to the best are tied: the fastest wins</span>
+        max_response_time=<span class="n">8.0</span>,                   <span class="c"># versions slower than this (seconds) are never recommended</span>
+        source_check_mode=<span class="s">&quot;keyword&quot;</span>,
+        show_guide=<span class="k">True</span>,                         <span class="c"># the Help page</span>
+        open_browser=<span class="k">False</span>,
+    )</code></pre></figure>
   <ul>
     <li><b>Sign-in.</b> <code>users="alice:pw1,bob:pw2"</code> sets the accounts. Sessions last 12 hours; set <code>secret=</code> to a fixed value if people should stay signed in across restarts. <code>require_login=False</code> skips the sign-in for local work.</li>
     <li><b>Data.</b> Everything is in one JSON file (<code>store_path</code>, default <code>eval_store.json</code>). Copy it to back it up or move it to another machine.</li>
@@ -745,7 +1039,7 @@ and the retrieved material, and returns the marks (0 to 10) with an optional com
 
 <!-- ============================================================ 12 -->
 <section id="troubleshooting">
-  <h2><span class="num">12</span>When something looks off</h2>
+  <h2><span class="num"></span>When something looks off</h2>
   <p class="intro">Start with the <b>Problems during this run</b> box on the version page: it says what went wrong in plain words, and <em>Show technical details</em> gives the error. The full log is the <em>Download log</em> button, or <code>eval_logs/runs/</code>. Then look for your symptom here.</p>
   <input class="filter" id="fix-filter" type="search" placeholder="Search symptoms: login, context, sources, port&hellip;" aria-label="Search symptoms">
 
@@ -835,7 +1129,7 @@ and the retrieved material, and returns the marks (0 to 10) with an optional com
 
 <!-- ============================================================ 13 -->
 <section id="reference">
-  <h2><span class="num">13</span><code>serve()</code> reference</h2>
+  <h2><span class="num"></span><code>serve()</code> reference</h2>
   <p class="intro">Every option, with its default. Only <code>fn</code> is required.</p>
   <h3>Your function</h3><div class="table-wrap"><table><thead><tr><th>Parameter</th><th>Default</th><th>What it does</th></tr></thead><tbody><tr><td><code>fn</code></td><td><code>required</code></td><td><p>Your pipeline function. Accepted signatures::</p><pre>fn(question: str) -&gt; str
 fn(question: str, history: list) -&gt; str   # stateless, runner passes history
@@ -859,7 +1153,7 @@ fn(question: str, session_id: str) -&gt; str # stateful, you manage history</pre
 
 <!-- ============================================================ 14 -->
 <section id="notes">
-  <h2><span class="num">14</span>Good to know</h2>
+  <h2><span class="num"></span>Good to know</h2>
   <ul>
     <li><b>One evaluation runs at a time.</b> Finished results are saved as they complete. A run that is in progress lives in the running server, so if the server is restarted, start that version again.</li>
     <li><b>The dashboard is served on this computer</b> (<code>127.0.0.1</code>). To share it with a team, run it on a shared machine behind your usual network setup, with sign-in on.</li>

@@ -208,7 +208,7 @@ class RunManager:
         for s in steps:
             node_timings[s["name"]] = round(node_timings.get(s["name"], 0.0) + s["elapsed"], 3)
         material = select_material(steps)
-        sources      = [src for s in steps for src in (s.get("sources") or [])]
+        sources      = list(dict.fromkeys(src for s in steps for src in (s.get("sources") or [])))   # each once, in order
         step_inputs  = {s["name"]: s.get("inputs", {}) for s in steps}
         step_outputs = {s["name"]: s.get("output",  "") for s in steps}
         return answer, elapsed, node_timings, material, sources, step_inputs, step_outputs, flags
