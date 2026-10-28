@@ -1,0 +1,26 @@
+<!--
+part: Connect your assistant
+title: LangChain, LangGraph and friends
+lead: Steps belong to the question being evaluated, not to the place they are written. Whichever node, thread or async task runs your code, the step lands in the right place.
+minutes: 7
+-->
+<h2>LangGraph</h2>
+<p>Three placements work, and the example uses all three:</p>
+<ul>
+  <li>a <b>node that calls a decorated function</b>: the decorator records the call wherever it is made from;</li>
+  <li>a <b>node with a <code>with</code> block</b> inside it;</li>
+  <li>a <b>decorator on the node itself</b>, including nodes that take LangGraph's <code>config</code> parameter.</li>
+</ul>
+{{example:langgraph_agent.py}}
+<p>The version page then shows <code>rewrite</code>, <code>retrieval</code> and <code>llm</code> with their times, the retrieved text and the source <code>refunds.pdf</code>. Parallel branches and async nodes (<code>ainvoke</code>) are recorded too; we ran this file and variants of it while writing this guide.</p>
+<div class="note"><b>Good to know</b>
+  <p>A LangGraph node returns a state update such as <code>{"docs": [&hellip;]}</code>, so a decorated node with <code>material=True</code> would give the judge that dictionary as text. For the node that does retrieval, a <code>with</code> block lets you set clean material and sources.</p>
+  <p>Steps that run in parallel each report their own time, so together they can add up to more than the question's response time. That is expected.</p></div>
+
+<h2>LangChain</h2>
+<p>Steps work inside runnables, including the branches LangChain runs in parallel threads. In this chain a vector search and a keyword search run side by side, and a merge step declares the retrieved text once.</p>
+{{example:langchain_chain.py}}
+
+<h2>Anything else that runs in your process</h2>
+<p>LlamaIndex, Haystack, hand-written loops, thread pools: ragevalkit remembers one thing, which question is being evaluated, and attaches every step to it. You do not need to pass anything around. Your pipeline's own code does not change when you add steps.</p>
+<p>Next, two kinds of assistants that behave differently: <a href="#/agents-and-bots">agents with tools, and bots with no retrieval</a>.</p>

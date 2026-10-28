@@ -237,13 +237,13 @@ ragevalkit/
   static/           the built dashboard
 tests/              mirrors the package folders
 examples/           the runnable code the guide shows; every file is run by tests/examples
-docs/               guide.template.html, the guide's source
+docs/guide/         the guide: shell.html and one file per page in pages/
 scripts/            build_guide.py
 ```
 
 ### The guide
 
-`ragevalkit/guides/developer-guide.html` is built from `docs/guide.template.html`. Its code comes from the files in
+`ragevalkit/guides/developer-guide.html` is built from `docs/guide/` (a shell and one file per page). Its code comes from the files in
 `examples/` (run by `tests/examples`) and its `serve()` reference comes from the function's own signature and docstring, so
 it cannot drift. After changing the template, an example or `serve()`, rebuild it:
 

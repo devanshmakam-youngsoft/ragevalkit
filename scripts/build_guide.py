@@ -1,7 +1,8 @@
-"""Builds ragevalkit/guides/developer-guide.html from docs/guide.template.html.
+"""Builds ragevalkit/guides/developer-guide.html from docs/guide/ (a shell and one file per page in docs/guide/pages/).
 
-The guide's code comes from the files in examples/ (which the tests run), and its serve() reference comes from the
-function itself, so neither can drift from the library. Run it after changing either:
+A page starts with a comment giving its part, title, lead sentence and reading time. The guide's code comes from the
+files in examples/ (which the tests run), and its serve() reference comes from the function itself, so neither can drift
+from the library. Run it after changing a page, an example or serve():
 
     python scripts/build_guide.py
 
@@ -21,7 +22,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-TEMPLATE = ROOT / "docs" / "guide.template.html"
+GUIDE_SOURCE = ROOT / "docs" / "guide"
 EXAMPLES = ROOT / "examples"
 OUTPUT = ROOT / "ragevalkit" / "guides" / "developer-guide.html"
 
@@ -212,10 +213,8 @@ def serve_reference() -> str:
 
 # ---- the page ---------------------------------------------------------------------------------------------------
 
-def build() -> str:
+def _resolve(text: str) -> str:
     import ragevalkit
-
-    template = TEMPLATE.read_text(encoding="utf-8").replace("\r\n", "\n")
 
     def fill(match: re.Match) -> str:
         key = match.group(1)
@@ -225,7 +224,70 @@ def build() -> str:
             return ragevalkit.__version__
         return example_block(key)
 
-    return MARKER.sub(fill, template)
+    return MARKER.sub(fill, text)
+
+
+def _page_meta(source: str) -> tuple[dict, str]:
+    """The ``key: value`` lines of the comment that opens a page, and the page without it."""
+    match = re.match(r"\s*<!--(.*?)-->\s*", source, re.S)
+    if not match:
+        raise SystemExit("a guide page must start with a <!-- part: ... title: ... lead: ... --> comment")
+    meta = dict(line.split(":", 1) for line in match.group(1).strip().splitlines() if ":" in line)
+    return {key.strip(): value.strip() for key, value in meta.items()}, source[match.end():]
+
+
+def _plain(text: str) -> str:
+    return html.unescape(re.sub(r"<[^>]+>", "", text))
+
+
+def _pages() -> list[dict]:
+    pages = []
+    for path in sorted((GUIDE_SOURCE / "pages").glob("*.html")):
+        meta, body = _page_meta(path.read_text(encoding="utf-8").replace("\r\n", "\n"))
+        slug = re.sub(r"^\d+-", "", path.stem)
+        for needed in ("part", "title", "lead"):
+            if needed not in meta:
+                raise SystemExit(f"{path.name}: the opening comment needs {needed}:")
+        pages.append({"slug": slug, "body": body, **meta})
+    return pages
+
+
+def _render_page(page: dict, previous: dict | None, following: dict | None) -> str:
+    def pager_link(target: dict | None, label: str, css: str) -> str:
+        if target is None:
+            return '<span class="blank"></span>'
+        return f'<a class="{css}" href="#/{target["slug"]}"><small>{label}</small><b>{_plain(target["title"])}</b></a>'
+
+    minutes = page.get("minutes", "")
+    kicker = f"<span>{html.escape(page['part'])}</span>" + (f"<span>{html.escape(minutes)} min read</span>" if minutes not in ("", "0") else "")
+    return (
+        f'<article class="page" id="page-{page["slug"]}" data-slug="{page["slug"]}" data-title="{html.escape(_plain(page["title"]))}" '
+        f'data-part="{html.escape(page["part"])}" hidden>\n'
+        f'<div class="kicker">{kicker}</div>\n<h1>{page["title"]}</h1>\n<p class="lead">{page["lead"]}</p>\n'
+        f'{page["body"]}\n'
+        f'<nav class="pager">{pager_link(previous, "Previous", "prev")}{pager_link(following, "Next up", "next")}</nav>\n</article>'
+    )
+
+
+def _nav(pages: list[dict]) -> str:
+    out, part = [], None
+    for page in pages:
+        if page["part"] != part:
+            part = page["part"]
+            out.append(f'<div class="nav-part">{html.escape(part)}</div>')
+        out.append(f'<a class="nav-link" href="#/{page["slug"]}" data-slug="{page["slug"]}"><span class="dot"></span>{_plain(page["title"])}</a>')
+    return "\n".join(out)
+
+
+def build() -> str:
+    pages = _pages()
+    rendered = [
+        _render_page(page, pages[i - 1] if i else None, pages[i + 1] if i + 1 < len(pages) else None)
+        for i, page in enumerate(pages)
+    ]
+    shell = (GUIDE_SOURCE / "shell.html").read_text(encoding="utf-8").replace("\r\n", "\n")
+    shell = shell.replace("{{nav}}", _nav(pages)).replace("{{pages}}", "\n".join(rendered))
+    return _resolve(shell)
 
 
 def main() -> None:

@@ -1,0 +1,34 @@
+<!--
+part: See inside
+title: Material, sources and notes
+lead: Three small ideas that make the difference between a clear picture and a confusing one. The rule that matters most: declare each of them once.
+minutes: 6
+-->
+<h2>Say which step retrieved the text</h2>
+<p>The judge reads <b>only the steps that declare material</b>: a <code>with</code> block that sets <code>s.material</code>, or a decorator with <code>material=True</code>. Steps that do not declare it are timing only, which is exactly what you want for a re-ranker or the model call.</p>
+<div class="note tip"><b>Declare it once</b>
+  <p>If several steps set <code>s.material</code>, the judge reads all of them one after another: routing details, search settings and the context, sometimes the same context twice. Context quality then looks lower than the retrieval deserves, and the end can be cut off at the material limit. Let <em>one</em> step, the retrieval, declare the material. Put anything else you want to see in <code>ragevalkit.note(&hellip;)</code>.</p></div>
+<p>If no step declares anything, ragevalkit falls back to the output of decorated steps and writes a warning to the log that says how to be precise.</p>
+
+<h2>Sources</h2>
+<p>Sources are the names of the documents your retrieval used. Set <code>s.sources = [...]</code> in the retrieval step and ragevalkit compares them with the <code>expected_sources</code> of each test case (<a href="#/source-checks">Source checks</a> shows how). The sources of every step are put together, each document once, so report them in the retrieval step only.</p>
+<p>Decorators cannot report sources. Use a <code>with</code> block for the step that retrieves.</p>
+
+<h2>Notes</h2>
+<p><code>ragevalkit.note("intent", "billing")</code> attaches a short fact to the question being evaluated. It appears beside the question in the results, so you can see at a glance which intent or tool a wrong answer went through. Names such as <code>password</code>, <code>token</code> or <code>api_key</code> are never stored.</p>
+
+<h2>How much is recorded</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th>Option</th><th>Effect</th></tr></thead>
+  <tbody>
+    <tr><td><code>record_detail="all"</code> (default)</td><td>name, time, inputs, output, material and sources for every step</td></tr>
+    <tr><td><code>record_detail="selected"</code></td><td>only steps that set material or sources yourself</td></tr>
+    <tr><td><code>record_detail="off"</code></td><td>step names and times only</td></tr>
+    <tr><td><code>record_mode="off"</code></td><td>no steps at all; the evaluation itself still runs</td></tr>
+    <tr><td><code>step_value_chars</code> (1000)</td><td>how much of a step's inputs, outputs and notes is shown; longer values end with a marker saying how much was left out</td></tr>
+    <tr><td><code>material_chars</code> (20000)</td><td>how much retrieved text the judge reads per question</td></tr>
+  </tbody>
+</table></div>
+<p>A long list of numbers, such as an embedding, is shown as <code>[1536 numbers]</code> instead of being stored.</p>
+
+<div class="story"><b>Chapter 3, continued</b><p>Priya moves the material declaration into the search step only and reruns. The context score for refund questions drops from 7 to 3, which is the truth: the search was missing the returns policy. Now there is something specific to fix, and a test set to prove it.</p></div>

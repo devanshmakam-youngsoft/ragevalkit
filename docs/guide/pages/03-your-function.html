@@ -1,0 +1,46 @@
+<!--
+part: Connect your assistant
+title: Connect your function
+lead: ragevalkit reads the parameter names of your function to decide what to pass. There are three shapes, and one of them is yours.
+minutes: 6
+-->
+<div class="story"><b>Chapter 2</b><p>Sidekick keeps each customer's chat on the server, keyed by a session id. That decides which shape Priya needs below.</p></div>
+
+<h2>The three shapes</h2>
+<div class="tabs" data-tabs>
+  <div role="tablist">
+    <button role="tab" aria-selected="true">1 &middot; Question only</button>
+    <button role="tab" aria-selected="false">2 &middot; With history</button>
+    <button role="tab" aria-selected="false">3 &middot; With a session id</button>
+  </div>
+  <div role="tabpanel">
+    <p>Every question is answered on its own. The simplest shape, and right for single-turn pipelines.</p>
+    {{example:function_shapes.py#answer_only}}
+  </div>
+  <div role="tabpanel" hidden>
+    <p>Your chatbot is <b>stateless</b>: it rebuilds the prompt from the earlier turns every time. ragevalkit keeps the conversation of each <code>chat_id</code> and hands you the earlier turns as <code>history</code> (empty on the first turn).</p>
+    {{example:function_shapes.py#answer_with_history}}
+  </div>
+  <div role="tabpanel" hidden>
+    <p>Your backend is <b>stateful</b>: it remembers the conversation itself. ragevalkit passes one session id per chat, the same for every turn of that chat and different for the next. <i>This is Sidekick.</i></p>
+    {{example:function_shapes.py#SESSIONS,answer_in_session}}
+  </div>
+</div>
+
+<h2>How ragevalkit chooses</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th>If a parameter is named&hellip;</th><th>ragevalkit passes&hellip;</th></tr></thead>
+  <tbody>
+    <tr><td><code>session_id</code>, <code>session</code>, <code>thread_id</code>, <code>conversation_id</code>, <code>user_id</code></td><td>the session id of the chat (shape 3)</td></tr>
+    <tr><td><code>history</code>, <code>chat_history</code>, <code>messages</code>, <code>conversation</code>, <code>turns</code>, <code>context</code></td><td>the earlier turns (shape 2)</td></tr>
+    <tr><td>anything else</td><td>nothing: the first parameter is always the question</td></tr>
+  </tbody>
+</table></div>
+<p>If a function has both kinds, the session id wins. Any other parameter needs a default value, because ragevalkit passes only the question and one extra.</p>
+<div class="note"><b>Good to know</b><p>A parameter called <code>context</code> is treated as history. If yours means something else, rename it or list your own names with <code>history_params=[&hellip;]</code>.</p></div>
+
+<h2>Other things your function can do</h2>
+<p>Return a dictionary or a Pydantic model, be <code>async</code>, use parameter names of your own, or receive the history as chat messages.</p>
+{{example:function_shapes.py#answer_as_dict,answer_async,answer_with_other_names,answer_with_openai_history}}
+<p>The keys tried for the answer, in order, are <code>answer</code>, <code>response</code>, <code>output</code>, <code>result</code>, <code>text</code>, <code>content</code>, <code>message</code>, <code>generated_text</code>, <code>generation</code>, <code>completion</code>. Add your own with <code>answer_keys=[&hellip;]</code>.</p>
+<p>If your function raises an error, that question is marked failed, the reason is recorded, and the run carries on with the next question.</p>

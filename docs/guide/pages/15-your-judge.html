@@ -1,0 +1,25 @@
+<!--
+part: Make it yours
+title: Your own judge
+lead: Three levels, from a different model to no AI at all. Pick the lightest one that does the job.
+minutes: 6
+-->
+<div class="story"><b>Chapter 6</b><p>The product manager has a point: Sidekick is accurate now, but sometimes curt, and it promises refunds the policy does not allow. The default judge does not know that matters. Priya teaches it.</p></div>
+
+<div class="cards">
+  <a class="card" href="#/your-judge/level-1"><span class="tag">Level 1</span><b>Another model</b><span>One setting.</span></a>
+  <a class="card" href="#/your-judge/level-2"><span class="tag">Level 2</span><b>Your own rubric</b><span>The AI judge, grading your way.</span></a>
+  <a class="card" href="#/your-judge/level-3"><span class="tag">Level 3</span><b>Your own function</b><span>Exact checks, no AI.</span></a>
+</div>
+
+<h2 id="level-1">Level 1: another model</h2>
+<p><code>judge_model</code> takes any <a href="https://docs.litellm.ai/docs/providers">LiteLLM</a> model name, with its key in <code>.env</code> or <code>judge_api_key=</code>: <code>"openai/gpt-4o-mini"</code>, <code>"gemini/gemini-1.5-pro"</code>, <code>"groq/llama-3.3-70b-versatile"</code>, <code>"ollama/llama3"</code>. A fast model is a good choice while you iterate: every question makes at least one judge call.</p>
+
+<h2 id="level-2">Level 2: your own rubric</h2>
+<p>Keep the AI judge but tell it how <em>your</em> answers should be graded. Describe only the grading: ragevalkit adds the reply format itself, so a custom rubric cannot break the reply. <code>summary_prompt</code> does the same for the written findings.</p>
+{{example:custom_judge_prompt.py}}
+
+<h2 id="level-3">Level 3: your own function</h2>
+<p>For exact checks, rules, a JSON schema, or your own scoring service, replace the AI judge with a function. It receives the question, the expected answer, the generated answer and the retrieved material, and returns <code>answer_marks</code> (0&ndash;10) with an optional comment, plus <code>material_marks</code> if you grade the context too.</p>
+{{example:custom_judge.py}}
+<div class="note"><b>Good to know</b><p>The written findings at the end of a run are produced by the judge <em>model</em>, even when you use <code>judge_fn</code>. Without a key for it the run still finishes, and the version says the findings could not be written.</p></div>

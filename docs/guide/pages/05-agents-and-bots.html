@@ -1,0 +1,25 @@
+<!--
+part: Connect your assistant
+title: Agents and bots with no retrieval
+lead: Not every assistant looks things up in documents. Tool-calling agents and greeters need a slightly different setup, and a different way to grade them.
+minutes: 6
+-->
+<h2>An agent that calls tools in a loop</h2>
+<p>The model asks for a tool, gets the result, and decides again until it can answer. Two things are worth knowing:</p>
+<ul>
+  <li>A step that runs several times has its times <b>added up</b>. The <code>llm</code> step below runs once per loop, and the timing bar shows the total.</li>
+  <li>When the tool results are how the agent gets its facts, <b>declare them as material</b>. The judge then checks that the answer is supported by what the tools returned.</li>
+</ul>
+{{example:tool_agent.py}}
+<p>The <code>tools_used</code> note appears next to the question in the results, which makes it quick to see which tools a wrong answer relied on.</p>
+
+<h2>A bot with no retrieval</h2>
+<p>Greeting bots and small talk have no &ldquo;retrieved context&rdquo; to score. Tell ragevalkit, and they are graded on the answer alone.</p>
+{{example:no_retrieval_bot.py}}
+<ol>
+  <li><b>Mark the test cases <code>non-rag</code></b> (a <code>type</code> column when importing, or the type box on a test case). Their context quality is then left out instead of scored as 0.</li>
+  <li><b>Do not declare material</b> in these steps. Intent checks and tool calls are timing-only.</li>
+  <li><b>Set <code>material_weight=0</code></b>, so the recommendation looks at answer quality only.</li>
+  <li><b>Write the expected answer as a behaviour</b> when exact words do not matter: <em>&ldquo;Greets the user politely and offers help&rdquo;</em>, <em>&ldquo;States that order A100 has shipped&rdquo;</em>. The judge grades the behaviour.</li>
+</ol>
+<div class="note tip"><b>Tip</b><p>A mixed assistant, with both knowledge questions and small talk, is the common case. Keep one test set and mark each case <code>rag</code> or <code>non-rag</code>; each is graded the right way.</p></div>

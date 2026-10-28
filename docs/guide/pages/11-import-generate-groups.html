@@ -1,0 +1,46 @@
+<!--
+part: Build your test set
+title: Import, generate and organise
+lead: Four ways to fill the test set, and groups to keep it tidy. Use whichever fits the day.
+minutes: 6
+-->
+<h2>Four ways to add test cases</h2>
+<div class="cards">
+  <div class="card"><span class="tag">One at a time</span><b>+ New test case</b><span>For the question you just thought of.</span></div>
+  <div class="card"><span class="tag">From a spreadsheet</span><b>Import</b><span>Excel, CSV, or rows pasted from a sheet.</span></div>
+  <div class="card"><span class="tag">From your documents</span><b>Generate from documents</b><span>ragevalkit writes questions, with the evidence for each answer.</span></div>
+  <div class="card"><span class="tag">From a script</span><b>The API</b><span>For test cases kept in a repository: <code>POST /api/test-cases/import</code>. See <a href="#/ci">Run it in CI</a>.</span></div>
+</div>
+
+<h2>Importing</h2>
+<ul>
+  <li>You see what will be <b>added, updated or skipped</b> before anything is saved, with the row number and reason for every row that cannot be used.</li>
+  <li>Only the <b>question</b> column is required. Common header names (<code>query</code>, <code>gold_answer</code>, <code>tags</code>&hellip;) are recognised, and you can point any column at the right field.</li>
+  <li><b>Safe to repeat</b>: importing the same file twice changes nothing; an edited answer becomes a new version of the existing case.</li>
+  <li>Rows that could not be imported can be downloaded with the reason next to each, fixed, and imported again.</li>
+  <li>Your own column names everywhere? <code>column_map={"user_query": "question", "gold_answer": "expected_answer"}</code> in <code>serve()</code>.</li>
+</ul>
+
+<h2>Generating from documents</h2>
+<p><b>Test Cases &rarr; Generate from documents</b> writes questions from your PDF, Word, text or Markdown files (up to 5 files of 50 MB). By default it writes three questions in each of four categories:</p>
+<div class="table-wrap"><table>
+  <thead><tr><th>Category</th><th>What it is</th></tr></thead>
+  <tbody>
+    <tr><td><b>Direct</b></td><td>The answer is stated plainly in one place.</td></tr>
+    <tr><td><b>Indirect</b></td><td>The answer is in the document, but the question uses everyday words rather than the document's own.</td></tr>
+    <tr><td><b>Multi-part</b></td><td>One question with several parts, answered from different places.</td></tr>
+    <tr><td><b>Multi-turn</b></td><td>A short conversation. Each follow-up depends on the earlier answer and cannot be understood alone.</td></tr>
+  </tbody>
+</table></div>
+<ul>
+  <li><b>Every answer comes with evidence</b>: the sentences of your document that prove it, with file and page.</li>
+  <li><b>Nothing is added until you press Add.</b> Questions are saved while they are being written, so closing the browser loses nothing, and you can edit or remove any of them first.</li>
+  <li>Nothing of the upload is kept, only the questions, answers and evidence snippets.</li>
+  <li>The text of the documents goes to the model you set with <code>generator_model</code> (the judge model by default). A local <code>ollama/&hellip;</code> model keeps it on your machine.</li>
+</ul>
+<div class="note tip"><b>Tip</b><p>Generated questions are about <em>your documents</em>. Make sure your pipeline has those same documents loaded, or every score will be 0, and rightly so.</p></div>
+
+<h2>Groups</h2>
+<p>A group is a label. A case can carry any number of labels, and you add or remove them from the Test Cases page. Use them to run a slice (&ldquo;only Billing&rdquo;) and to see scores per slice on the version page. When you run several groups, a case in two of them runs once.</p>
+<p>Follow-up questions need the turns before them, so by default a run also includes the earlier turns of every case you picked. The Execute dialog shows exactly how many cases will run, and lets you turn that off.</p>
+<p><b>Deleting</b>: a test case is removed for good (past versions keep their own copy of the question and answer, marked &ldquo;Test case deleted&rdquo;). A group is only hidden and can be restored. To keep a case but skip it in runs, mark it <em>inactive</em>.</p>

@@ -1,0 +1,79 @@
+<!--
+part: When you need help
+title: When something looks off
+lead: Find your symptom, see the likely reason, and what to do about it. Most things here take a minute to fix.
+minutes: 0
+-->
+<p>Start with the <b>Problems during this run</b> box on the version page: it says what went wrong in plain words, and <em>Show technical details</em> gives the error. The full log is the <em>Download log</em> button, or <code>eval_logs/runs/</code>. Then look for your symptom here.</p>
+<input class="filter" id="fix-filter" type="search" placeholder="Search symptoms: login, context, sources, port&hellip;" aria-label="Search symptoms">
+<details class="fix"><summary>Every score is 0.0, but nothing failed</summary><div class="body">
+    <p class="why">The judge is almost always right here: the test cases ask about things your pipeline does not know (for example questions generated from other documents), so it answers &ldquo;I could not find that&rdquo; and there is no retrieved text.</p>
+    <p><b>Do:</b> open one question and compare the generated answer, the retrieved text and the expected answer. Load the same documents the test cases came from, or write test cases about what your pipeline knows.</p></div></details>
+<details class="fix"><summary>The dashboard says &ldquo;None yet&rdquo; under Recommended version</summary><div class="body">
+    <p class="why">No version reaches the minimum overall score (5 out of 10 by default), so nothing is recommended; the best so far is named. See <a href="#/versions-and-recommendation">Comparing versions</a>.</p>
+    <p><b>Do:</b> improve the pipeline and run again, or check the test cases. If 5 is the wrong bar for you, set <code>recommendation_min_quality</code>.</p></div></details>
+<details class="fix"><summary>A version says &ldquo;Not compared&rdquo;</summary><div class="body">
+    <p class="why">It ran different test cases from the others (cases were edited, added or deleted), so there is nothing fair to compare. A case only counts as the same while its question and expected answer are unchanged.</p>
+    <p><b>Do:</b> run the same test cases on the versions you want to compare. The card shows the not-compared version&rsquo;s own scores so a good one is not hidden.</p></div></details>
+<details class="fix"><summary>Every question says &ldquo;No answer: the assistant returned an error&rdquo;</summary><div class="body">
+    <p class="why">Your function raised an error. The run itself is fine: ragevalkit marks the question failed, records why, and carries on.</p>
+    <p><b>Do:</b> open <em>Problems during this run</em> and <em>Show technical details</em>; the last lines name the error. Call your function by hand with one of the questions. Common causes: a key your own pipeline needs is missing from <code>.env</code>, a file path that only works from another folder, the vector index was not loaded before <code>serve()</code> (load it first, as your app does at start-up), or the function needs a second argument that has no default.</p></div></details>
+<details class="fix"><summary>&ldquo;The question was answered, but the AI judge could not grade it&rdquo;</summary><div class="body">
+    <p class="why">The judge model did not answer. The usual reasons are shown in the message: a missing or wrong API key, a model name that does not exist, a rate limit, or no network.</p>
+    <p><b>Do:</b> put the provider&rsquo;s key in <code>.env</code> (<code>GROQ_API_KEY</code>, <code>OPENAI_API_KEY</code>&hellip;) or pass <code>judge_api_key=</code>; write the model as <code>provider/model</code>; for a rate limit, wait a minute or run fewer questions. Or <a href="#/your-judge">use your own judge function</a>, which needs no model.</p></div></details>
+<details class="fix"><summary>&ldquo;The AI could not write the findings for this run&rdquo;</summary><div class="body">
+    <p class="why">The findings come from the judge model, even when you use <code>judge_fn</code>.</p>
+    <p><b>Do:</b> the same checks as above (key, model name, network). The scores and every answer are saved; only the written findings are missing.</p></div></details>
+<details class="fix"><summary>Context quality is blank or very low</summary><div class="body">
+    <p class="why">No step declared the retrieved text, or the case type says no retrieval is expected.</p>
+    <p><b>Do:</b> in your retrieval step set <code>s.material = &hellip;</code> (or use <code>@ragevalkit.step("retrieval", material=True)</code>). If the bot has no retrieval, mark the cases <code>non-rag</code> and use <code>material_weight=0</code>. See <a href="#/material-and-sources">Say which step retrieved the text</a>.</p></div></details>
+<details class="fix"><summary>Context quality is lower than the retrieval deserves</summary><div class="body">
+    <p class="why">More than one step declares material, so the judge reads routing details, search settings or the same text twice, and the end can be cut off at <code>material_chars</code>.</p>
+    <p><b>Do:</b> open a question&rsquo;s <em>Retrieved text</em> and check it holds only the passages. Let one step declare the material; keep the other steps timing-only and put their details in <code>ragevalkit.note()</code>.</p></div></details>
+<details class="fix"><summary>The step-time bar only shows &ldquo;Not in a step&rdquo;</summary><div class="body">
+    <p class="why">No step ran during the questions, or recording was reduced.</p>
+    <p><b>Do:</b> check that your pipeline calls <code>ragevalkit.step(&hellip;)</code> on the path the questions take; check <code>record_mode</code> is not <code>"off"</code>; with <code>record_detail="selected"</code> only steps that set material or sources are kept.</p></div></details>
+<details class="fix"><summary>Step times add up to more than the response time</summary><div class="body">
+    <p class="why">One step sits inside another (the outer one includes the inner one&rsquo;s time), or steps run in parallel.</p>
+    <p><b>Do:</b> for nesting, make the steps follow each other instead of wrapping each other. Parallel steps are expected to overlap.</p></div></details>
+<details class="fix"><summary>Sources say &ldquo;not checked&rdquo;, or &ldquo;some missing&rdquo; when they were found</summary><div class="body">
+    <p class="why">Not checked: the test case has no <code>expected_sources</code>, <code>source_check_mode</code> is <code>"off"</code>, or no step reported sources. Missing although retrieved: the names differ.</p>
+    <p><b>Do:</b> report sources with a <code>with</code> block and <code>s.sources = [&hellip;]</code> (decorators cannot report them). Compare the names the step reported with <code>expected_sources</code>; the keyword check ignores case, folders and file extensions, so <code>docs/Refunds.pdf</code> matches <code>refunds</code>. Different spellings of the same document? Try <code>source_check_mode="llm"</code>.</p></div></details>
+<details class="fix"><summary>A step shows no inputs or output</summary><div class="body">
+    <p class="why">Inputs and outputs are recorded only for decorated functions.</p>
+    <p><b>Do:</b> use the decorator for that step, or record what you need with <code>ragevalkit.note()</code>. Arguments named like secrets show as <code>[REDACTED]</code> on purpose.</p></div></details>
+<details class="fix"><summary>&ldquo;Another evaluation is already running&rdquo;</summary><div class="body">
+    <p class="why">One evaluation runs at a time.</p>
+    <p><b>Do:</b> wait for it, or press <b>Stop</b> on the version in progress; a stopped run keeps its partial results.</p></div></details>
+<details class="fix"><summary>&ldquo;Version &hellip; already exists&rdquo; or &ldquo;Version may only contain letters, digits&hellip;&rdquo;</summary><div class="body">
+    <p class="why">Version names are unique, and use letters, digits, <code>.</code>, <code>_</code> or <code>-</code> (up to 20 characters).</p>
+    <p><b>Do:</b> choose a new name, or tick the option to replace the existing version.</p></div></details>
+<details class="fix"><summary>&ldquo;No runnable test cases in the selection&rdquo;</summary><div class="body">
+    <p class="why">The groups you picked are empty, or their cases are all inactive.</p>
+    <p><b>Do:</b> add cases to the group, or mark them active. The Execute dialog shows how many cases will run before you start.</p></div></details>
+<details class="fix"><summary>A function with a parameter called <code>context</code> or <code>user_id</code> gets the wrong thing</summary><div class="body">
+    <p class="why">Those names are on the lists ragevalkit uses to recognise history and session parameters.</p>
+    <p><b>Do:</b> rename the parameter, or set <code>history_params=[&hellip;]</code> and <code>session_params=[&hellip;]</code> to your own names. See <a href="#/your-function">Connect your function</a>.</p></div></details>
+<details class="fix"><summary>The answer shows as a dictionary or object text instead of the answer</summary><div class="body">
+    <p class="why">Your function returned a dictionary or object, and none of its keys is a known answer key.</p>
+    <p><b>Do:</b> return a string, or add your key with <code>answer_keys=["my_key"]</code>.</p></div></details>
+<details class="fix"><summary>I cannot sign in, or I am signed out after a restart</summary><div class="body">
+    <p class="why">The default account is <code>admin</code> / <code>admin123</code> unless you set <code>users=</code>. Without a fixed <code>secret=</code> a new one is made on every start, which ends existing sessions.</p>
+    <p><b>Do:</b> set <code>users=</code> and <code>secret=</code>, or <code>require_login=False</code> locally.</p></div></details>
+<details class="fix"><summary>&ldquo;Missing required column(s)&rdquo; when importing</summary><div class="body">
+    <p class="why">The file does not have the columns the older dataset upload needs.</p>
+    <p><b>Do:</b> use <b>Test Cases &rarr; Import</b>, which only needs a question column and lets you pick which column is which; or add <code>column_map=</code> to <code>serve()</code>.</p></div></details>
+<details class="fix"><summary>Generating test cases: &ldquo;has no selectable text&rdquo;, &ldquo;password-protected&rdquo; or &ldquo;old Word files&rdquo;</summary><div class="body">
+    <p class="why">The file cannot be read as text: a scanned PDF, a protected file, or a <code>.doc</code>.</p>
+    <p><b>Do:</b> upload a text-based PDF, remove the password, or save <code>.doc</code> files as <code>.docx</code>. Plain <code>.txt</code> and <code>.md</code> always work.</p></div></details>
+<details class="fix"><summary>The dashboard looks old after an update, or a new option is not recognised</summary><div class="body">
+    <p class="why">The environment still has the previous version of ragevalkit, or the browser kept the old page.</p>
+    <p><b>Do:</b> reinstall with <code>pip install --force-reinstall --no-deps git+https://github.com/devanshmakam-youngsoft/ragevalkit.git</code>, then refresh the page with <kbd>Ctrl</kbd>+<kbd>F5</kbd>.</p></div></details>
+<details class="fix"><summary>&ldquo;Address already in use&rdquo;, or the page does not open</summary><div class="body">
+    <p class="why">Another program is using the port, or the browser did not start.</p>
+    <p><b>Do:</b> pick another one with <code>port=8003</code> and open <code>http://localhost:8003</code> yourself.</p></div></details>
+<details class="fix"><summary>&ldquo;Semantic similarity failed&rdquo; in the problems list</summary><div class="body">
+    <p class="why">The small local model for the &ldquo;meaning&rdquo; score could not load, usually the first time on a machine with no internet.</p>
+    <p><b>Do:</b> connect once so it can download, or set <code>run_semantic_similarity=False</code>. All other scores are unaffected.</p></div></details>
+<details class="fix"><summary>Where are the logs, and what should I send when asking for help?</summary><div class="body">
+    <p><b>Do:</b> on the version page press <em>Download log</em>, or open <code>eval_logs/runs/</code> next to your <code>eval_store.json</code>. For an error outside a run (a message with a reference number), search <code>eval_logs/server.log</code> for that reference. Keys and passwords are already hidden.</p></div></details>

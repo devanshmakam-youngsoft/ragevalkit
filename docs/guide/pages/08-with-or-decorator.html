@@ -1,0 +1,35 @@
+<!--
+part: See inside
+title: <code>with</code> or decorator?
+lead: Two ways to mark a step. They record the same name and time; the difference is in what else they keep, and that decides which one to use.
+minutes: 5
+-->
+<h2>The same pipeline, both ways</h2>
+<p>Two steps, <code>retrieval</code> and <code>llm</code>, written first with <code>with</code> blocks and then with decorators. The helpers are identical.</p>
+{{example:steps_two_ways.py#DOCUMENTS,search,write_answer}}
+<div class="pair">
+  <div><h4>With <code>with</code> blocks <span>&mdash; you say what is recorded</span></h4>{{example:steps_two_ways.py#pipeline_with_blocks}}</div>
+  <div><h4>With decorators <span>&mdash; the function is the step</span></h4>{{example:steps_two_ways.py#retrieve,generate,pipeline_with_decorators}}</div>
+</div>
+
+<h2>What each one records</h2>
+<p>Run the question &ldquo;Can I get a refund?&rdquo; through both and this is what the dashboard keeps:</p>
+<div class="table-wrap"><table>
+  <thead><tr><th>Recorded for the step</th><th><code>with</code> block</th><th>Decorator</th></tr></thead>
+  <tbody>
+    <tr><td>Step name and how long it took</td><td class="yes">yes</td><td class="yes">yes</td></tr>
+    <tr><td>Material (the text the judge scores)</td><td class="yes">what you assign to <code>s.material</code></td><td class="yes">the return value, when you write <code>material=True</code></td></tr>
+    <tr><td>Sources (checked against <code>expected_sources</code>)</td><td class="yes">what you assign to <code>s.sources</code></td><td class="no">not available: use a <code>with</code> block</td></tr>
+    <tr><td>Inputs of the step</td><td class="no">not recorded</td><td class="yes">every argument, by name</td></tr>
+    <tr><td>Output of the step</td><td class="no">not recorded</td><td class="yes">the return value</td></tr>
+    <tr><td>Covers</td><td class="yes">any block, even part of a function</td><td class="no">the whole function</td></tr>
+  </tbody>
+</table></div>
+
+<h2>Which one should I use?</h2>
+<div class="cards">
+  <div class="card"><span class="tag">Use with</span><b>For retrieval, and for parts of functions</b><span>You choose exactly what counts as material and sources, and you can wrap just a few lines.</span></div>
+  <div class="card"><span class="tag">Use a decorator</span><b>When a function is one clear stage</b><span>Inputs and output show up in the step details with no extra code, which helps when chasing a wrong answer.</span></div>
+  <div class="card"><span class="tag">Mix freely</span><b>One pipeline can use both</b><span>A decorator on the model call, a <code>with</code> block on the search. They add up the same way.</span></div>
+</div>
+<p>The question people ask next is <em>&ldquo;does it still work if my decorated function is called from inside a LangGraph node?&rdquo;</em> It does: see <a href="#/frameworks">LangChain, LangGraph and friends</a>.</p>

@@ -1,0 +1,24 @@
+<!--
+part: See inside
+title: Why record steps?
+lead: A score tells you that an answer was wrong. Steps tell you where it went wrong, which is the part you can fix.
+minutes: 5
+-->
+<div class="story"><b>Chapter 3</b><p>Version 1 scores 6.4, and refund questions score lowest. Priya opens one of them: <i>&ldquo;Can I return an item, and when does the refund reach my account?&rdquo;</i> Sidekick answered only the second half. The answer is the symptom. To find the cause, Priya needs to see what happened <em>inside</em>.</p></div>
+
+<h2>What a step gives you</h2>
+<p>A step is a named stage of your pipeline: rewriting the question, searching, re-ranking, calling the model. Mark the stages and, for every question, the dashboard shows:</p>
+<ul>
+  <li><b>How long each step took</b>: the &ldquo;where the time goes&rdquo; bar on the version page.</li>
+  <li><b>What was retrieved</b>: the passages the judge scores as <em>context quality</em>.</li>
+  <li><b>Which documents were used</b>: checked against the sources you expected.</li>
+  <li><b>Notes</b> you attach: intent, tool called, difficulty&hellip; anything you want next to the question.</li>
+</ul>
+<p>For Sidekick that means one look at the retrieved text shows the cause: the search returned the refund-timing passage and not the returns policy. The model did its best with what it was given.</p>
+
+<h2>A complete example</h2>
+<p>A typical RAG pipeline with four stages. Only the search declares what was retrieved; the others are timing only. <a href="#/material-and-sources">The next pages</a> explain why.</p>
+{{example:rag_pipeline.py#rag_pipeline}}
+
+<div class="note good"><b>Nothing happens in production</b><p>Outside an evaluation, <code>step()</code> and <code>note()</code> record nothing and add almost no overhead, so the same code can ship. Arguments named like secrets are never stored.</p></div>
+<p>There are two ways to write a step. They look similar and differ in what they record: <a href="#/with-or-decorator">that is the next page</a>.</p>

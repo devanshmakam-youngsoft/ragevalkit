@@ -35,3 +35,21 @@ def test_the_guide_documents_every_serve_option():
 
     guide = GUIDE_PATH.read_text(encoding="utf-8")
     assert all(f"<code>{name}</code>" in guide for name in inspect.signature(ragevalkit.serve).parameters)
+
+
+def test_every_link_between_pages_points_at_a_page_that_exists():
+    import re
+
+    guide = GUIDE_PATH.read_text(encoding="utf-8")
+    pages = set(re.findall(r'<article class="page" id="page-([\w-]+)"', guide))
+    linked = set(re.findall(r'href="#/([\w-]+)(?:/[\w-]+)?"', guide))
+    assert len(pages) >= 15 and linked <= pages, f"links to missing pages: {sorted(linked - pages)}"
+
+
+def test_every_page_has_a_title_a_part_and_a_place_in_the_navigation():
+    import re
+
+    guide = GUIDE_PATH.read_text(encoding="utf-8")
+    slugs = re.findall(r'<article class="page" id="page-([\w-]+)"', guide)
+    nav = re.findall(r'class="nav-link" href="#/([\w-]+)"', guide)
+    assert slugs == nav and len(set(slugs)) == len(slugs)

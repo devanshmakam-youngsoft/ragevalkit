@@ -1,0 +1,36 @@
+<!--
+part: Understand the results
+title: Reading the results
+lead: Every number on the version page, in plain words, and where to look when one of them surprises you.
+minutes: 6
+-->
+<h2>The scores</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th>You see</th><th>It means</th></tr></thead>
+  <tbody>
+    <tr><td><b>Answer quality</b> (0&ndash;10)</td><td>The judge compares the answer with your expected answer, for facts and intent.</td></tr>
+    <tr><td><b>Context quality</b> (0&ndash;10)</td><td>Did the retrieved text contain what was needed to answer? Left out for <code>non-rag</code> cases.</td></tr>
+    <tr><td><b>Response time</b> and the step bar</td><td>From question to final answer, and how that time splits across your steps.</td></tr>
+    <tr><td><b>Key words, wording, meaning</b></td><td>Text metrics that need no AI: shared key words, similar phrasing (BM25), similar meaning (sentence embeddings).</td></tr>
+    <tr><td><b>Score tiers</b></td><td>How many questions were strong (8&ndash;10), fair (5&ndash;7) or weak (0&ndash;4).</td></tr>
+  </tbody>
+</table></div>
+
+<h2>Watch-outs and suggestions</h2>
+<p>At the end of each run the judge model writes plain-language findings: each thing to look at, paired with the next step to try. They name the group or question and use the numbers as evidence, rather than repeating the headline scores. Change what they look for with <code>summary_prompt</code> (<a href="#/your-judge">Your judge</a>).</p>
+
+<h2>One question at a time</h2>
+<p>Click any row to open that question: the answer, the expected answer, the judge's reason for each score, the retrieved text, the sources found and missing, the time per step, and your notes. This is where wrong answers get explained.</p>
+<ul>
+  <li>Filter by group or score tier, and sort by score or time.</li>
+  <li>A question whose test case has been deleted since is marked, and keeps its own copy of the text.</li>
+  <li>Download an <b>Excel report</b> from the version page: a summary sheet, and one row per question.</li>
+</ul>
+
+<h2>Problems during the run</h2>
+<p>If something went wrong, the version page lists it in plain words, with <b>Show technical details</b> for the error and <b>Download log</b> for the full story. The same problem on many questions is listed once with a count. While a run is going you see a live count.</p>
+<ul>
+  <li>A failing pipeline function never stops a run: that question is marked failed, the reason is recorded, and the run goes on.</li>
+  <li>Logs are in <code>eval_logs/</code> next to your results file: <code>server.log</code>, one file per run, one per generation. Keys and passwords are hidden before anything is written.</li>
+</ul>
+<div class="note tip"><b>Tip</b><p>Read <em>Problems during this run</em> before the scores. A run where half the questions failed has misleading averages.</p></div>

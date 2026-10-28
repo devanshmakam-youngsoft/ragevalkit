@@ -1,0 +1,40 @@
+<!--
+part: Start here
+title: Your first evaluation
+lead: Fifteen minutes from nothing to a scored version. Nothing to set up beyond Python and a key for the judge model.
+minutes: 8
+-->
+<div class="story"><b>Chapter 1</b><p>Priya decides not to argue about version 2 any more. The plan: write down ten questions customers really ask, run them through Sidekick, and look at the scores.</p></div>
+
+<ol class="steps">
+  <li><b>Install</b>
+    <pre class="cmd">pip install git+https://github.com/devanshmakam-youngsoft/ragevalkit.git<button type="button" class="copy">Copy</button></pre>
+    <p>On Windows, run this from Git Bash if <code>git</code> is not on your PowerShell path.</p></li>
+  <li><b>Give the judge a model</b>
+    <p>The judge is an AI model that grades the answers. Put its key in a <code>.env</code> file next to your script and ragevalkit reads it. The default judge is a Groq model, so:</p>
+    <pre class="cmd"># .env
+GROQ_API_KEY=your-key-here<button type="button" class="copy">Copy</button></pre>
+    <p>Any <a href="https://docs.litellm.ai/docs/providers">LiteLLM provider</a> works, and <a href="#/your-judge">you can skip the AI judge entirely</a>.</p></li>
+  <li><b>Serve your function</b>
+    <p>Create <code>eval_entry.py</code> next to your pipeline. Any function that turns a question into an answer works.</p>
+    <pre class="cmd">import ragevalkit
+from my_app import answer_question          # your existing pipeline
+
+ragevalkit.serve(answer_question, port=8002, require_login=False)<button type="button" class="copy">Copy</button></pre>
+    <pre class="cmd">python eval_entry.py<button type="button" class="copy">Copy</button></pre>
+    <p>The dashboard opens at <code>http://localhost:8002</code>. Without <code>require_login=False</code> the sign-in is <code>admin</code> / <code>admin123</code>.</p></li>
+  <li><b>Add test cases</b>
+    <p>Open <b>Test Cases</b> and press <b>+ New test case</b>. Write a question and what a good answer says. Ten is plenty to start. Later you can <a href="#/import-generate-groups">import a spreadsheet</a> or have ragevalkit write cases from your own documents.</p></li>
+  <li><b>Run it</b>
+    <p>Press <b>Execute session</b>, name the version <code>1</code>, choose your test cases and start. A progress bar follows each question.</p></li>
+  <li><b>Read the result</b>
+    <p>Open the version. You get an average score for answer quality and context quality, the response time, plain-language findings, and every question with its answer and the judge's reason.</p></li>
+</ol>
+
+<h2>What good looks like</h2>
+<p>Scores are out of 10. As a rule of thumb: 8 and up is strong, 5 to 7 is fair, under 5 means the answers are mostly wrong or missing. The numbers matter less than the <em>change</em> between versions, which is what the rest of this guide is about.</p>
+
+<div class="note heads"><b>If every score is 0.0</b>
+  <p>Do not panic: the judge is usually right. It almost always means the test cases ask about things your pipeline does not know, so it answers &ldquo;I could not find that&rdquo;. Open one question, read the generated answer and the retrieved text, and compare them with what you expected. <a href="#/troubleshooting">Troubleshooting</a> has the details.</p></div>
+
+<div class="story"><b>Chapter 1, continued</b><p>Version 1 of Sidekick scores 6.4 on answers. For the first time the team has a number. Refund questions score lowest, which matches what customers said. Next stop: connect Sidekick properly, so ragevalkit sees what it really does.</p></div>

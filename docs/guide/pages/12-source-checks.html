@@ -1,0 +1,38 @@
+<!--
+part: Build your test set
+title: Source checks
+lead: Right answer from the wrong document is luck. Source checks confirm that the documents you expected were the ones retrieved.
+minutes: 4
+-->
+<h2>How it works</h2>
+<ol class="steps">
+  <li><b>The pipeline reports its sources</b>
+    <p>In the retrieval step, <code>s.sources = [...]</code> lists the documents it used.</p></li>
+  <li><b>The test case lists the expected ones</b>
+    <p>In the <code>expected_sources</code> column, with two small rules below.</p></li>
+  <li><b>ragevalkit compares them</b>
+    <p>Each question shows what was found and what is missing, and the version page counts them.</p></li>
+</ol>
+{{example:source_checks.py}}
+
+<h2>The two rules</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th>You write</th><th>It means</th></tr></thead>
+  <tbody>
+    <tr><td><code>refunds.pdf</code></td><td>that document must be retrieved</td></tr>
+    <tr><td><code>shipping.pdf | tracking.pdf</code></td><td><b>both</b> are needed (<code>|</code> means AND)</td></tr>
+    <tr><td><code>tracking.pdf , tracking_v2.pdf</code></td><td><b>either</b> is enough (<code>,</code> means OR)</td></tr>
+    <tr><td><code>a.pdf , a_v2.pdf | policy.pdf</code></td><td>(a or a_v2) <b>and</b> policy</td></tr>
+  </tbody>
+</table></div>
+
+<h2>Two ways to compare names</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th><code>source_check_mode</code></th><th>Behaviour</th></tr></thead>
+  <tbody>
+    <tr><td><code>"keyword"</code> (default)</td><td>Fast and predictable. Ignores case, folders and file extensions, so <code>docs/Refunds.PDF</code> matches <code>refunds</code>.</td></tr>
+    <tr><td><code>"llm"</code></td><td>Asks the judge model, which also copes with different spellings of a name. Adds a score and a short comment.</td></tr>
+    <tr><td><code>"off"</code></td><td>No source checking.</td></tr>
+  </tbody>
+</table></div>
+<div class="note"><b>If sources say &ldquo;not checked&rdquo;</b><p>Either the test case has no <code>expected_sources</code>, the mode is <code>"off"</code>, or no step reported sources. Remember that decorators cannot report sources. <a href="#/troubleshooting">Troubleshooting</a> has the full list.</p></div>

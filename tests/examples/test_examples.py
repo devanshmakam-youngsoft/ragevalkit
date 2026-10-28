@@ -368,3 +368,15 @@ def test_the_ci_script_passes_or_fails_the_build_on_answer_quality(running_serve
     script["POLL_SECONDS"] = 0.2
     assert script["run_gate"]() == exit_code
     assert "answer quality 8" in capsys.readouterr().out
+
+
+# ---- versions_workflow.py ---------------------------------------------------------------------------------------
+
+@pytest.mark.parametrize("top_k,documents", [("1", 1), ("3", 2)])
+def test_the_same_pipeline_gives_a_different_version_when_one_setting_changes(serve_example, monkeypatch, top_k, documents):
+    monkeypatch.setenv("TOP_K", top_k)
+    question = "Can I return an item, and when does the refund reach my account?"
+    row = evaluate(serve_example("versions_workflow.py"), [("c1", 1, question, "30 days, then 5 to 7 days")])[0]
+    assert len(row["sources"]) == documents
+    assert "A refund reaches your account" in row["material"]
+    assert ("Items can be returned within 30 days" in row["material"]) == (documents == 2)     # version 1 only finds half of it

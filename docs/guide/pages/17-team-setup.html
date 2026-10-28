@@ -1,0 +1,21 @@
+<!--
+part: Run it for real
+title: Setting it up for a team
+lead: Accounts, where things are kept, which models, and how the recommendation decides. One file, with the reason for each line.
+minutes: 5
+-->
+<div class="story"><b>Chapter 7</b><p>Sidekick's evaluation was running on Priya's laptop. Now the whole team wants to use it, and the results should survive a laptop reboot.</p></div>
+
+{{example:team_setup.py}}
+
+<h2>The parts that matter</h2>
+<ul>
+  <li><b>Sign-in.</b> <code>users="alice:pw1,bob:pw2"</code> sets the accounts. Sessions last 12 hours; set <code>secret=</code> to a fixed value if people should stay signed in across restarts. <code>require_login=False</code> skips the sign-in for local work.</li>
+  <li><b>Data.</b> Everything is in one JSON file (<code>store_path</code>, default <code>eval_store.json</code>). Copy it to back it up or move it to another machine.</li>
+  <li><b>Logs.</b> <code>eval_logs/</code> sits beside it: <code>server.log</code>, one file per run, one per generation, each with full details. <code>log_dir=</code> moves them, for example onto a mounted volume. Keys and passwords are hidden before anything is written.</li>
+  <li><b>Where it listens.</b> The server is reachable on this computer (<code>127.0.0.1</code>). To share it, run it on a shared machine behind your usual network setup, with sign-in on.</li>
+  <li><b>Production safety.</b> <code>eval_env="prod"</code> turns the dashboard and every evaluation route off; only <code>/api/health</code> answers.</li>
+  <li><b>This guide.</b> It is on by default. <code>show_guide=False</code> hides the Help link and stops serving it.</li>
+  <li><b>Pin the version.</b> Install by tag in <code>requirements.txt</code> (<code>&hellip;ragevalkit.git@&lt;tag&gt;</code>), so everyone evaluates with the same code.</li>
+</ul>
+<div class="note tip"><b>Tip</b><p>Give every release its own version name and run the <em>same</em> test cases each time. The comparison is only as good as the consistency of the test set.</p></div>

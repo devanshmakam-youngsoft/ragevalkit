@@ -1,0 +1,54 @@
+<!--
+part: Understand the results
+title: Comparing versions and choosing one
+lead: The point of all this. How ragevalkit compares versions fairly, what the recommendation card is telling you, and when it deliberately says nothing.
+minutes: 8
+-->
+<div class="story"><b>Chapter 5</b><p>Priya makes one change to Sidekick: the search now reads three passages instead of one. Same test cases, run again as version 2. The refund question that only got half an answer now gets both halves. The dashboard has to say whether that is really better, and it has to be right.</p></div>
+
+<h2>Change one thing, run again</h2>
+<p>That loop is the whole product: change something, restart, run the <b>same test cases</b> under a new version name. This example reads its search depth from an environment variable, so the same file is both versions.</p>
+{{example:versions_workflow.py}}
+<pre class="cmd">python versions_workflow.py              # run it as version 1: one passage per question
+TOP_K=3 python versions_workflow.py      # run it as version 2: three passages per question<button type="button" class="copy">Copy</button></pre>
+<p>On Windows PowerShell set the variable first: <code>$env:TOP_K = 3</code>. Everything else about the version, its notes and its groups, is saved with the run.</p>
+
+<h2>How versions are compared</h2>
+<p>An average is only fair when the versions answered the <em>same questions</em>. So ragevalkit compares them on the test cases they all ran:</p>
+<ol>
+  <li>A case counts as the same only if its chat, turn, question and expected answer are unchanged.</li>
+  <li>Adding a test case, or running an extra group, in a later version does not hide that version: it is judged on the cases the others also ran, and the card says so.</li>
+  <li>If the shared cases are only a thin slice (say a 2-question smoke test next to 10-question runs), that version is left out and the reason is shown, so it cannot shrink everyone else's comparison.</li>
+  <li>Versions that were stopped early, or failed on a shared case, are left out too.</li>
+  <li>Each remaining version gets an <b>overall score</b>: answer quality and context quality, weighted 60/40 by default. If context quality was not graded for every version, all are compared on answer quality alone, and the card says so.</li>
+  <li>Versions within a small <b>tolerance</b> (0.25 by default) of the best are tied, and <b>the fastest of them wins</b>.</li>
+</ol>
+
+<h2>What the card is telling you</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th>The card says</th><th>What it means, and what to do</th></tr></thead>
+  <tbody>
+    <tr><td><b>Recommended: v2</b> and the reason</td><td>The best overall score among comparable versions; if several are tied, the fastest. Safe to ship on the evidence you have.</td></tr>
+    <tr><td><b>None yet</b>, &ldquo;Best so far: v1&rdquo;</td><td>No version reaches the <b>minimum score of 5 out of 10</b>, so nothing is recommended, but the best so far is named. A version that mostly gets answers wrong is not something to ship. Improve the pipeline, or check that the test cases ask about what it knows. Change the bar with <code>recommendation_min_quality</code>.</td></tr>
+    <tr><td><b>Latest v3 vs v2</b>: answer &minus;0.4 &middot; context +0.1 &middot; 1.2s slower</td><td>Your newest run against the recommended one, on the shared cases. It answers &ldquo;should I ship what I just built, or stay on the pick?&rdquo;.</td></tr>
+    <tr><td>&ldquo;The latest run moved the recommendation from v1 to v2&rdquo;</td><td>Before the newest run, v1 was the pick. This run changed that.</td></tr>
+    <tr><td><b>Not compared</b>: v3 (answer 10.0, context 10.0) ran 2 test cases and shares only 0&hellip;</td><td>That version ran different test cases (typically because cases were edited, added or deleted), so it cannot be ranked against the others. Its own scores are shown so a good one is not hidden. <b>Run the same test cases on both versions to compare them.</b></td></tr>
+    <tr><td><b>Left out</b>: v4, 3 of the 6 shared test cases failed</td><td>A version with failures on shared cases would look better or worse than it is. Open it, fix what failed, run it again.</td></tr>
+    <tr><td>&ldquo;No version responds within 8s&rdquo;</td><td>You set a response-time ceiling and nothing meets it. The fastest is named.</td></tr>
+  </tbody>
+</table></div>
+
+<h2>Tuning the decision</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th>Option</th><th>Default</th><th>Use it to&hellip;</th></tr></thead>
+  <tbody>
+    <tr><td><code>answer_weight</code> / <code>material_weight</code></td><td>0.6 / 0.4</td><td>decide how much answer quality and context quality count. Set <code>material_weight=0</code> for assistants with no retrieval.</td></tr>
+    <tr><td><code>recommendation_tolerance</code></td><td>0.25</td><td>widen or narrow what counts as a tie. A wider tolerance favours speed.</td></tr>
+    <tr><td><code>recommendation_min_quality</code></td><td>5.0</td><td>raise the bar for what may be recommended at all.</td></tr>
+    <tr><td><code>max_response_time</code></td><td>none</td><td>never recommend a version slower than this many seconds.</td></tr>
+  </tbody>
+</table></div>
+<p>The card also has two boxes to try tolerance and a time ceiling on the spot, without restarting. <b>Archive</b> a version to take it out of every comparison without deleting it; the recommendation updates straight away. It is calculated on each visit from the saved scores, so it can never be out of date.</p>
+<p>Groups work the same way: pick a group on the dashboard to see which version is best <em>for that group</em>, which is how you notice that v2 is better at refunds but worse at shipping.</p>
+
+<div class="story"><b>Chapter 5, continued</b><p>Version 2 scores 8.1 against 6.4, in 0.4 seconds more. The card recommends it and shows the change since version 1. Priya ships version 2 with a number to point at, not a feeling.</p></div>

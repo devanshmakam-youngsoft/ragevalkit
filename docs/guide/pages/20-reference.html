@@ -1,0 +1,16 @@
+<!--
+part: When you need help
+title: serve() reference
+lead: Every option with its default, grouped by what it is for. Only fn is required.
+minutes: 0
+-->
+{{serve_reference}}
+
+<h2>Good to know</h2>
+<ul>
+  <li><b>One evaluation runs at a time.</b> Finished results are saved as they complete. A run in progress lives in the running server, so if the server restarts, start that version again.</li>
+  <li><b>Documents sent to a model.</b> Generating test cases sends the text of your documents to <code>generator_model</code> (the judge model by default). Choose one you are comfortable sending them to.</li>
+  <li><b>Supported documents:</b> PDF with selectable text, <code>.docx</code>, <code>.txt</code> and <code>.md</code>.</li>
+  <li><b>Judge versions.</b> ragevalkit pins its LiteLLM dependency to a tested range, so installs stay on versions that have been checked.</li>
+  <li><b>The API.</b> Everything the dashboard does is a call to <code>/api/&hellip;</code> on the same server; the interactive reference is at <code>/api/docs</code>.</li>
+</ul>

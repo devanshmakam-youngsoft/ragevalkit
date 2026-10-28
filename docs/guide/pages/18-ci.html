@@ -1,0 +1,29 @@
+<!--
+part: Run it for real
+title: Run it in CI
+lead: Keep a ragevalkit server running, let every build ask it for a score, and fail the build when quality drops.
+minutes: 4
+-->
+<div class="story"><b>Chapter 7, continued</b><p>Two weeks later someone changes the prompt and refund answers get worse. Nobody notices until customers do. Priya adds a gate: no merge unless the Billing group scores at least 7.5.</p></div>
+
+<h2>The script</h2>
+<p>It talks to the same API the dashboard uses, with only the standard library. It starts a run for a group of test cases, waits for the version to appear, and exits with a code your CI understands.</p>
+{{example:ci_gate.py}}
+<pre class="cmd">EVAL_URL=http://eval-server:8002 EVAL_GROUP=Billing EVAL_MINIMUM=7.5 python ci_gate.py<button type="button" class="copy">Copy</button></pre>
+
+<div class="table-wrap"><table>
+  <thead><tr><th>Exit code</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>0</code></td><td>answer quality reached the bar and no question failed</td></tr>
+    <tr><td><code>1</code></td><td>below the bar, or at least one question failed</td></tr>
+    <tr><td><code>2</code></td><td>no result within the wait time: look at the dashboard or at <code>eval_logs/</code></td></tr>
+  </tbody>
+</table></div>
+<h2>Settings it reads</h2>
+<ul>
+  <li><code>EVAL_URL</code>: where the server is. <code>EVAL_USER</code> and <code>EVAL_PASSWORD</code> are needed only when sign-in is on.</li>
+  <li><code>EVAL_GROUP</code>: the group of test cases to run. <code>EVAL_MINIMUM</code>: the answer quality the build needs.</li>
+  <li><code>EVAL_VERSION</code>: the name of the version it creates (by default <code>ci-</code> and the date and time).</li>
+</ul>
+<div class="note"><b>Good to know</b><p>Each CI run is saved as a version, so the dashboard shows how quality moves build by build. Archive old CI versions to keep comparisons tidy.</p></div>
+<p>The API is browsable at <code>/api/docs</code> on your server, and you can import test cases the same way with <code>POST /api/test-cases/import</code>.</p>

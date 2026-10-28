@@ -1,0 +1,22 @@
+<!--
+part: Connect your assistant
+title: Plug into what you already have
+lead: You do not have to rewrite anything. Evaluate a bot that is already deployed, or keep production and evaluation side by side in one codebase.
+minutes: 5
+-->
+<h2>A bot that is already deployed</h2>
+<p>No access to its code? Your function can simply call it over HTTP, and ragevalkit scores whatever comes back. This version uses only the standard library and passes the session id along, so multi-turn test cases keep their memory on the bot's side.</p>
+{{example:call_existing_api.py}}
+<p>If the bot's API also returns the passages it used, put them in a <code>with ragevalkit.step(&hellip;)</code> block as <code>s.material</code> and <code>s.sources</code> and you get context scores too. If it does not, answer quality is still measured.</p>
+
+<h2>Production and evaluation, side by side</h2>
+<p>Your pipeline module keeps its <code>step()</code> and <code>note()</code> calls, which do nothing in production. Production imports the module as it always did, and a separate entry file serves it for evaluation.</p>
+<div class="pair">
+  <div><h4>The pipeline <span>&mdash; used by both</span></h4>{{example:shared_pipeline.py#answer_question}}</div>
+  <div><h4>Production <span>&mdash; unchanged</span></h4>{{example:production_app.py}}</div>
+</div>
+<h4>The evaluation entry point</h4>
+{{example:eval_entry.py}}
+<pre class="cmd">uvicorn production_app:app --port 8000     # production
+python eval_entry.py                       # evaluation, only when you want it<button type="button" class="copy">Copy</button></pre>
+<div class="note good"><b>Safe by default</b><p>For an extra guarantee, <code>serve(..., eval_env="prod")</code> turns the dashboard and every evaluation route off; only <code>/api/health</code> answers.</p></div>

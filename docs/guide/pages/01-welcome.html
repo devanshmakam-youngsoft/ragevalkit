@@ -1,0 +1,39 @@
+<!--
+part: Start here
+title: Is the new version <mark>really better?</mark>
+lead: ragevalkit replays your test questions through your own assistant, grades every answer, and tells you which version to ship. This guide walks you from the first run to a pipeline you can trust, with code you can copy at every step.
+minutes: 3
+-->
+<div class="story"><b>The story we will follow</b>
+  <p>Priya's team at Acme Shop has a support assistant called <i>Sidekick</i>. Last week they shipped version 2. Since then, customers write in that refund questions get half an answer. Was version 2 worse than version 1? Nobody can say: each person tried a few questions by hand and remembers something different.</p>
+  <p>By the end of this guide Sidekick has a test set, two measured versions, a clear winner, and a build that stops anyone shipping a worse one.</p>
+  <p><small>Priya, Acme Shop and Sidekick are made up, and the numbers are illustrative. The behaviour is real.</small></p></div>
+
+<h2>What ragevalkit does</h2>
+<p>You hand it a function. It does the repetitive, error-prone part of testing for you.</p>
+<div class="flow">
+  <div><b>Your assistant</b>ragevalkit calls your function once per test question, in order, like a real user.</div><div class="arrow">&rarr;</div>
+  <div><b>Grading</b>An AI judge scores each answer, and the text your pipeline retrieved. Text metrics run alongside.</div><div class="arrow">&rarr;</div>
+  <div><b>Versions</b>Every run is saved as a version, so you can see what improved and what broke.</div><div class="arrow">&rarr;</div>
+  <div><b>The decision</b>A recommendation says which version to ship, and why.</div>
+</div>
+
+<h2>Three words you will meet</h2>
+<div class="cards">
+  <div class="card"><span class="tag">Test case</span><b>A question and what a good answer says</b><span>Optionally the documents it should be found in, and where it sits in a conversation.</span></div>
+  <div class="card"><span class="tag">Version</span><b>One run of your test cases</b><span>You name it (<code>1</code>, <code>v2</code>, <code>rerank-on</code>). Versions are what you compare.</span></div>
+  <div class="card"><span class="tag">Judge</span><b>The grader</b><span>An AI model by default. It can also be your own function, or your own rubric.</span></div>
+</div>
+
+<h2>Where do you want to start?</h2>
+<div class="cards">
+  <a class="card" href="#/first-run"><span class="tag">15 minutes</span><b>Run my first evaluation</b><span>Install, serve a function, add test cases, read the result.</span></a>
+  <a class="card" href="#/your-function"><span class="tag">Connect</span><b>I already have a chatbot</b><span>Question-only, with history, or with a session id.</span></a>
+  <a class="card" href="#/frameworks"><span class="tag">Frameworks</span><b>I use LangChain or LangGraph</b><span>Steps recorded from inside nodes, threads and async code.</span></a>
+  <a class="card" href="#/agents-and-bots"><span class="tag">Agents</span><b>My bot has tools, or no retrieval</b><span>Greeters, tool loops, and how to grade them.</span></a>
+  <a class="card" href="#/versions-and-recommendation"><span class="tag">Decide</span><b>Which version should ship?</b><span>How versions are compared, and what the recommendation means.</span></a>
+  <a class="card" href="#/troubleshooting"><span class="tag">Help</span><b>Something looks off</b><span>Symptoms, likely reasons, what to do.</span></a>
+</div>
+
+<div class="note good"><b>Your code stays yours</b><p>Evaluation lives in a small entry file next to your pipeline. Your production app keeps running exactly as before, and the optional recording calls (<code>step()</code>, <code>note()</code>) do nothing outside an evaluation.</p></div>
+<div class="note tip"><b>Tip</b><p>Press <kbd>/</kbd> to search the whole guide, and <kbd>&larr;</kbd> <kbd>&rarr;</kbd> to move between pages.</p></div>
