@@ -1,4 +1,4 @@
-"""Builds ragevalkit/guides/developer-guide.html from docs/guide/ (a shell and one file per page in docs/guide/pages/).
+"""Builds ragevalkit/web/guide/developer-guide.html from docs/guide/ (a shell and one file per page in docs/guide/pages/).
 
 A page starts with a comment giving its part, title, lead sentence and reading time. The guide's code comes from the
 files in examples/ (which the tests run), and its serve() reference comes from the function itself, so neither can drift
@@ -24,7 +24,7 @@ sys.path.insert(0, str(ROOT))
 
 GUIDE_SOURCE = ROOT / "docs" / "guide"
 EXAMPLES = ROOT / "examples"
-OUTPUT = ROOT / "ragevalkit" / "guides" / "developer-guide.html"
+OUTPUT = ROOT / "ragevalkit" / "web" / "guide" / "developer-guide.html"
 
 MARKER = re.compile(r"\{\{(example:[\w.]+(?:#[\w,]+)?|serve_reference|version)\}\}")
 BUILTINS = set(dir(builtins)) - {"None", "True", "False"}

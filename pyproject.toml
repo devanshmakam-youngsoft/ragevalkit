@@ -49,7 +49,7 @@ where = ["."]
 include = ["ragevalkit*"]
 
 [tool.setuptools.package-data]
-ragevalkit = ["static/**/*", "static/*", "guides/*.html", "py.typed"]
+ragevalkit = ["web/**/*", "py.typed"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -17,7 +17,7 @@ from ragevalkit.storage.store import EvalStore
 
 logger = logging.getLogger(__name__)
 
-STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
+STATIC_DIR = Path(__file__).resolve().parent.parent / "web" / "dashboard"
 DEFAULT_SECRET = "dev-only-change-me"
 
 
@@ -48,11 +48,11 @@ def _serve_dashboard(app: FastAPI) -> None:
     if STATIC_DIR.exists() and any(STATIC_DIR.iterdir()):
         app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
         return
-    logger.warning("ragevalkit/static/ is empty. Run `npm run build` inside ragevalkit/frontend/ and copy dist/* to ragevalkit/static/.")
+    logger.warning("ragevalkit/web/dashboard/ is empty. Run `npm run build` inside frontend/: it builds into ragevalkit/web/dashboard/.")
 
     @app.get("/{full_path:path}")
     def _no_ui(full_path: str):
-        return {"detail": "Dashboard not built. See ragevalkit/static/README."}
+        return {"detail": "Dashboard not built. Run `npm run build` inside frontend/."}
 
 
 def create_app(

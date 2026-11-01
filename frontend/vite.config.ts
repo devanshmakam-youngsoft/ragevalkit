@@ -7,5 +7,7 @@ import { defineConfig } from "vite";
 export default defineConfig({
   base: process.env.VITE_BASE_PATH || "/",
   plugins: [react(), tailwindcss()],
+  // The server serves the dashboard from the package, so the build goes straight there.
+  build: { outDir: "../ragevalkit/web/dashboard", emptyOutDir: true },
   server: { port: 8003, strictPort: true, proxy: { "/api": "http://127.0.0.1:8002" } },
 });

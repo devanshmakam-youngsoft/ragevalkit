@@ -8,7 +8,7 @@ Evaluate any RAG pipeline, chatbot or agent. You give ragevalkit a Python functi
 - Plain-language findings for every run: each watch-out paired with what to do about it
 - Excel export, optional login, and one JSON file for storage (TinyDB), so there is nothing to set up
 
-**More:** the dashboard's **Help** page is the full guide, with runnable examples for the common setups (function shapes, steps, LangGraph, bots without retrieval, your own judge) and a troubleshooting section. The same page is in the repository at [ragevalkit/guides/developer-guide.html](ragevalkit/guides/developer-guide.html), and its code is in [examples/](examples/).
+**More:** the dashboard's **Help** page is the full guide, with runnable examples for the common setups (function shapes, steps, LangGraph, bots without retrieval, your own judge) and a troubleshooting section. The same page is in the repository at [ragevalkit/web/guide/developer-guide.html](ragevalkit/web/guide/developer-guide.html), and its code is in [examples/](examples/).
 
 ---
 
@@ -232,9 +232,7 @@ ragevalkit/
   run_summary/      the numbers saved for each run
   recording/        step() and note()
   metrics/  datasets/  documents/  llm/  auth/  config/  logs/
-  guides/           the built guide (developer-guide.html), shown on the Help page
-  frontend/         dashboard source: pages/, dialogs/, components/, context/, api/, hooks/, lib/, styles/
-  static/           the built dashboard
+  web/              generated files the server serves: dashboard/ (built from frontend/) and guide/ (built from docs/guide/)
 tests/              mirrors the package folders
 examples/           the runnable code the guide shows; every file is run by tests/examples
 docs/guide/         the guide: shell.html and one file per page in pages/
@@ -243,7 +241,7 @@ scripts/            build_guide.py
 
 ### The guide
 
-`ragevalkit/guides/developer-guide.html` is built from `docs/guide/` (a shell and one file per page). Its code comes from the files in
+`ragevalkit/web/guide/developer-guide.html` is built from `docs/guide/` (a shell and one file per page). Its code comes from the files in
 `examples/` (run by `tests/examples`) and its `serve()` reference comes from the function's own signature and docstring, so
 it cannot drift. After changing the template, an example or `serve()`, rebuild it:
 
@@ -255,12 +253,12 @@ python scripts/build_guide.py
 
 ### Dashboard
 
-The dashboard source lives in `ragevalkit/frontend/` (React + Vite). To rebuild it:
+The dashboard source lives in `frontend/` (React + Vite) and builds straight into `ragevalkit/web/dashboard/`. To rebuild it:
 
 ```bash
-cd ragevalkit/frontend
+cd frontend
 npm ci
 npm run build
 ```
 
-then copy `dist/*` into `ragevalkit/static/` (replace the old files; the dashboard is served from there). Backend tests: `pip install -e .[dev]` then `pytest`.
+The build replaces `ragevalkit/web/dashboard/`, which is committed so that `pip install` from git works without Node. Backend tests: `pip install -e .[dev]` then `pytest`.

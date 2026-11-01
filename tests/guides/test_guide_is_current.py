@@ -18,7 +18,7 @@ def _builder():
 def test_the_packaged_guide_is_up_to_date():
     built = _builder().build()
     packaged = GUIDE_PATH.read_text(encoding="utf-8").replace("\r\n", "\n")
-    assert packaged == built, "ragevalkit/guides/developer-guide.html is out of date: run python scripts/build_guide.py"
+    assert packaged == built, "ragevalkit/web/guide/developer-guide.html is out of date: run python scripts/build_guide.py"
 
 
 def test_every_example_in_the_guide_is_a_file_that_the_tests_run():
