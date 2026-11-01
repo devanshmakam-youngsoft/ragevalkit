@@ -1,9 +1,9 @@
 """The older dataset endpoints, kept so existing dashboards and scripts keep working."""
 from fastapi import APIRouter, Depends, File, UploadFile
 
-from ragevalkit.api.dependencies import get_config, get_store, require_user
 from ragevalkit.core.config import Config
 from ragevalkit.data_access.store import EvalStore
+from ragevalkit.routers.dependencies import get_config, get_store, require_user
 from ragevalkit.services.spreadsheet_loader.legacy_datasets import (
     describe_default_dataset,
     describe_uploaded_dataset,

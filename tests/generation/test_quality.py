@@ -3,11 +3,11 @@ import pytest
 from docx import Document
 from fastapi.testclient import TestClient
 
-from ragevalkit.api import create_app
 from ragevalkit.core.config import Config
 from ragevalkit.core.constants.case_types import NON_RAG, RAG, is_non_rag
 from ragevalkit.core.constants.generator_categories import CASE_TYPE
 from ragevalkit.core.exceptions.document_reader import DocumentError
+from ragevalkit.main import create_app
 from ragevalkit.prompts.testcase_generator import CATEGORY_PROMPTS
 from ragevalkit.services.document_reader.models import Chunk
 from ragevalkit.services.document_reader.reader import read_document

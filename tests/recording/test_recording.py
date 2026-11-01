@@ -6,8 +6,8 @@ from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
-from ragevalkit.api import create_app
 from ragevalkit.core.config import Config
+from ragevalkit.main import create_app
 from ragevalkit.services import step_recorder
 from ragevalkit.services.evaluation_runner.material import select_material
 

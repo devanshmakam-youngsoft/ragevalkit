@@ -2,8 +2,8 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from ragevalkit.api import create_app
 from ragevalkit.core.config import Config
+from ragevalkit.main import create_app
 
 
 def _client(tmp_path, **options):

@@ -15,8 +15,8 @@ import pytest
 import uvicorn
 from fastapi.testclient import TestClient
 
-from ragevalkit.api import create_app
 from ragevalkit.core.config import Config
+from ragevalkit.main import create_app
 
 EXAMPLES = Path(__file__).parents[2] / "examples"
 COLUMNS = ["chat_id", "turn_no", "type", "question", "expected_answer"]

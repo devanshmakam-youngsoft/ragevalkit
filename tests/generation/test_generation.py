@@ -7,10 +7,10 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from fastapi.testclient import TestClient
 
-from ragevalkit.api import create_app
 from ragevalkit.core.config import Config
 from ragevalkit.core.exceptions.document_reader import DocumentError
 from ragevalkit.core.exceptions.testcase_generator import GenerationError
+from ragevalkit.main import create_app
 from ragevalkit.services.document_reader.models import Chunk
 from ragevalkit.services.document_reader.ordering import spread_order
 from ragevalkit.services.document_reader.reader import read_document

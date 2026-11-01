@@ -4,9 +4,9 @@ from datetime import datetime, timezone
 import pytest
 from fastapi.testclient import TestClient
 
-from ragevalkit.api import create_app
 from ragevalkit.core.config import Config
 from ragevalkit.data_access.store import EvalStore
+from ragevalkit.main import create_app
 from ragevalkit.services.run_summarizer.builder import build_summary
 from ragevalkit.services.run_summarizer.scores import build_scores
 from ragevalkit.services.version_recommender.engine import recommend

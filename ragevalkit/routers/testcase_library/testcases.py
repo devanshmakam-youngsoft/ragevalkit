@@ -1,8 +1,10 @@
 """Test cases in the library: list, create, edit, activate, delete, and which groups they carry."""
 from fastapi import APIRouter, Depends
 
-from ragevalkit.api.dependencies import get_store, require_user
-from ragevalkit.api.schemas import (
+from ragevalkit.core.exceptions.base import InvalidInput
+from ragevalkit.data_access.store import EvalStore
+from ragevalkit.routers.dependencies import get_store, require_user
+from ragevalkit.schemas.testcase_library.testcase_requests import (
     BulkStatusUpdate,
     CreateTestCase,
     TestCaseGroups,
@@ -10,8 +12,6 @@ from ragevalkit.api.schemas import (
     TestCaseStatusUpdate,
     TestCaseUpdate,
 )
-from ragevalkit.core.exceptions.base import InvalidInput
-from ragevalkit.data_access.store import EvalStore
 from ragevalkit.services.testcase_library.testcase_actions import (
     create_test_case as create_library_test_case,
 )

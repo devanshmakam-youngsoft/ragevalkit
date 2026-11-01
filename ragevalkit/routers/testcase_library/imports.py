@@ -1,9 +1,9 @@
 """Bulk import of test cases: a preview step that saves nothing, then the import itself."""
 from fastapi import APIRouter, Depends, File, Form, Response, UploadFile
 
-from ragevalkit.api.dependencies import get_config, get_store, require_user
 from ragevalkit.core.config import Config
 from ragevalkit.data_access.store import EvalStore
+from ragevalkit.routers.dependencies import get_config, get_store, require_user
 from ragevalkit.services.testcase_import.import_workflow import (
     preview_import,
     read_upload,

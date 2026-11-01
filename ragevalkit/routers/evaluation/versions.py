@@ -1,9 +1,9 @@
 """Finished runs ("versions"): their results and the Excel download."""
 from fastapi import APIRouter, Depends, Response
 
-from ragevalkit.api.dependencies import get_config, get_store, require_user
 from ragevalkit.core.config import Config
 from ragevalkit.data_access.store import EvalStore
+from ragevalkit.routers.dependencies import get_config, get_store, require_user
 from ragevalkit.services.evaluation_runner.version_reader import (
     export_version,
     get_version_with_deleted_flags,

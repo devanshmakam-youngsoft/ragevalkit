@@ -8,16 +8,16 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from ragevalkit.api.routes import DASHBOARD_ROUTERS, HEALTH_ROUTER
 from ragevalkit.core.config import Config
 from ragevalkit.core.exceptions.handlers import register_error_handlers
 from ragevalkit.data_access.store import EvalStore
+from ragevalkit.routers import DASHBOARD_ROUTERS, HEALTH_ROUTER
 from ragevalkit.services.evaluation_runner.runner import RunManager
 from ragevalkit.services.testcase_generator.manager import GenerationManager
 
 logger = logging.getLogger(__name__)
 
-STATIC_DIR = Path(__file__).resolve().parent.parent / "web" / "dashboard"
+STATIC_DIR = Path(__file__).resolve().parent / "web" / "dashboard"
 DEFAULT_SECRET = "dev-only-change-me"
 
 

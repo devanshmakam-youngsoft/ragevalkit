@@ -1,10 +1,15 @@
 """Writing test cases from documents: upload, watch progress, review, approve."""
 from fastapi import APIRouter, Depends, File, Form, UploadFile
 
-from ragevalkit.api.dependencies import get_config, get_generation_manager, get_store, require_user
-from ragevalkit.api.schemas import Approval, ItemEdit
 from ragevalkit.core.config import Config
 from ragevalkit.data_access.store import EvalStore
+from ragevalkit.routers.dependencies import (
+    get_config,
+    get_generation_manager,
+    get_store,
+    require_user,
+)
+from ragevalkit.schemas.testcase_generator.requests import Approval, ItemEdit
 from ragevalkit.services.testcase_generator.manager import GenerationManager
 from ragevalkit.services.testcase_generator.review_batches import (
     batch_summary,

@@ -3,10 +3,10 @@ import pandas as pd
 import pytest
 from fastapi.testclient import TestClient
 
-from ragevalkit.api import create_app
 from ragevalkit.core.config import Config
 from ragevalkit.core.exceptions.data_access import ConflictError, GroupNotFound
 from ragevalkit.data_access.store import EvalStore
+from ragevalkit.main import create_app
 
 
 @pytest.fixture
