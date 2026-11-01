@@ -12,10 +12,17 @@ router = APIRouter(prefix="/api", tags=["help"], dependencies=[Depends(require_u
 
 @router.get("/features")
 def features(cfg: Config = Depends(get_config)) -> Features:
+    """Report which optional parts of the dashboard are switched on.
+
+    Currently this is only the Help page: ``guide`` is true when the guide can be read from `/api/help/guide`.
+    """
     return enabled_features(cfg)
 
 
 @router.get("/help/guide")
 def read_guide(cfg: Config = Depends(get_config)) -> HTMLResponse:
-    """The guide as a complete page, meant for an iframe on the Help page."""
+    """The guide as a complete page, meant for an iframe on the Help page.
+
+    Answers 404 when the guide has been switched off.
+    """
     return HTMLResponse(guide_page(cfg))

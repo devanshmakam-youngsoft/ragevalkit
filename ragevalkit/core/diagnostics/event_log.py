@@ -57,16 +57,24 @@ class EventLog:
 
     @property
     def file_name(self) -> str | None:
+        """The log file's name without its folder, or ``None`` when no file could be opened."""
         return self.path.name if self.path else None
 
     def info(self, message: str, *args) -> None:
+        """Write an INFO line; ``args`` fill ``%`` placeholders in ``message`` and secrets are hidden."""
         self._logger.info(redact(message % args if args else message))
 
     def warning(self, message: str, *args) -> None:
+        """Write a WARNING line; ``args`` fill ``%`` placeholders in ``message`` and secrets are hidden."""
         self._logger.warning(redact(message % args if args else message))
 
     def issue(self, stage: str, error: BaseException, where: str = "", *, severity: str = "error") -> Issue:
-        """Record a problem: the full traceback goes to the log file, a plain message to the dashboard."""
+        """Record a problem: the full traceback goes to the log file, a plain message to the dashboard.
+
+        A problem identical to one already recorded (same stage, error type and message start) is not listed
+        again; the existing ``Issue`` has its ``count`` raised and is returned. Only the first
+        ``max_issues_per_run`` distinct problems are kept in ``issues``; ``issue_total`` counts every distinct one.
+        """
         level = logging.ERROR if severity == "error" else logging.WARNING
         same = self._seen.get((stage, type(error).__name__, str(error)[:200]))
         if same is not None:        # a chatbot that is down fails every question the same way: say it once, with a count
@@ -82,9 +90,11 @@ class EventLog:
         return found
 
     def issue_dicts(self) -> list[dict]:
+        """Return the recorded problems as dicts, technical detail included."""
         return [found.to_dict() for found in self.issues]
 
     def close(self) -> None:
+        """Stop writing to the log file and release it. Calling it again does nothing."""
         if self._handler is not None:
             self._logger.removeHandler(self._handler)
             self._handler.close()

@@ -52,7 +52,19 @@ def _now() -> datetime:
 
 
 class GenerationManager:
-    """Starts generation jobs and turns approved review batches into test cases."""
+    """Starts generation jobs and turns approved review batches into test cases.
+
+    One job runs at a time, on a background thread that reads the uploads and then asks the model for each
+    question using a pool of worker threads. Every model call is retried and checked (see ``writer``), and the
+    batch is saved after each item so progress survives a closed browser.
+
+    Args:
+        config: The app config (model names, limits, worker count, batch lifetime).
+        store: Where batches and test cases are saved.
+        llm: Callable taking chat messages and returning the reply text; defaults to ``GenerationModelClient``.
+            Replace it to use your own model client or a fake in tests.
+        sleep: Called with the seconds to wait between retries; defaults to ``time.sleep``.
+    """
 
     def __init__(self, config, store, llm: Callable | None = None, sleep: Callable | None = None):
         self.config = config
@@ -66,6 +78,7 @@ class GenerationManager:
 
     @property
     def model(self) -> str:
+        """The name of the model that receives the document text: the client's own, else the configured one."""
         return getattr(self._llm, "model", None) or self.config.generator_model or self.config.judge_model
 
     def limits(self) -> dict:
@@ -85,7 +98,19 @@ class GenerationManager:
     # ---- writing ------------------------------------------------------------------------------
 
     def start(self, files: list[tuple[str, Path]], workdir: Path | None, *, per_category: int, categories: list[str], turns: int) -> dict:
-        """Create a review batch and start writing into it. ``files`` are (name, path) pairs; ``workdir`` is deleted once read."""
+        """Create a review batch and start writing into it on a background thread; return the new batch at once.
+
+        Args:
+            files: ``(name, path)`` pairs: the name to show for each uploaded document and where it is on disk.
+            workdir: The temporary folder holding the uploads; deleted once the files have been read.
+            per_category: How many questions to write for each category.
+            categories: Which categories to write; unknown names are ignored.
+            turns: How many turns a conversation has.
+
+        Raises:
+            InvalidInput: When no valid category is chosen or ``per_category`` or ``turns`` is out of range.
+            GenerationBusy: When another generation is still running.
+        """
         categories = [c for c in CATEGORIES if c in categories]
         if not categories:
             raise InvalidInput("Choose at least one category")
@@ -116,6 +141,10 @@ class GenerationManager:
         return batch
 
     def cancel(self, batch_id: str) -> None:
+        """Ask a running generation to stop; questions already being written finish, the rest are skipped.
+
+        The batch is then marked ``cancelled``, and what was written stays available for review.
+        """
         self._cancelled.add(batch_id)
 
     def _run(self, batch: dict, files: list[tuple[str, Path]], workdir: Path | None, log: EventLog) -> None:
@@ -228,6 +257,12 @@ class GenerationManager:
         return item
 
     def remove_item(self, batch_id: str, item_id: str) -> None:
+        """Drop one item from a batch under review so it is not turned into test cases.
+
+        Raises:
+            NotFoundError: When the batch has expired or is gone, or has no such item.
+            GenerationBusy: When the batch is still being written.
+        """
         batch = self._editable(batch_id)
         remaining = [i for i in batch["items"] if i["item_id"] != item_id]
         if len(remaining) == len(batch["items"]):

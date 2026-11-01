@@ -33,7 +33,14 @@ async def preview_test_case_import(
     cfg: Config = Depends(get_config),
     store: EvalStore = Depends(get_store),
 ) -> ImportPreview:
-    """What importing this file would do (new, updated, unchanged, unusable rows) without saving anything."""
+    """What importing this file would do (new, updated, unchanged, unusable rows) without saving anything.
+
+    Accepts ``.xlsx``, ``.xlsm``, ``.csv``, ``.tsv`` and ``.txt`` files. ``sheet`` picks the worksheet of a
+    workbook (default: one named ``dataset``, else the first). ``mapping`` is a JSON object that says which
+    file column holds each field, for example ``{"question": "Query"}``; columns it leaves out are detected
+    from their headers. Answers 413 when the file is over 10 MB and 422 when it cannot be read, has too many
+    rows or ``mapping`` is not JSON.
+    """
     rows, problems, info = read_upload(cfg, file.filename, await file.read(), sheet, mapping)
     return preview_import(store, rows, problems, info)
 
@@ -49,6 +56,13 @@ async def import_test_cases(
     cfg: Config = Depends(get_config),
     store: EvalStore = Depends(get_store),
 ) -> ImportResult:
-    """Import the file's usable rows. Rows that cannot be used are returned so they can be fixed and re-imported."""
+    """Import the file's usable rows. Rows that cannot be used are returned so they can be fixed and re-imported.
+
+    ``file``, ``sheet`` and ``mapping`` work as in ``POST /api/test-cases/import/preview``. Importing the same
+    file twice changes nothing the second time. Every imported case is also put in the groups given by
+    ``group_ids`` and ``new_group_name``, and in any groups named in the file's own ``groups`` column.
+    Answers 404 when a group in ``group_ids`` does not exist, 413 when the file is over 10 MB, and 422 when
+    the file cannot be read, no question column is found or ``mapping`` is not JSON.
+    """
     rows, problems, info = read_upload(cfg, file.filename, await file.read(), sheet, mapping)
     return run_import(store, rows, problems, info, group_ids_json=group_ids, new_group_name=new_group_name, update_by_slot=update_by_slot)

@@ -8,6 +8,7 @@ from __future__ import annotations
 import difflib
 import math
 import re
+from typing import Any
 
 from ragevalkit.services.document_reader.models import Chunk
 from ragevalkit.services.document_reader.text_cleaning import clean, normalise
@@ -91,8 +92,8 @@ def _fragments(text: str) -> list[str]:
     return [p.strip() for p in parts if len(p.split()) >= MIN_FRAGMENT_WORDS]
 
 
-def raw_evidence(reply: dict):
-    """The evidence field of a reply, under whichever name the model used."""
+def raw_evidence(reply: dict) -> Any:
+    """Return the evidence field of a reply, unchanged, under whichever accepted name the model used; None if absent."""
     for key in _KEYS:
         if reply.get(key):
             return reply[key]
@@ -106,7 +107,7 @@ def extract(value, chunks: list[Chunk]) -> list[dict]:
     the passage's own wording."""
     found, seen = [], set()
 
-    def add(index: int, quote: str):
+    def add(index: int, quote: str) -> None:
         if quote in seen:
             return
         seen.add(quote)

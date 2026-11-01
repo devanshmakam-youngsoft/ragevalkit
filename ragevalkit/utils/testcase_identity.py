@@ -14,7 +14,8 @@ def natural_sort_key(text) -> list:
     return [int(t) if t.isdigit() else t.lower() for t in re.split(r"(\d+)", str(text))]
 
 
-def case_order(tc: dict):
+def case_order(tc: dict) -> tuple[list, int]:
+    """Sort key that lists test cases by conversation (natural order of ``chat_id``), then by turn."""
     return (natural_sort_key(tc.get("chat_id", "")), tc.get("turn_no", 0))
 
 

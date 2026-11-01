@@ -17,6 +17,21 @@ def recommendation_settings(cfg: Config, tolerance: float | None = None, max_tim
 
 
 def recommend_version(cfg: Config, store: EvalStore, group: str | None, tolerance: float | None, max_time: float | None) -> dict:
+    """Recommend which saved version to ship, using the settings from serve() unless overridden.
+
+    Args:
+        cfg: Server configuration holding the default weights, tolerance, minimum quality and time ceiling.
+        store: The evaluation store whose saved runs are compared.
+        group: Name of a group to compare on only that group's test cases, or None to compare whole runs.
+        tolerance: Overrides the configured tolerance (overall-score points within which versions tie).
+        max_time: Overrides the configured response-time ceiling in seconds; zero or less removes the ceiling.
+
+    Returns:
+        The result of ``recommend`` (see its docstring).
+
+    Raises:
+        InvalidInput: If ``tolerance`` is negative.
+    """
     if tolerance is not None and tolerance < 0:
         raise InvalidInput("tolerance must be 0 or higher")
     return recommend(store.list_versions_for_comparison(), group=group, **recommendation_settings(cfg, tolerance, max_time))

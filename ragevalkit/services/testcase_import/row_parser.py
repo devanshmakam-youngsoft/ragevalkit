@@ -13,11 +13,14 @@ from ragevalkit.services.testcase_import.fields import FIELDS
 
 @dataclass
 class Problem:
+    """A row of the uploaded table that cannot be imported, with the reason, so it can be fixed and re-imported."""
+
     row: int          # the row number as the user sees it in the spreadsheet (header is row 1)
     reason: str
     cells: dict[str, str]
 
     def as_dict(self) -> dict:
+        """Return the problem as a plain dict with the keys ``row``, ``reason`` and ``cells`` (header -> cell text)."""
         return asdict(self)
 
 

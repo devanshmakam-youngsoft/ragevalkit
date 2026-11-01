@@ -23,5 +23,6 @@ class StoreBase:
         self._lock = threading.Lock()
         self._drop_legacy_deleted()
 
-    def close(self):
+    def close(self) -> None:
+        """Close the underlying TinyDB file."""
         self.db.close()

@@ -3,8 +3,12 @@ from ragevalkit.schemas.base import ApiResponse
 
 
 class SignedInUser(ApiResponse):
+    """Who is signed in."""
+
     username: str
 
 
 class Acknowledged(ApiResponse):
-    ok: bool
+    """A plain confirmation that an action was carried out."""
+
+    ok: bool                        # always true

@@ -6,6 +6,10 @@ from ragevalkit.services.testcase_generator.planning import Task
 
 
 def system_prompt(category: str, turns: int) -> str:
+    """Return the rules every question must follow plus the instructions for one category.
+
+    ``turns`` is filled into the category's instructions (it matters for conversations).
+    """
     return common_rules + "\n\n" + CATEGORY_PROMPTS[category].replace("{turns}", str(turns))
 
 

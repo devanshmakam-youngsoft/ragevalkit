@@ -3,6 +3,8 @@ from ragevalkit.core.config.base import Settings
 
 
 class RecordingSettings(Settings):
+    """Options for step recording: when it is active, how much each step keeps and the size limits."""
+
     # Recording mode (controls what @step captures during eval runs)
     # "eval"     — record steps only during eval runner calls (default)
     # "uat"      — reserved; behaves like "eval"

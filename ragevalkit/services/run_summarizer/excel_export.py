@@ -1,24 +1,11 @@
 """The results of a version as an Excel workbook."""
 import io
 import json
+from typing import Any
 
 import pandas as pd
 
 from ragevalkit.utils.step_order import node_order
-
-COLUMNS_BEFORE_NODES = [
-    "chat_id", "session_id", "turn_no", "type", "question", "expected_answer",
-    "generated_answer", "material", "sources", "status", "total_time_taken",
-    # node-level detail (populated when @ragevalkit.step() is used as a decorator)
-    "step_inputs", "step_outputs",
-]
-
-
-COLUMNS_AFTER_NODES = [
-    "answer_marks", "answer_remarks", "material_marks", "material_remarks",
-    "keyword_recall", "bm25_score", "semantic_similarity",
-]
-
 
 # Optional receipt columns — included in Excel when at least one row has a value.
 OPTIONAL_RECEIPT_COLUMNS = [
@@ -29,7 +16,12 @@ OPTIONAL_RECEIPT_COLUMNS = [
 EXCEL_CELL_LIMIT = 32000
 
 
-def cell_value(v):
+def cell_value(v) -> Any:
+    """Return ``v`` in a form Excel can store in one cell.
+
+    Lists and dicts become JSON text. Text has its line breaks replaced by spaces, so rows keep a fixed height,
+    and is cut to ``EXCEL_CELL_LIMIT`` characters. Any other value is returned unchanged.
+    """
     if isinstance(v, (list, dict)):
         v = json.dumps(v, ensure_ascii=False)
     if isinstance(v, str):

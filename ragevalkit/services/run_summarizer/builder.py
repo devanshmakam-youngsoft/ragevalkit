@@ -17,7 +17,25 @@ def build_summary(
     question_fingerprint: str = "",
     dataset_id: str = "",
 ) -> dict:
-    finished = datetime.now(timezone.utc)
+    """Build the summary dict that is saved with a run from its result rows.
+
+    Averages skip rows that have no value for a metric, so a metric nobody scored is ``None`` rather than 0.
+    The time each pipeline step took is added as one ``avg_<step name>`` key per step.
+
+    Args:
+        version: Label of the run (the version of the application under test).
+        rows: One result dict per evaluated question, as produced by the evaluation runner.
+        started: When the run began; must be timezone-aware, as the duration is measured against the current UTC time.
+        dataset_name: Display name of the dataset or test case selection that was run.
+        judge_model: Model that graded the answers, kept so the dashboard can warn when it changed between runs.
+        question_fingerprint: Fingerprint of the question set, kept so the dashboard can warn when it changed.
+        dataset_id: ID of the library dataset the run used, or an empty string if it had none.
+
+    Returns:
+        The summary: run identity and totals (``version``, ``date``, ``duration_seconds``, ``total_rows``,
+        ``failed_rows``), the ``avg_*`` metrics, ``scores`` and ``case_scores``, and an empty ``comment``.
+    """
+    finished =datetime.now(timezone.utc)
     summary = {
         "version": version,
         "date": started.isoformat(),

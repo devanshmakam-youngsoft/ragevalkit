@@ -5,6 +5,11 @@ from ragevalkit.schemas.testcase_library.testcase_requests import CreateTestCase
 
 
 def find_test_case(store: EvalStore, tc_id: str) -> dict:
+    """Return the library test case with ``tc_id``.
+
+    Raises:
+        NotFoundError: If no test case has that ID.
+    """
     match = next((c for c in store.list_test_cases() if c["tc_id"] == tc_id), None)
     if match is None:
         raise NotFoundError("Test case not found")

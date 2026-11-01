@@ -40,6 +40,10 @@ def _describe(error: RagevalError) -> tuple[int, str]:
 
 
 async def handle_library_error(request: Request, error: RagevalError) -> JSONResponse:
+    """Turn a library error into a JSON response using its status and code from ``HANDLED_ERRORS``.
+
+    An error type not listed there answers 500 ``"error"`` and is logged with its traceback.
+    """
     status, code = _describe(error)
     if status >= 500:
         logger.error("%s %s failed: %s", request.method, request.url.path, error, exc_info=error)
@@ -59,5 +63,6 @@ async def handle_unexpected_error(request: Request, error: Exception) -> JSONRes
 
 
 def register_error_handlers(app: FastAPI) -> None:
+    """Install the handlers for library errors and for unexpected exceptions on ``app``."""
     app.add_exception_handler(RagevalError, handle_library_error)
     app.add_exception_handler(Exception, handle_unexpected_error)

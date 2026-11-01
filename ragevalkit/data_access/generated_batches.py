@@ -14,10 +14,12 @@ class GenerationBatchesRepository(StoreBase):
     """Review batches: saved while questions are written, deleted when approved or when they expire."""
 
     def save_batch(self, batch: dict) -> None:
+        """Insert or replace a batch, matched on its ``batch_id``. The batch must be JSON-serialisable."""
         with self._lock:
             self.batches.upsert(json.loads(json.dumps(batch)), Query().batch_id == batch["batch_id"])
 
     def get_batch(self, batch_id: str) -> dict | None:
+        """Return the batch with this id, or ``None`` if it is unknown or has expired."""
         self.purge_expired_batches()
         with self._lock:
             hits = self.batches.search(Query().batch_id == batch_id)
@@ -30,6 +32,7 @@ class GenerationBatchesRepository(StoreBase):
             return sorted((dict(b) for b in self.batches.all()), key=lambda b: b.get("created_at", ""), reverse=True)
 
     def delete_batch(self, batch_id: str) -> bool:
+        """Delete a batch; return whether one with this id existed."""
         with self._lock:
             return bool(self.batches.remove(Query().batch_id == batch_id))
 

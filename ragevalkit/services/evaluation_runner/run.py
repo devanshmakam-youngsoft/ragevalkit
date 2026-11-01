@@ -6,6 +6,13 @@ from ragevalkit.core.diagnostics import EventLog
 
 
 class Run:
+    """One evaluation run: its progress, events and outcome.
+
+    ``RunManager`` creates it and updates it from the run's background thread while the web server reads it,
+    so ``status`` goes from ``running`` to ``completed``, ``stopped`` or ``failed`` and ``done`` counts the
+    questions answered so far.
+    """
+
     def __init__(self, version: str, total: int, dataset_name: str):
         self.run_id   = str(uuid.uuid4())
         self.version  = version
@@ -27,6 +34,7 @@ class Run:
         self.dataset_id: str = ""         # source group id for single-group library runs
 
     def snapshot(self) -> dict:
+        """Return the run's current progress as a JSON-ready dict (id, version, status, counts, error, issue count)."""
         return {
             "run_id": self.run_id,
             "version": self.version,
@@ -42,10 +50,12 @@ class Run:
         }
 
     def emit(self, event_type: str, **data) -> None:
+        """Append an event of the given type to ``events``, carrying a fresh ``snapshot()`` and any extra ``data``."""
         self.events.append({"type": event_type, **self.snapshot(), **data})
 
 
 def light_row(r: dict) -> dict:
+    """Return a result row reduced to its ids, question, marks and status: all a progress event carries."""
     return {
         k: r.get(k)
         for k in ("chat_id", "turn_no", "type", "question", "answer_marks", "material_marks", "status")

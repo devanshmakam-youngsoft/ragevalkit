@@ -20,7 +20,18 @@ def get_recommendation(
 ) -> Recommendation:
     """Which version to ship, computed now from the saved scores of every non-archived run.
 
-    ``group`` limits the comparison to one group's scores. ``tolerance`` and ``max_time`` override
-    the ``serve()`` defaults for this request only.
+    Args:
+        group: Name of a group (not its id). Limits the comparison to that group's test cases.
+        tolerance: Versions within this many overall-score points (the scale is 0-10) of the best count as
+            tied, and the fastest of them wins. Overrides the ``serve()`` default for this request only.
+        max_time: Response-time ceiling in seconds; slower versions are not recommended. Zero or less removes
+            the ceiling. Overrides the ``serve()`` default for this request only.
+
+    Returns:
+        The recommended version in ``best`` and why in ``reason``. ``best`` is ``null`` when no version
+        qualifies, for example when none reaches ``min_quality`` or none fits ``max_time``.
+
+    Error answers:
+        422 when ``tolerance`` is negative.
     """
     return recommend_version(cfg, store, group, tolerance, max_time)

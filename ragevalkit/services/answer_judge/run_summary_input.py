@@ -5,6 +5,12 @@ from ragevalkit.utils.step_order import summary_nodes
 
 
 def stats_for_llm(summary: dict, rows: list[dict]) -> str:
+    """Return a run's scores, timings and three lowest-scoring rows as the plain text the judge summarises.
+
+    Args:
+        summary: The run summary as built by ``build_summary`` plus its ``group_stats``.
+        rows: The per-question result rows of the same run.
+    """
     by_type: dict[str, list[float]] = {}
     for r in rows:
         if r.get("answer_marks") is not None:

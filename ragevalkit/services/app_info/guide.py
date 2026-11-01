@@ -8,6 +8,11 @@ GUIDE_PATH = Path(__file__).resolve().parents[2] / "web" / "guide" / "developer-
 
 
 def guide_page(cfg: Config) -> str:
+    """Return the HTML of the developer guide that the Help page serves.
+
+    Raises:
+        NotFoundError: If the guide is switched off (``show_guide=False``) or its file is missing from the package.
+    """
     if not cfg.show_guide or not GUIDE_PATH.is_file():
         raise NotFoundError("Guide not found")
     return GUIDE_PATH.read_text(encoding="utf-8")

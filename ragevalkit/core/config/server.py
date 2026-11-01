@@ -11,6 +11,8 @@ from ragevalkit.core.constants.library import (
 
 
 class ServerSettings(Settings):
+    """Options for the HTTP server: environment mode, address, data folder and the paths derived from it."""
+
     # Environment mode
     # "dev"  — full dashboard + eval routes (default)
     # "uat"  — same as dev, but logs that UAT recording is active (no extra endpoint)
@@ -28,12 +30,15 @@ class ServerSettings(Settings):
 
     @property
     def store_path(self) -> Path:
+        """The JSON file holding results, test cases and groups."""
         return self.data_dir / STORE_FILE_NAME
 
     @property
     def logs_dir(self) -> Path:
+        """The folder with ``server.log`` and the per-run and per-generation logs."""
         return self.data_dir / LOGS_DIR_NAME
 
     @property
     def uploads_dir(self) -> Path:
+        """The folder where spreadsheets uploaded for a run are saved."""
         return self.data_dir / UPLOADS_DIR_NAME

@@ -20,6 +20,7 @@ WHY Grade is a Pydantic model?
 import json
 import logging
 import time
+from typing import Any
 
 from ragevalkit.core.exceptions.answer_judge import JudgeError
 from ragevalkit.prompts.answer_judge import (
@@ -37,6 +38,12 @@ logger = logging.getLogger(__name__)
 
 
 class Judge:
+    """The AI model that grades answers, checks retrieved sources and writes a run's findings.
+
+    Every call goes through LiteLLM with the model and key from ``config`` and is retried on failure, sleeping
+    between attempts, so the methods block; they are meant to be called from the run's background thread.
+    """
+
     def __init__(self, config):
         self.config = config
         self._grader_prompt = (config.judge_prompt_override or grader_prompt) + grader_format
@@ -47,7 +54,7 @@ class Judge:
             temperature=self.config.judge_temperature, json_mode=json_mode,
         )
 
-    def _with_retries(self, fn):
+    def _with_retries(self, fn) -> Any:
         last = None
         for attempt in range(self.config.judge_retries):
             try:
@@ -55,12 +62,29 @@ class Judge:
             except Exception as e:
                 last = e
                 logger.warning("Judge call failed (attempt %d): %s", attempt + 1, e)
-                time.sleep(2 * (attempt + 1))
+                if attempt + 1 < self.config.judge_retries:
+                    time.sleep(2 * (attempt + 1))
         raise JudgeError(f"Judge failed after {self.config.judge_retries} attempts: {last}") from last
 
     def grade(
         self, question: str, expected: str, generated: str | None, material: str, material_applicable: bool
     ) -> Grade:
+        """Grade one generated answer, and the material it was based on, against the expected answer.
+
+        A call that fails, or a reply that is not valid JSON or not a valid ``Grade``, is retried up to
+        ``judge_retries`` times.
+
+        Args:
+            question: The question that was asked.
+            expected: The reference answer from the test case.
+            generated: The answer the pipeline gave, or None when it produced none (the judge is told so).
+            material: The text the pipeline retrieved; empty when nothing was retrieved.
+            material_applicable: False for a conversational turn that needs no retrieval. The material mark is
+                then dropped (``material_marks`` is None) whatever the model replied.
+
+        Raises:
+            JudgeError: When every attempt fails.
+        """
         user = (
             f"Question: {question}\n\nExpected Answer: {expected}\n\n"
             f"Generated Answer: {generated or 'Generation failed (no answer returned)'}\n\n"
@@ -69,7 +93,7 @@ class Judge:
         )
         system = self._grader_prompt
 
-        def _invoke():
+        def _invoke() -> Grade:
             raw = self._call(
                 [{"role": "system", "content": system}, {"role": "user", "content": user}],
                 json_mode=True,
@@ -95,7 +119,7 @@ class Judge:
         expected_str = "\n".join(f"- {e}" for e in alternatives)
         user = f"Expected sources:\n{expected_str}\n\nRetrieved sources:\n{recorded_str}"
 
-        def _invoke():
+        def _invoke() -> dict:
             raw = self._call(
                 [{"role": "system", "content": source_check_prompt},
                  {"role": "user", "content": user}],

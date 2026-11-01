@@ -59,8 +59,15 @@ line-length = 100
 target-version = "py310"
 
 [tool.ruff.lint]
-select = ["E4", "E7", "E9", "F", "I"]
+# D10x: every module, class, function and method of the package has a docstring.
+# ANN201/ANN202: every function says what it returns.
+select = ["E4", "E7", "E9", "F", "I", "D100", "D101", "D102", "D103", "D104", "ANN201", "ANN202"]
 ignore = ["E701", "E702", "E731"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D", "ANN"]
+"examples/**" = ["D", "ANN"]
+"scripts/**" = ["ANN"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["ragevalkit"]

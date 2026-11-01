@@ -6,6 +6,11 @@ from ragevalkit.services.evaluation_runner.runner import RunManager
 
 
 def get_run(manager: RunManager, run_id: str) -> Run:
+    """Return the run with this id, whether it is still going or finished (runs are kept in memory).
+
+    Raises:
+        NotFoundError: When no run with this id exists, for example after the server restarted.
+    """
     run = manager.runs.get(run_id)
     if run is None:
         raise NotFoundError("Run not found")

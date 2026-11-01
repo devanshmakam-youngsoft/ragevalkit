@@ -3,14 +3,13 @@ Step recording — the zero-overhead observability layer for ragevalkit.
 
 HOW IT WORKS
 ------------
-`ragevalkit.step("name")` returns a StepContext that does nothing at all
-unless the current thread is inside an active eval run.
+`ragevalkit.step("name")` returns a StepContext that records nothing unless a question is being evaluated.
 
 When the RunManager calls the developer's function it:
-  1. calls begin_question(detail)  → sets this thread's "active" flag + clears the step/flag buffers
-  2. calls fn(question)       → developer code runs; any @step / with step: fires _emit()
-  3. calls end_question()      → clears the active flag  (in a finally block — always runs)
-  4. calls collect_question()         → drains the buffers and returns {"steps": [...], "flags": {...}}
+  1. calls begin_question(detail)  → opens a fresh recorder for this question
+  2. calls fn(question)       → developer code runs; any @step / with step: adds its entry to that recorder
+  3. calls end_question()      → closes the recorder (in a finally block — always runs)
+  4. calls collect_question()         → returns {"steps": [...], "flags": {...}} from the closed recorder
 
 WHY a recorder per question, not per thread
 ------------------------------------------

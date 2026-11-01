@@ -3,6 +3,10 @@ from pydantic import BaseModel, Field
 
 
 class Grade(BaseModel):
+    """The judge's marks and reasons for one generated answer, each mark out of 10.
+
+    ``material_marks`` is None when the question needs no retrieval (a conversational turn).
+    """
     answer_marks: int = Field(ge=0, le=10)
     answer_comment: str
     material_marks: int | None = Field(default=None, ge=0, le=10)

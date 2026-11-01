@@ -3,6 +3,7 @@ import re
 
 
 def normalise_header(header) -> str:
+    """Return a header lower-cased, with each run of non-alphanumerics as one ``_`` (``'Chat ID'`` -> ``'chat_id'``)."""
     return re.sub(r"[^a-z0-9]+", "_", str(header).strip().lower()).strip("_")
 
 

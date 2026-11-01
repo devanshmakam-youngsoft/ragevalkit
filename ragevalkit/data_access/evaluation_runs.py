@@ -16,10 +16,12 @@ class RunsRepository(StoreBase):
     """Reads and writes the finished runs (versions) and their receipts."""
 
     def exists(self, version: str) -> bool:
+        """Return whether a run saved under this version name exists."""
         with self._lock:
             return bool(self.runs.search(Query().version == version))
 
     def write(self, version: str, summary: dict, rows: list[dict]) -> None:
+        """Save a finished run, replacing any earlier run (and its rows) with the same version name."""
         with self._lock:
             Q = Query()
             self.runs.upsert(summary, Q.version == version)
@@ -56,6 +58,7 @@ class RunsRepository(StoreBase):
         return sorted(out, key=lambda s: str(s.get("date", "")))
 
     def list_versions(self) -> list[dict]:
+        """Return every run summary, archived ones included, oldest first, without per-case scores."""
         with self._lock:
             summaries = self.runs.all()
         out = []
@@ -101,6 +104,11 @@ class RunsRepository(StoreBase):
         return bool(updated)
 
     def get(self, version: str) -> dict:
+        """Return one run as ``{"summary": ..., "rows": ...}``, with the per-question results in ``rows``.
+
+        Raises:
+            VersionNotFound: No run is saved under ``version``.
+        """
         with self._lock:
             hits = self.runs.search(Query().version == version)
             if not hits:

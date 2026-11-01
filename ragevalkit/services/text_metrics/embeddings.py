@@ -1,9 +1,14 @@
 """Meaning similarity from sentence embeddings (a small local model, no API call)."""
 from functools import lru_cache
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from sentence_transformers import SentenceTransformer
 
 
 @lru_cache(maxsize=1)
-def _embedder(model_name: str):
+def _embedder(model_name: str) -> "SentenceTransformer":
+    # Imported on first use: loading sentence-transformers is slow and the metric can be switched off.
     from sentence_transformers import SentenceTransformer
     return SentenceTransformer(model_name)
 

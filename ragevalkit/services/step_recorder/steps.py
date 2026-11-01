@@ -2,6 +2,7 @@
 import inspect
 import time as _time
 from functools import wraps
+from typing import Any
 
 from ragevalkit.services.step_recorder.limits import display_text, text_of
 from ragevalkit.services.step_recorder.recorder import current_recorder
@@ -40,6 +41,10 @@ class StepContext:
 
     @property
     def material(self) -> str:
+        """The retrieved text this step produced, which the judge reads as the answer's context.
+
+        Assigning to it marks the step as selected, so it is kept even when ``record_detail="selected"``.
+        """
         return self._material
 
     @material.setter
@@ -49,6 +54,10 @@ class StepContext:
 
     @property
     def sources(self) -> list:
+        """Identifiers of the sources behind the retrieved material (document IDs, URLs, ...).
+
+        Assigning to it marks the step as selected, so it is kept even when ``record_detail="selected"``.
+        """
         return self._sources
 
     @sources.setter
@@ -98,6 +107,11 @@ class StepContext:
 
     # --- decorator (sync + async) ---
     def __call__(self, fn):
+        """Wrap ``fn`` (sync or async) so every call is timed and its inputs and output are recorded.
+
+        Parameters with secret-looking names are recorded as ``[REDACTED]``. Each call is recorded as its own
+        step, and the wrapped function's result and exceptions pass through untouched.
+        """
         # Capture the signature once at decoration time (not per call).
         sig = inspect.signature(fn)
 
@@ -115,7 +129,7 @@ class StepContext:
 
         if inspect.iscoroutinefunction(fn):
             @wraps(fn)
-            async def async_wrapper(*args, **kwargs):
+            async def async_wrapper(*args, **kwargs) -> Any:
                 ctx = StepContext(self.name, self._returns_material)
                 ctx.inputs = _capture_inputs(args, kwargs)
                 ctx._start = _time.perf_counter()
@@ -129,7 +143,7 @@ class StepContext:
             return async_wrapper
 
         @wraps(fn)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args, **kwargs) -> Any:
             ctx = StepContext(self.name, self._returns_material)
             ctx.inputs = _capture_inputs(args, kwargs)
             ctx._start = _time.perf_counter()

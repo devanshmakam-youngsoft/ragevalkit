@@ -37,16 +37,19 @@ class Chunk:
 
 @dataclass
 class ReadDocument:
+    """A document read into passages. ``pages`` is None for formats without pages (.docx, text, Markdown)."""
     name: str
     chunks: list[Chunk]
     pages: int | None
-    chars: int
+    chars: int                                   # characters of text extracted from the whole document
 
     def usable(self) -> list[Chunk]:
+        """Return the passages with enough prose to write a question from, in document order."""
         return [c for c in self.chunks if is_usable(c)]
 
 
 def is_usable(chunk: Chunk) -> bool:
+    """Say whether a passage is long enough and made mostly of words, not numbers or table borders."""
     text = chunk.text
     if len(text) < MIN_USABLE_CHARS:
         return False

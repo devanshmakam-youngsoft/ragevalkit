@@ -8,6 +8,15 @@ from ragevalkit.services.spreadsheet_loader.uploads import load_uploaded_spreads
 
 
 def describe_default_dataset(cfg: Config) -> dict:
+    """Return a summary of the dataset configured as ``default_dataset`` in serve().
+
+    Returns:
+        A dict with ``name`` (file name), ``rows``, ``chats`` (distinct chat IDs), ``required_columns`` and the
+        content ``fingerprint``.
+
+    Raises:
+        NotFoundError: If no default dataset is configured, or it cannot be read.
+    """
     if not cfg.default_dataset:
         raise NotFoundError("No default dataset configured")
     try:
@@ -24,6 +33,19 @@ def describe_default_dataset(cfg: Config) -> dict:
 
 
 def describe_uploaded_dataset(cfg: Config, filename: str | None, data: bytes) -> dict:
+    """Validate an uploaded spreadsheet and describe it, without saving it anywhere.
+
+    Args:
+        cfg: Server configuration; its column mapping and sheet name are used to read the file.
+        filename: Original file name, echoed back as ``name``.
+        data: Raw bytes of the uploaded file.
+
+    Returns:
+        A dict with ``name``, ``rows``, ``chats`` (distinct chat IDs) and the content ``fingerprint``.
+
+    Raises:
+        DatasetError: If the file cannot be read or has no usable rows.
+    """
     df = load_uploaded_spreadsheet(cfg, data)
     return {
         "name": filename,

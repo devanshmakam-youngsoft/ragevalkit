@@ -12,7 +12,11 @@ def _sign(secret: str, payload: str) -> str:
 
 
 def make_token(secret: str, username: str, ttl_seconds: int, now: float | None = None) -> str:
-    body = json.dumps({"u": username, "exp": int((now or time.time()) + ttl_seconds)}).encode()
+    """Return a signed token naming ``username`` that stops being valid ``ttl_seconds`` after ``now``.
+
+    ``now`` is a Unix timestamp and defaults to the current time; pass it to make tokens in tests.
+    """
+    body = json.dumps({"u": username, "exp": int((time.time() if now is None else now) + ttl_seconds)}).encode()
     payload = base64.urlsafe_b64encode(body).decode().rstrip("=")
     return f"{payload}.{_sign(secret, payload)}"
 
@@ -26,7 +30,7 @@ def read_token(secret: str, token: str | None, now: float | None = None) -> str 
         return None
     try:
         data = json.loads(base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4)))
-        if data["exp"] < (now or time.time()):
+        if data["exp"] < (time.time() if now is None else now):
             return None
         return str(data["u"])
     except (ValueError, KeyError, TypeError):

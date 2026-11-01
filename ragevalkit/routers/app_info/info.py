@@ -9,4 +9,5 @@ router = APIRouter(prefix="/api", tags=["info"])
 
 @router.get("/info")
 def info() -> AppInfo:
+    """Give the name the dashboard shows in its heading and browser tab; needs no sign-in."""
     return AppInfo(name=DISPLAY_NAME)

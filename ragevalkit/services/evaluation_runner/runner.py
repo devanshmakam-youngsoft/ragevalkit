@@ -43,9 +43,10 @@ class RunManager:
     Runtime hooks (all optional, passed via ``create_app``):
 
     * ``judge_fn(question, expected, generated, material) -> dict``
-        Completely replaces the LLM judge.  The dict must contain at least
+        Replaces the LLM judge for grading answers.  The dict must contain at least
         ``answer_marks`` (int 0–10).  Optional keys: ``answer_comment``,
-        ``material_marks``, ``material_comment``.
+        ``material_marks``, ``material_comment``.  The judge model is still used
+        for the run's written findings and, in ``llm`` source-check mode, for source checks.
 
     * ``extra_metrics: dict[str, Callable[[str, str], float]]``
         Additional metrics run alongside built-ins.
@@ -54,8 +55,9 @@ class RunManager:
 
             extra_metrics={"rouge_1": compute_rouge1, "bleu": compute_bleu}
 
-    * ``on_complete(summary: dict, rows: list[dict]) -> None``
-        Called once after a run finishes (success or failure).
+    * ``on_complete(summary: dict | None, rows: list[dict]) -> None``
+        Called once after a run completes, or fails (then ``summary`` is None and ``rows`` holds what was
+        graded so far).  Not called when a run is stopped.
         Use it to send notifications, write to a database, trigger CI, etc.
 
     * ``session_id_fn(chat_id: str) -> str``
@@ -103,13 +105,13 @@ class RunManager:
 
         self.runs: dict[str, Run] = {}
         self._lock = threading.Lock()
-        # Lazy-init: Judge loads LiteLLM which imports are slow; skip if judge_fn is provided.
         self._llm_judge: Judge | None = None
 
     # ---
 
     @property
     def judge(self) -> Judge:
+        """The LLM judge, created on first use and then reused for every run."""
         if self._llm_judge is None:
             self._llm_judge = Judge(self.config)
         return self._llm_judge
@@ -119,6 +121,7 @@ class RunManager:
         return t in self._conv_types or t.startswith("conv") or is_non_rag(t)
 
     def active(self) -> Run | None:
+        """Return the run that is currently going, or None. Only one run may be active at a time."""
         return next((r for r in self.runs.values() if r.status == "running"), None)
 
     def start(
@@ -132,11 +135,23 @@ class RunManager:
         from_library: bool = False,
         dataset_id: str = "",
     ) -> Run:
-        """Start a run in a background thread.
+        """Start a run in a background thread and return it at once, while it is still running.
 
-        ``from_library=True`` means ``df`` was resolved from test cases already in the store
-        (groups and/or picked cases), so it is not imported again; ``dataset_id`` is then the
-        source group's id when the run came from exactly one group.
+        Progress and the outcome are published on the returned ``Run``. The results are saved to the store when
+        the run completes (or, partially, when it is stopped).
+
+        Args:
+            version: The version name the results are saved under.
+            df: The test cases to run, one row per question, in the order they are asked.
+            dataset_name: A label for where the test cases came from, shown with the results.
+            notes: Free text saved with the run's summary.
+            group_names: The groups the test cases were taken from, for per-group statistics.
+            from_library: True when ``df`` was resolved from test cases already in the store
+                (groups and/or picked cases), so it is not imported again.
+            dataset_id: The source group's id when the run came from exactly one group.
+
+        Raises:
+            RunBusy: When another run is still going.
         """
         with self._lock:
             if self.active():

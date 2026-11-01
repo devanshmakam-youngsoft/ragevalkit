@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import importlib
 import threading
+from types import ModuleType
 
 _lock = threading.Lock()
 
@@ -17,8 +18,11 @@ _lock = threading.Lock()
 _LAZY_PARTS = ("litellm.rust_bridge.diagnostics", "litellm.rust_bridge.catalog")   # imported on first log record
 
 
-def load_litellm():
-    """The litellm module, fully loaded."""
+def load_litellm() -> ModuleType:
+    """Return the litellm module, fully loaded, importing it on the first call.
+
+    Safe to call from several threads and cheap after the first call. It also turns off litellm's debug banner.
+    """
     with _lock:
         import litellm
 

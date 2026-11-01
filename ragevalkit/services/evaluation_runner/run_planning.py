@@ -43,14 +43,21 @@ def parse_id_list(raw: str | None) -> list[str]:
 
 
 def check_version_name(version: str) -> str:
-    version = version.strip()
+    """Return the version name without surrounding whitespace.
+
+    Raises:
+        InvalidInput: When the stripped name is empty, longer than 20 characters, or has characters other than
+            letters, digits, ``.``, ``_`` or ``-``.
+    """
+    version =version.strip()
     if not valid_version(version):
         raise InvalidInput("Version may only contain letters, digits, '.', '_' or '-' (max 20 chars)")
     return version
 
 
 def collision_message(collisions: list[dict]) -> str:
-    first = collisions[0]
+    """Return the error text for test cases that share a chat id and turn number; names only the first collision."""
+    first =collisions[0]
     more = f" (and {len(collisions) - 1} more)" if len(collisions) > 1 else ""
     return (
         f"Chat {first['chat_id']!r} turn {first['turn_no']} is used by {len(first['tc_ids'])} different "
@@ -106,7 +113,27 @@ def plan_run(
     upload_name: str | None, upload_data: bytes | None, save_as_group: bool, group_name: str | None,
 ) -> RunPlan:
     """The test cases to run, from the first source that applies: a library selection (groups and/or picked
-    cases), an uploaded file saved as a group, an uploaded file used once, or the configured default dataset."""
+    cases), an uploaded file saved as a group, an uploaded file used once, or the configured default dataset.
+
+    An upload that is not saved as a group is written to ``cfg.uploads_dir``; one saved as a group creates that
+    group in the store as a side effect.
+
+    Args:
+        version: The version name of the run; names the stored copy of an upload used once.
+        group_ids: Library groups to run (every case in them that matches ``status``).
+        picked: Ids of individual library test cases to run, whatever their ``status``.
+        status: Which cases of the groups to take: ``active``, ``inactive`` or ``all``.
+        include_context: Whether to add the earlier turns of a conversation that a selected turn needs.
+        upload_name: File name of an uploaded spreadsheet, if one was sent.
+        upload_data: Raw bytes of the uploaded spreadsheet.
+        save_as_group: Whether to import the upload into the library as a new group instead of using it once.
+        group_name: Name for that new group; the upload is only saved when this is also set.
+
+    Raises:
+        NoDatasetError: When nothing was selected or uploaded and no default dataset is configured.
+        NotFoundError: When the selection has no runnable cases, or the dataset file is missing.
+        ConflictError: When two selected cases share a chat id and turn number.
+    """
     if group_ids or picked:
         return _plan_from_library(store, group_ids, picked, status, include_context)
     if upload_name and upload_data is not None and save_as_group and group_name:

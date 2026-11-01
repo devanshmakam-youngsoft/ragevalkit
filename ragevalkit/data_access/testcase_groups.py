@@ -119,6 +119,7 @@ class GroupsRepository(StoreBase):
         return self.list_test_cases(group_id=group_id, status=status)
 
     def add_tc_to_group(self, group_id: str, tc_id: str) -> bool:
+        """Label one test case with a group; return whether the label was newly added."""
         return bool(self.add_tcs_to_group(group_id, [tc_id]))
 
     def add_tcs_to_group(self, group_id: str, tc_ids: list[str]) -> int:
@@ -140,6 +141,7 @@ class GroupsRepository(StoreBase):
         return added
 
     def remove_tc_from_group(self, group_id: str, tc_id: str) -> bool:
+        """Remove one group label from a test case; return whether a label was removed."""
         return bool(self.remove_tcs_from_group(group_id, [tc_id]))
 
     def remove_tcs_from_group(self, group_id: str, tc_ids: list[str]) -> int:

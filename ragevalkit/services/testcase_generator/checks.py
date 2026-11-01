@@ -43,6 +43,7 @@ def check_text(question: str, answer: str, *, standalone: bool) -> str | None:
 
 
 def similarity(a: str, b: str) -> float:
+    """Return how alike two texts are, from 0 to 1: the share of their distinct words that both contain."""
     x, y = set(tokenize(a)), set(tokenize(b))
     return len(x & y) / len(x | y) if x | y else 0.0
 
@@ -81,7 +82,7 @@ def _turns_of(task: Task, data: dict, turns: int) -> tuple[list | None, str]:
     if not isinstance(raw_turns, list) or not raw_turns:
         return None, 'the reply must contain "turns" for a conversation' if task.category == "multiturn" else "missing question"
     if task.category == "multiturn" and not 2 <= len(raw_turns) <= max(2, turns):
-        return None, f"the conversation must have {turns} turns"
+        return None, f"the conversation must have between 2 and {max(2, turns)} turns"
     return raw_turns, ""
 
 

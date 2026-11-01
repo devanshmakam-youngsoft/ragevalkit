@@ -9,6 +9,19 @@ from ragevalkit.services.document_reader.passages import pack_into_chunks, split
 
 
 def read_text(path: Path, name: str, markdown: bool) -> ReadDocument:
+    """Read a plain text or Markdown file into passages.
+
+    The file is decoded as UTF-8, with undecodable bytes replaced.
+
+    Args:
+        path: The file on disk.
+        name: The name to show in passage ids and error messages (the uploaded file's name, not ``path``).
+        markdown: Whether to treat ``#`` headings as sections, so that passages are labelled with the section
+            they belong to.
+
+    Raises:
+        DocumentError: When the file has almost no text.
+    """
     text = path.read_bytes().decode("utf-8", errors="replace").replace("\r\n", "\n")
     if len(text.strip()) < MIN_TEXT_CHARS // 2:
         raise DocumentError(f"{name} has almost no text ({len(text.strip())} characters).")

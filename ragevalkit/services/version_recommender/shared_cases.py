@@ -12,11 +12,30 @@ from ragevalkit.services.version_recommender.ranking import (
 
 
 def shared_case_keys(views: list[dict]) -> set[str]:
+    """Return the keys of the test cases that every version in ``views`` ran (empty if ``views`` is empty)."""
     sets = [set(v["cases"]) for v in views]
     return set.intersection(*sets) if sets else set()
 
 
 def recommend_on_shared_cases(active: list[dict], *, group, answer_weight, material_weight, tolerance, max_time, min_quality: float = 0.0) -> dict:
+    """Recommend a version by scoring every comparable version on the test cases they all ran.
+
+    Versions that were stopped early or had failures on the shared cases are excluded. If the versions share too
+    few cases, the one sharing least is set aside as not comparable until the rest overlap enough (at least
+    ``MIN_SHARED_SHARE`` of the typical run size).
+
+    Args:
+        active: Run summaries, oldest first, each with ``case_scores``.
+        group: Name of a group to compare on only its test cases, or None for all of them.
+        answer_weight: Weight of the answer score in the overall score.
+        material_weight: Weight of the context score in the overall score.
+        tolerance: Overall-score points within which versions tie; speed then breaks the tie.
+        max_time: Response-time ceiling in seconds, or None for no ceiling.
+        min_quality: Overall score a version needs to be recommended at all.
+
+    Returns:
+        The recommendation result; see ``recommend``.
+    """
     views = []
     for idx, summary in enumerate(active):
         entries = summary["case_scores"]

@@ -1,7 +1,7 @@
 """Calling your pipeline function: which arguments it takes, how its answer is read, how history is passed."""
 import asyncio
 import inspect
-from typing import Callable
+from typing import Any, Callable
 
 
 def detect_call_style(fn: Callable, session_aliases: list[str], history_aliases: list[str]) -> str:
@@ -58,8 +58,13 @@ def answer_text_of(result, answer_keys: list[str]) -> str:
     return str(result)
 
 
-def call_sync(fn: Callable, *args, **kwargs):
-    """Call fn whether it is sync or async; always returns synchronously."""
+def call_sync(fn: Callable, *args, **kwargs) -> Any:
+    """Call ``fn`` and return its result, running it to completion first when it is an ``async def``.
+
+    If an event loop is already running in the calling thread, the coroutine runs on a fresh loop in a helper
+    thread (blocking until it finishes); otherwise it runs on this thread's loop, or a new one if there is none.
+    A plain function is simply called.
+    """
     if inspect.iscoroutinefunction(fn):
         try:
             loop = asyncio.get_event_loop()

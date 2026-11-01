@@ -30,6 +30,11 @@ def batch_summary(batch: dict) -> dict:
 
 
 def get_batch(store: EvalStore, batch_id: str) -> dict:
+    """Return the stored review batch, including its items.
+
+    Raises:
+        NotFoundError: When there is no such batch; batches are deleted once approved or discarded, and expire.
+    """
     batch = store.get_batch(batch_id)
     if batch is None:
         raise NotFoundError("These generated test cases are no longer available (they expire if not approved in time)")
@@ -57,6 +62,25 @@ async def _save_uploads(cfg: Config, uploads: list[UploadFile], workdir: Path) -
 
 
 async def start_generation(cfg: Config, manager: GenerationManager, files: list[UploadFile], per_category: int, categories: str | None, turns: int) -> dict:
+    """Save the uploaded documents to a temporary folder and start writing test cases from them.
+
+    Returns the new batch without its items (see ``batch_summary``); the questions are written in the background.
+    The temporary folder is removed once the files have been read, or at once if starting fails.
+
+    Args:
+        cfg: The app config, for the upload limits.
+        manager: The generation manager that runs the job.
+        files: The uploads from the form; entries without a file name are ignored.
+        per_category: How many questions to write for each category.
+        categories: A JSON list of category keys, or None for all of them.
+        turns: How many turns a conversation has.
+
+    Raises:
+        InvalidInput: When no document is sent, there are too many, one has an unsupported type, or the options
+            are invalid.
+        TooLargeError: When a document is larger than the configured limit.
+        GenerationBusy: When another generation is still running.
+    """
     uploads = [f for f in files if f.filename]
     if not uploads:
         raise InvalidInput("Choose at least one document")

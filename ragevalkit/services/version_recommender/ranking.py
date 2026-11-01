@@ -5,11 +5,17 @@ from typing import Iterable
 
 
 def mean_of_present(values: Iterable) -> float | None:
+    """Return the mean of the values that are not ``None``, or ``None`` if there are none."""
     vals = [v for v in values if v is not None]
     return sum(vals) / len(vals) if vals else None
 
 
 def overall_quality(view: dict, answer_weight: float, material_weight: float, use_material: bool) -> float | None:
+    """Return the overall score of one version's ``view``, or ``None`` if its answers were not graded.
+
+    The score is the weighted mean of answer and context marks. When ``use_material`` is false, the context
+    mark is missing or the weights do not add up to a positive number, it is the answer mark alone.
+    """
     answer, material = view["answer"], view["material"]
     if answer is None:
         return None
@@ -23,6 +29,18 @@ def empty_result(
     answer_weight: float, material_weight: float, tolerance: float, max_time: float | None, considered: int,
     min_quality: float = 0.0,
 ) -> dict:
+    """Return the recommendation result with nothing chosen yet, ready for the comparison to fill in.
+
+    The comparison paths add the keys ``_all`` and ``_views``, which ``choose_best`` removes again.
+
+    Args:
+        answer_weight: Weight of the answer score, echoed in the result's ``weights``.
+        material_weight: Weight of the context score, echoed in the result's ``weights``.
+        tolerance: Overall-score points within which versions tie; echoed in the result.
+        max_time: Response-time ceiling in seconds, or None for no ceiling; echoed in the result.
+        considered: How many versions took part in the comparison.
+        min_quality: Overall score a version needs to be recommended; echoed in the result.
+    """
     return {
         "best": None, "reason": "", "fastest": None, "runner_up": None, "latest_gap": None,
         # the newest run against the recommended one, when both were compared; and what was recommended before it ran
@@ -39,6 +57,7 @@ def empty_result(
 
 
 def _delta(latest: float | None, best: float | None) -> float | None:
+    """Return ``latest - best`` rounded to 3 decimals, or ``None`` if either is missing."""
     return None if latest is None or best is None else round(latest - best, 3)
 
 

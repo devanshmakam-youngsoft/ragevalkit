@@ -17,6 +17,24 @@ def _reference_rows(views: list[dict]) -> int:
 
 
 def recommend_on_totals(active: list[dict], *, group, answer_weight, material_weight, tolerance, max_time, min_quality: float = 0.0) -> dict:
+    """Recommend a version by comparing whole-run averages, for runs saved without per-case scores.
+
+    Only runs that covered the most common number of test cases are compared, and runs that were stopped early,
+    had failed rows or have no answer score are excluded. This is weaker than ``recommend_on_shared_cases``
+    because the runs may not have used the same questions.
+
+    Args:
+        active: Run summaries, oldest first.
+        group: Name of a group to compare on only that group's statistics, or None for the whole run.
+        answer_weight: Weight of the answer score in the overall score.
+        material_weight: Weight of the context score in the overall score.
+        tolerance: Overall-score points within which versions tie; speed then breaks the tie.
+        max_time: Response-time ceiling in seconds, or None for no ceiling.
+        min_quality: Overall score a version needs to be recommended at all.
+
+    Returns:
+        The recommendation result; see ``recommend``.
+    """
     views = []
     for idx, summary in enumerate(active):
         view = version_view(summary, group)

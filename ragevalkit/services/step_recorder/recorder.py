@@ -3,15 +3,22 @@ import threading
 
 
 class Recorder:
+    """The steps and notes recorded while one question runs.
+
+    Several threads may add steps at once, so ``lock`` guards ``steps`` and ``flags``. Each entry in ``steps`` is a
+    ``(sequence number, step)`` pair; the number fixes the order in which steps started.
+    """
+
     def __init__(self, detail: str):
         self.detail = detail          # "all" | "selected" | "off"
-        self.steps: list[dict] = []
+        self.steps: list[tuple[int, dict]] = []      # (start order, entry)
         self.flags: dict = {}
         self.open = True              # closed when the question is over: late steps are ignored
         self._seq = 0
         self.lock = threading.Lock()
 
     def next_seq(self) -> int:
+        """Return the next sequence number, so a step keeps its place in the order they started."""
         with self.lock:
             self._seq += 1
             return self._seq

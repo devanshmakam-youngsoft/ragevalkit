@@ -3,4 +3,6 @@ from pydantic import BaseModel
 
 
 class GroupName(BaseModel):
-    name: str
+    """The name for a group that is being created or renamed."""
+
+    name: str                       # must be unique among groups, ignoring capitals and surrounding spaces

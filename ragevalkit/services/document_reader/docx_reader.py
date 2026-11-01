@@ -46,6 +46,16 @@ def _docx_units(doc) -> list[tuple[str, int | None, str | None]]:
 
 
 def read_docx(path: Path, name: str) -> ReadDocument:
+    """Read a Word (.docx) file into passages.
+
+    Args:
+        path: The file on disk.
+        name: The name to show in passage ids and error messages (the uploaded file's name, not ``path``).
+
+    Raises:
+        DocumentError: When the file is too large once unpacked, is not a readable .docx (including a
+            password-protected one) or has almost no text.
+    """
     try:
         with zipfile.ZipFile(path) as archive:
             if sum(info.file_size for info in archive.infolist()) > MAX_UNPACKED_BYTES:

@@ -3,6 +3,8 @@ from ragevalkit.core.config.base import Settings
 
 
 class FunctionAdapterSettings(Settings):
+    """Options for calling your pipeline function: which parameters it takes and where its answer is."""
+
     # Answer extraction: keys tried when fn() returns a dict/object
     answer_keys: list[str] = [
         "answer", "response", "output", "result", "text",

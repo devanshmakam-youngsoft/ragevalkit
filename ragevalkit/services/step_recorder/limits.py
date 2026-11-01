@@ -20,6 +20,7 @@ def _clip(text: str, limit: int) -> str:
 
 
 def clip_material(text: str) -> str:
+    """Cut the retrieved material to the configured limit (``max_material_chars``) before the judge reads it."""
     return _clip(text, LIMITS["material"])
 
 
@@ -29,6 +30,7 @@ def _is_number_list(v) -> bool:
 
 
 def text_of(v) -> str:
+    """Return ``v`` as text: strings unchanged, anything else as JSON, or ``str(v)`` if it cannot be encoded."""
     if isinstance(v, str):
         return v
     try:

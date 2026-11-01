@@ -227,3 +227,20 @@ def test_api_template_downloads_and_group_options_validate(client):
     assert template.status_code == 200 and template.content[:2] == b"PK"
     bad = client.post("/api/test-cases/import", files=csv_file("question\nq\n"), data={"group_ids": json.dumps(["grp_nope"])})
     assert bad.status_code == 404
+
+
+def test_a_malformed_group_list_is_a_422_not_a_server_error(tmp_path):
+    from fastapi.testclient import TestClient
+
+    from ragevalkit.core.config import Config
+    from ragevalkit.main import create_app
+
+    app = create_app(Config(data_dir=tmp_path / "data", require_login=False), fn=lambda q: "a")
+    try:
+        answer = TestClient(app).post(
+            "/api/test-cases/import", data={"group_ids": "[not json"},
+            files={"file": ("cases.csv", b"question\nWhat is this?\n", "text/csv")},
+        )
+        assert answer.status_code == 422 and answer.json()["code"] == "invalid_input"
+    finally:
+        app.state.store.close()

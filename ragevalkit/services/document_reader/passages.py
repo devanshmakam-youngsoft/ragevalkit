@@ -32,7 +32,7 @@ def pack_into_chunks(units: list[tuple[str, int | None, str | None]], name: str)
     chunks: list[Chunk] = []
     buffer: list[tuple[str, int | None, str | None]] = []
 
-    def flush():
+    def flush() -> None:
         if not buffer:
             return
         text = "\n\n".join(u[0] for u in buffer)

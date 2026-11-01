@@ -108,6 +108,7 @@ def excerpt(source: str, names: list[str]) -> str:
 
 
 def code_card(source: str, title: str, *, lang: str = "python") -> str:
+    """Return a code figure (title bar, copy button, highlighted source) as HTML."""
     body = highlight(source.rstrip("\n")) if lang == "python" else html.escape(source.rstrip("\n"))
     return (
         f'<figure class="code"><figcaption><span>{html.escape(title)}</span>'
@@ -117,6 +118,7 @@ def code_card(source: str, title: str, *, lang: str = "python") -> str:
 
 
 def example_block(spec: str) -> str:
+    """Return the code figure for an ``{{example:file.py#names}}`` marker: a whole example file or selected definitions."""
     name, _, selection = spec.removeprefix("example:").partition("#")
     source = (EXAMPLES / name).read_text(encoding="utf-8").replace("\r\n", "\n")
     lang = "python" if name.endswith(".py") else "text"
@@ -159,6 +161,7 @@ def _entry_html(first_line: str, rest: list[str]) -> str:
 
 
 def serve_reference() -> str:
+    """Return the tables of every ``serve()`` option, built from its signature, its docstring and its section comments."""
     import ragevalkit
 
     fn = ragevalkit.serve
@@ -280,6 +283,7 @@ def _nav(pages: list[dict]) -> str:
 
 
 def build() -> str:
+    """Return the finished guide page: the shell with its navigation, every page and every marker filled in."""
     pages = _pages()
     rendered = [
         _render_page(page, pages[i - 1] if i else None, pages[i + 1] if i + 1 < len(pages) else None)
@@ -291,6 +295,7 @@ def build() -> str:
 
 
 def main() -> None:
+    """Write the guide into the package."""
     OUTPUT.write_text(build(), encoding="utf-8", newline="\n")
     print(f"wrote {OUTPUT.relative_to(ROOT)}")
 

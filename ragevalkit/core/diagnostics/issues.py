@@ -9,19 +9,19 @@ from ragevalkit.core.diagnostics.redaction import redact
 
 @dataclass
 class Issue:
-    stage: str          # which part of the run: "answer", "grading", "summary", ...
+    """A problem met during a run: a plain message for the dashboard and technical detail for the log."""
+
+    stage: str         # which part of the run: "answer", "grading", "summary", ...
     where: str          # which question or file, in words
     message: str        # plain language, safe to show anyone
     technical: str      # the exception and the end of its traceback, secrets hidden
     severity: str       # "error": something is missing or wrong; "warning": it carried on with a fallback
-    at: str
+    at: str             # when it first happened, as an ISO 8601 UTC timestamp
     count: int = 1      # how many times this same problem happened
 
     def to_dict(self) -> dict:
+        """Return all fields as a dict."""
         return asdict(self)
-
-    def without_technical(self) -> dict:
-        return {key: value for key, value in self.to_dict().items() if key != "technical"}
 
 
 def technical_text(error: BaseException, max_chars: int) -> str:
@@ -31,6 +31,7 @@ def technical_text(error: BaseException, max_chars: int) -> str:
 
 
 def make_issue(stage: str, error: BaseException, where: str, severity: str, max_technical_chars: int) -> Issue:
+    """Build an ``Issue`` from an exception, with a plain-language message and a redacted, length-limited traceback."""
     return Issue(
         stage=stage, where=where, message=explain(error, stage),
         technical=technical_text(error, max_technical_chars), severity=severity,

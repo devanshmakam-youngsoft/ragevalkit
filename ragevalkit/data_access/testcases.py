@@ -35,7 +35,7 @@ class CaseLibraryRepository(StoreBase):
         self,
         group_id: str | None = None,
         status: str | None = None,
-        # backward-compat alias — ignored but accepted so old callers don't break
+        # older name of group_id, still accepted
         dataset_id: str | None = None,
     ) -> list[dict]:
         """Return the latest version of each test case (with its group labels), optionally filtered."""

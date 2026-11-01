@@ -15,6 +15,18 @@ from ragevalkit.services.document_reader.passages import (
 
 
 def read_pdf(path: Path, name: str) -> ReadDocument:
+    """Read a PDF into passages, remembering the page each passage came from.
+
+    Only the first ``MAX_PAGES`` pages are read, though ``ReadDocument.pages`` reports the real page count. A page
+    whose text cannot be extracted is skipped instead of failing the whole file.
+
+    Args:
+        path: The file on disk.
+        name: The name to show in passage ids and error messages (the uploaded file's name, not ``path``).
+
+    Raises:
+        DocumentError: When the PDF is password-protected, cannot be read, or has no selectable text (a scan).
+    """
     try:
         reader = PdfReader(str(path))
         if reader.is_encrypted and not reader.decrypt(""):

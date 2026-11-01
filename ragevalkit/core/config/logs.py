@@ -3,6 +3,8 @@ from ragevalkit.core.config.base import Settings
 
 
 class LogSettings(Settings):
+    """Options for the server log, per-run logs and the limits on problems recorded for a run."""
+
     log_level: str = "INFO"
     server_log_max_mb: int = 5          # server.log is rotated at this size
     server_log_backups: int = 3         # how many rotated copies of server.log are kept

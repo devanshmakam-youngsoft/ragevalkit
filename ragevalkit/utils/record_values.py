@@ -4,11 +4,8 @@ import uuid
 
 
 def new_group_id() -> str:
+    """Return a new random test case group ID such as ``grp_1a2b3c4d``."""
     return "grp_" + uuid.uuid4().hex[:8]
-
-
-def dataset_id_for(fingerprint: str) -> str:
-    return "ds_" + fingerprint[:8]
 
 
 def clean_expected_sources(val) -> str:

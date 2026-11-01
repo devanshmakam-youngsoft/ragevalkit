@@ -28,7 +28,7 @@ def _block_everything_but_health(app: FastAPI) -> None:
     app.include_router(HEALTH_ROUTER)
 
     @app.api_route("/{full_path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
-    def _prod_blocked(full_path: str):
+    def _prod_blocked(full_path: str) -> None:
         raise HTTPException(
             503,
             "Eval dashboard is disabled in production mode (eval_env='prod'). Only /api/health is available.",
@@ -36,12 +36,15 @@ def _block_everything_but_health(app: FastAPI) -> None:
 
 
 def _serve_dashboard(app: FastAPI) -> None:
-    """Serve the compiled dashboard. A browser refresh on /groups or /datasets asks for that path directly, so a 404
-    outside /api/ returns index.html and React Router handles the route client-side."""
+    """Serve the compiled dashboard from ``STATIC_DIR``, or a "not built" notice when that folder is empty.
+
+    A browser refresh on /groups or /datasets asks for that path directly, so a 404 outside /api/ returns
+    index.html and React Router handles the route client-side.
+    """
     index = STATIC_DIR / "index.html"
 
     @app.exception_handler(StarletteHTTPException)
-    async def _spa_fallback(request: Request, exc: StarletteHTTPException):
+    async def _spa_fallback(request: Request, exc: StarletteHTTPException) -> FileResponse | JSONResponse:
         if exc.status_code == 404 and not request.url.path.startswith("/api/") and index.exists():
             return FileResponse(index)
         return JSONResponse({"detail": exc.detail}, status_code=exc.status_code)
@@ -52,7 +55,7 @@ def _serve_dashboard(app: FastAPI) -> None:
     logger.warning("%s/web/dashboard/ is empty. Run `npm run build` inside frontend/: it builds into %s/web/dashboard/.", LIBRARY_NAME, LIBRARY_NAME)
 
     @app.get("/{full_path:path}")
-    def _no_ui(full_path: str):
+    def _no_ui(full_path: str) -> dict[str, str]:
         return {"detail": "Dashboard not built. Run `npm run build` inside frontend/."}
 
 
@@ -66,6 +69,21 @@ def create_app(
     session_id_fn: Callable | None = None,
     generation_llm: Callable | None = None,
 ) -> FastAPI:
+    """Build the FastAPI app: the API, the results store, the run and generation managers, and the dashboard.
+
+    In ``eval_env="prod"`` only ``/api/health`` is served and no store or manager is created. The app is not
+    started here; ``serve()`` does that, and tests can drive the returned app directly.
+
+    Args:
+        config: All options. The store, logs and uploads are placed under ``config.data_dir``.
+        fn: The pipeline function under evaluation, called once per test question.
+        judge_fn: Replaces the LLM judge when given.
+        extra_metrics: Extra scoring functions run next to the built-in ones, by metric name.
+        on_complete: Called once after each run finishes, with the run's summary and result rows.
+        session_id_fn: Returns the session ID to use for a ``chat_id``; defaults to a random UUID per chat.
+        generation_llm: Replaces the model that writes test cases from documents. Called with a list of chat
+            messages, returns the reply text. Defaults to ``generator_model``, or ``judge_model`` if unset.
+    """
     if config.eval_secret == DEFAULT_SECRET and config.require_login:
         logger.warning("Using the default EVAL_SECRET. Set a strong secret before exposing this service.")
 

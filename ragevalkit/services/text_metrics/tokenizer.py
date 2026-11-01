@@ -10,4 +10,8 @@ STOPWORDS = set(
 
 
 def tokenize(text: str) -> list[str]:
+    """Return the lower-case words and numbers of ``text`` in order, without stopwords.
+
+    Decimal numbers such as ``3.5`` stay one token. ``None`` is treated as empty text.
+    """
     return [t for t in re.findall(r"[a-z0-9]+(?:\.[0-9]+)?", (text or "").lower()) if t not in STOPWORDS]

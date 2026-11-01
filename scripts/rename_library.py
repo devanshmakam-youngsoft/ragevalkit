@@ -11,6 +11,7 @@ import argparse
 import re
 import shutil
 import sys
+from collections.abc import Iterator
 from pathlib import Path
 
 TEXT_SUFFIXES = {".py", ".md", ".toml", ".html", ".ts", ".tsx", ".json", ".txt", ".cfg", ".yml", ".yaml", ".gitignore"}
@@ -26,7 +27,8 @@ def find_package(root: Path) -> Path:
     return found[0]
 
 
-def text_files(root: Path, skip: Path):
+def text_files(root: Path, skip: Path) -> Iterator[Path]:
+    """Yield the text files under ``root`` that can mention the name, leaving out caches, built files and ``skip``."""
     for path in root.rglob("*"):
         if not path.is_file() or path == skip:
             continue
@@ -45,6 +47,7 @@ def name_pattern(old: str) -> re.Pattern:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """List or make the rename and return the exit code."""
     parser = argparse.ArgumentParser(description="Rename the library everywhere.")
     parser.add_argument("new_name", help="the new import name, lowercase (for example evalkit)")
     parser.add_argument("--apply", action="store_true", help="make the changes (the default only lists them)")

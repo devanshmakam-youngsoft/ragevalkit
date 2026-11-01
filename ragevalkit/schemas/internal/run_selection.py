@@ -19,6 +19,7 @@ class RunSelection:
 
     @property
     def total(self) -> int:
+        """The number of questions the run would ask: the selected cases plus the context turns."""
         return len(self.df)
 
 
