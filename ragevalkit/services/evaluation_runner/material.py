@@ -1,6 +1,7 @@
 """Choosing which recorded steps supply the retrieved text the judge reads."""
 import logging
 
+from ragevalkit.core.constants.library import LIBRARY_NAME
 from ragevalkit.services import step_recorder
 
 logger = logging.getLogger(__name__)
@@ -21,7 +22,7 @@ def select_material(steps: list[dict]) -> str:
         logger.warning(
             "No step declared its material, so the output of every decorated step (%s) is used as the retrieved "
             "context, including steps that are not retrieval. Mark the retrieval step with "
-            "@ragevalkit.step(\"retrieval\", material=True) (or set s.material inside a `with` block) so only it counts.",
+            f"@{LIBRARY_NAME}.step(\"retrieval\", material=True) (or set s.material inside a `with` block) so only it counts.",
             ", ".join(s["name"] for s in pool),
         )
     return step_recorder.clip_material("\n\n".join(s["material"] for s in pool if s.get("material")))

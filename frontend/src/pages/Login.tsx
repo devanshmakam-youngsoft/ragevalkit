@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { Brand } from "../components/Brand";
 import { useAuth } from "../context/AuthContext";
 
 export default function Login() {
@@ -23,7 +24,7 @@ export default function Login() {
   return (
     <main className="mx-auto flex min-h-screen max-w-[420px] flex-col justify-center px-6 pb-16">
       <h1 className="font-serif text-[40px] font-medium leading-none tracking-tight">
-        RAG <span className="hl">Evaluator</span>
+        <Brand />
       </h1>
       <p className="mt-3 text-sm text-muted">Sign in to see evaluation runs and start new ones.</p>
 

@@ -159,6 +159,11 @@ export interface Issue {
   count: number;
 }
 
+/** What the dashboard calls itself, as set on the server. */
+export interface AppInfo {
+  name: string;
+}
+
 /** What the server has switched on: the guide (serve(show_guide=...)). */
 export interface Features {
   guide: boolean;

@@ -1,5 +1,5 @@
 import { apiPath } from "./base";
-import type { DatasetInfo, Features, GenBatch, Issue, GenItem, GenLimits, GenSummary, GenTurn, Group, GroupHistory, ImportMapping, ImportPreview, ImportResult, RecoResult, RunPreview, RunSelection, RunState, TestCase, VersionDetail, VersionSummary } from "./types";
+import type { AppInfo, DatasetInfo, Features, GenBatch, Issue, GenItem, GenLimits, GenSummary, GenTurn, Group, GroupHistory, ImportMapping, ImportPreview, ImportResult, RecoResult, RunPreview, RunSelection, RunState, TestCase, VersionDetail, VersionSummary } from "./types";
 
 /** Fired when any call comes back 401 so the app can return to the login page. */
 export const authEvents = new EventTarget();
@@ -66,6 +66,8 @@ export const api = {
   /** What went wrong so far in a run, in plain language, each with its technical detail. */
   runIssues: (runId: string) =>
     fetch(apiPath(`runs/${runId}/issues`)).then((r) => json<{ issues: Issue[]; issue_total: number; error: string | null; error_detail: string }>(r)),
+  /** What the dashboard calls itself. Public: the login page shows it before anyone has signed in. */
+  info: () => fetch(apiPath("info")).then((r) => json<AppInfo>(r, { notifyUnauthorized: false })),
   /** Which optional parts of the dashboard are switched on (the Help page, for now). */
   features: () => fetch(apiPath("features")).then((r) => json<Features>(r)),
   guideUrl: () => apiPath("help/guide"),

@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { ThemeToggle } from "./ThemeToggle";
+import { Brand } from "./Brand";
 import { Breadcrumbs, type Crumb } from "./Breadcrumbs";
 import { ExecuteModal } from "../dialogs/ExecuteModal";
 import { useRun } from "../context/RunContext";
@@ -27,7 +28,7 @@ export function TopBar({ action, crumbs }: { action?: ReactNode; crumbs?: Crumb[
         <div className="flex items-center gap-6">
           <Link to="/" className="block no-underline">
             <h1 className="font-serif text-[26px] font-medium leading-none tracking-tight text-fg">
-              RAG <span className="hl">Evaluator</span>
+              <Brand />
             </h1>
             <p className="mt-1.5 text-xs text-muted">Evaluation runs, scored version by version</p>
           </Link>
