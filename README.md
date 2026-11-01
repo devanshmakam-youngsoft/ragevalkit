@@ -225,27 +225,46 @@ When you release a new version of your RAG app, run the evaluator against the sa
 
 ### Layout
 
+In the repository:
+
+```
+ragevalkit-lib/
+├── README.md, pyproject.toml
+├── ragevalkit/        the BACKEND: the Python package (everything in it is installed)
+├── frontend/          the dashboard's source (React + Vite); builds into ragevalkit/web/dashboard
+├── tests/             mirrors ragevalkit/ folder by folder, plus architecture/, examples/, guides/
+├── docs/guide/        the guide's source: shell.html and one file per page in pages/
+├── examples/          the runnable code the guide shows; every file is run by tests/examples
+└── scripts/           build_guide.py, rename_library.py
+```
+
+Inside the backend, each folder is a layer that only reaches downwards (`routers -> services -> data_access -> core, schemas, utils`;
+`tests/architecture` enforces it):
+
 ```
 ragevalkit/
-  __init__.py       public API: serve, step, note, exceptions
-  launcher.py       serve()
-  exceptions.py     base errors (each package adds its own)
-  api/              app.py, routes/ (thin), schemas/, services/, dependencies.py, error_handlers.py
-  evaluation/       the run manager, calling your function, material, source check
-  judging/          the AI judge (prompts/ holds one prompt per file)
-  storage/          EvalStore, built from one repository per kind of record
-  generation/       test cases written from documents (prompts/ one per file)
-  test_cases/       case types, identity, importing/
-  recommendation/   which version to ship
-  run_summary/      the numbers saved for each run
-  recording/        step() and note()
-  metrics/  datasets/  documents/  llm/  auth/  config/  logs/
-  web/              generated files the server serves: dashboard/ (built from frontend/) and guide/ (built from docs/guide/)
-tests/              mirrors the package folders
-examples/           the runnable code the guide shows; every file is run by tests/examples
-docs/guide/         the guide: shell.html and one file per page in pages/
-scripts/            build_guide.py
+├── __init__.py          public API: serve, step, note, errors
+├── main.py              builds the web app
+├── launcher.py          serve(): checks options, starts the server
+├── core/                config/ (settings by topic), constants/ (library.py holds the names), exceptions/ (+ handlers),
+│                        diagnostics/ (log files, plain-language problems), security/ (sign-in)
+├── routers/             one folder per area, each file thin: evaluation/, testcase_library/, testcase_generator/, sign_in/, app_info/
+├── schemas/             the shape of every request and response, same area folders; internal/ for shapes services share
+├── services/            what the product does: evaluation_runner, answer_judge, testcase_generator, document_reader,
+│                        testcase_library, testcase_import, spreadsheet_loader, version_recommender, run_summarizer,
+│                        text_metrics, step_recorder, llm_client, app_info
+├── data_access/         reads and writes the JSON store (store.py and one file per kind of record)
+├── prompts/             the instructions sent to AI models, one file each: answer_judge/, testcase_generator/
+├── utils/               small shared helpers
+└── web/                 generated, do not edit: dashboard/ (built from frontend/) and guide/ (built from docs/guide/)
 ```
+
+What `pip install` puts on a machine is only the `ragevalkit/` folder: no tests, docs, examples, frontend source or scripts.
+The folder a running server writes is `ragevalkit_data/` (`data_dir=` moves it): `store.json`, `logs/`, `uploads/`.
+
+**The library's name** is written in one file, `ragevalkit/core/constants/library.py`; the data folder, the sign-in cookie, the loggers and
+the API title are derived from it. To rename the library everywhere (folder, imports, `pyproject`, docs and that file) run
+`python scripts/rename_library.py NEW_NAME` for a dry run, and add `--apply` to do it.
 
 ### The guide
 
