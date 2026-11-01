@@ -1,5 +1,5 @@
 """Errors raised by the results store."""
-from ragevalkit.exceptions import NotFoundError, RagevalError
+from ragevalkit.core.exceptions.base import NotFoundError, RagevalError
 
 
 class StoreError(RagevalError):

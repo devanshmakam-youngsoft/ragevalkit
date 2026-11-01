@@ -5,9 +5,9 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 from ragevalkit.api.dependencies import current_user, get_config
 from ragevalkit.api.schemas import LoginBody
-from ragevalkit.auth.passwords import check_password, parse_users
-from ragevalkit.auth.sessions import make_token
-from ragevalkit.config import Config
+from ragevalkit.core.config import Config
+from ragevalkit.core.security.passwords import check_password, parse_users
+from ragevalkit.core.security.sessions import make_token
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 

@@ -24,9 +24,9 @@ Every generated test case has the type ``rag``: its answer has to come from the 
 Modules: ``prompts/`` (what the model is told, one file each) · ``evidence`` (quotes are really in the document) ·
 ``checks`` (the rules) · ``llm`` (the model client; the call itself is ``llm.complete``) · ``writer`` · ``planning`` · ``manager``.
 """
-from ragevalkit.generation.categories import CASE_TYPE, CATEGORIES, CATEGORY_LABELS
+from ragevalkit.core.constants.generator_categories import CASE_TYPE, CATEGORIES, CATEGORY_LABELS
+from ragevalkit.core.exceptions.testcase_generator import GenerationBusy, GenerationError
 from ragevalkit.generation.checks import validate
-from ragevalkit.generation.exceptions import GenerationBusy, GenerationError
 from ragevalkit.generation.manager import GenerationManager
 from ragevalkit.generation.model_client import GenerationModelClient
 from ragevalkit.generation.planning import Task, plan_tasks

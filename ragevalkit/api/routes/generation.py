@@ -9,7 +9,7 @@ from ragevalkit.api.services.generation_batches import (
     get_batch,
     start_generation,
 )
-from ragevalkit.config import Config
+from ragevalkit.core.config import Config
 from ragevalkit.generation.manager import GenerationManager
 from ragevalkit.storage.store import EvalStore
 

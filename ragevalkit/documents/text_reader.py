@@ -2,8 +2,8 @@
 import re
 from pathlib import Path
 
-from ragevalkit.documents.constants import MIN_TEXT_CHARS
-from ragevalkit.documents.exceptions import DocumentError
+from ragevalkit.core.constants.document_reading import MIN_TEXT_CHARS
+from ragevalkit.core.exceptions.document_reader import DocumentError
 from ragevalkit.documents.models import ReadDocument
 from ragevalkit.documents.passages import pack_into_chunks, split_long_unit
 

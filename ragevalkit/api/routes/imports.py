@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, File, Form, Response, UploadFile
 
 from ragevalkit.api.dependencies import get_config, get_store, require_user
 from ragevalkit.api.services.imports import preview_import, read_upload, run_import
-from ragevalkit.config import Config
+from ragevalkit.core.config import Config
 from ragevalkit.storage.store import EvalStore
 from ragevalkit.test_cases.importing.template import template_workbook
 

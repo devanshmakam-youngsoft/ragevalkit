@@ -23,12 +23,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Callable
 
-from ragevalkit.documents.constants import SUPPORTED_SUFFIXES
-from ragevalkit.documents.exceptions import DocumentError
-from ragevalkit.documents.models import ReadDocument
-from ragevalkit.documents.reader import read_document
-from ragevalkit.exceptions import InvalidInput, NotFoundError
-from ragevalkit.generation.categories import (
+from ragevalkit.core.constants.document_reading import SUPPORTED_SUFFIXES
+from ragevalkit.core.constants.generator_categories import (
     CASE_TYPE,
     CATEGORIES,
     CATEGORY_LABELS,
@@ -37,12 +33,16 @@ from ragevalkit.generation.categories import (
     MAX_TURNS,
     MIN_TURNS,
 )
+from ragevalkit.core.diagnostics import EventLog
+from ragevalkit.core.exceptions.base import InvalidInput, NotFoundError
+from ragevalkit.core.exceptions.document_reader import DocumentError
+from ragevalkit.core.exceptions.testcase_generator import GenerationBusy
+from ragevalkit.documents.models import ReadDocument
+from ragevalkit.documents.reader import read_document
 from ragevalkit.generation.checks import check_text
-from ragevalkit.generation.exceptions import GenerationBusy
 from ragevalkit.generation.model_client import GenerationModelClient
 from ragevalkit.generation.planning import Task, plan_tasks
 from ragevalkit.generation.writer import generate_item
-from ragevalkit.logs import EventLog
 
 logger = logging.getLogger(__name__)
 

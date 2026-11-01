@@ -1,8 +1,8 @@
 """What routes ask FastAPI to hand them: settings, the results store, the managers, and the signed-in user."""
 from fastapi import HTTPException, Request
 
-from ragevalkit.auth.sessions import read_token
-from ragevalkit.config import Config
+from ragevalkit.core.config import Config
+from ragevalkit.core.security.sessions import read_token
 from ragevalkit.evaluation.runner import RunManager
 from ragevalkit.generation.manager import GenerationManager
 from ragevalkit.storage.store import EvalStore

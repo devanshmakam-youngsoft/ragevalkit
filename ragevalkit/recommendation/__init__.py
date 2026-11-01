@@ -31,7 +31,7 @@ Runs saved before per-case scores existed are filled in from their saved results
 are needed (see ``EvalStore.list_versions_for_comparison``). If a run has none at all, the older
 whole-run comparison (same number of questions) is used instead.
 """
-from ragevalkit.recommendation.constants import (
+from ragevalkit.core.constants.recommendation_defaults import (
     DEFAULT_ANSWER_WEIGHT,
     DEFAULT_MATERIAL_WEIGHT,
     DEFAULT_MIN_QUALITY,

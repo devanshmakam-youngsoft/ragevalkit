@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from ragevalkit.config import Config
+from ragevalkit.core.config import Config
 from ragevalkit.datasets.loader import load_dataset
 
 

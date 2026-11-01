@@ -1,5 +1,5 @@
 """Turn an exception into a sentence a person running an evaluation can act on."""
-from ragevalkit.exceptions import RagevalError
+from ragevalkit.core.exceptions.base import RagevalError
 
 # What went wrong, by the part of the run it happened in
 STAGE_SENTENCES = {

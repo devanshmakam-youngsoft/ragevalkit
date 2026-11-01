@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from functools import cached_property
 
-from ragevalkit.documents.constants import MIN_USABLE_CHARS
+from ragevalkit.core.constants.document_reading import MIN_USABLE_CHARS
 from ragevalkit.documents.text_cleaning import clean, sentences_of
 
 

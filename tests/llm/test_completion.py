@@ -2,7 +2,7 @@
 import sys
 import types
 
-from ragevalkit.config import Config
+from ragevalkit.core.config import Config
 from ragevalkit.generation.model_client import GenerationModelClient
 from ragevalkit.judging.judge import Judge
 from ragevalkit.llm import completion

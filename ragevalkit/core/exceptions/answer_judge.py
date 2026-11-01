@@ -1,5 +1,5 @@
 """Errors raised by the AI judge."""
-from ragevalkit.exceptions import RagevalError
+from ragevalkit.core.exceptions.base import RagevalError
 
 
 class JudgeError(RagevalError):

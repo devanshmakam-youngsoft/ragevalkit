@@ -1,5 +1,5 @@
 """Errors raised while reading a test case spreadsheet."""
-from ragevalkit.exceptions import RagevalError
+from ragevalkit.core.exceptions.base import RagevalError
 
 
 class DatasetError(RagevalError):

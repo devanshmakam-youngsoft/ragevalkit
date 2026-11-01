@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import math
 
-from ragevalkit.recommendation.constants import MIN_SHARED_SHARE
+from ragevalkit.core.constants.recommendation_defaults import MIN_SHARED_SHARE
 from ragevalkit.recommendation.ranking import choose_best, empty_result, mean_of_present
 
 

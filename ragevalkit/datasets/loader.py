@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from ragevalkit.datasets.exceptions import DatasetError
+from ragevalkit.core.exceptions.spreadsheet_loader import DatasetError
 
 REQUIRED_COLUMNS = ["chat_id", "turn_no", "type", "question", "expected_answer"]
 

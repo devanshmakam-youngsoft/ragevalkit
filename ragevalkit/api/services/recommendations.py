@@ -1,6 +1,6 @@
 """Which version to ship and how groups have done, with the settings given to serve()."""
-from ragevalkit.config import Config
-from ragevalkit.exceptions import InvalidInput, NotFoundError
+from ragevalkit.core.config import Config
+from ragevalkit.core.exceptions.base import InvalidInput, NotFoundError
 from ragevalkit.recommendation import group_overview, recommend
 from ragevalkit.storage.store import EvalStore
 

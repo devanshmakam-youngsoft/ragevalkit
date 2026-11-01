@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import pandas as pd
 import pytest
 
-from ragevalkit.config import Config
+from ragevalkit.core.config import Config
 from ragevalkit.evaluation.runner import RunManager
 from ragevalkit.storage.store import EvalStore
 

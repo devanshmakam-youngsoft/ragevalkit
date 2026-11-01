@@ -6,7 +6,7 @@ from ragevalkit.api.schemas import GroupName, TestCaseIds
 from ragevalkit.api.services.groups import get_group, import_file_into_group
 from ragevalkit.api.services.lookups import ensure_found
 from ragevalkit.api.services.recommendations import groups_with_history, history_of_group
-from ragevalkit.config import Config
+from ragevalkit.core.config import Config
 from ragevalkit.storage.store import EvalStore
 
 router = APIRouter(prefix="/api/groups", tags=["groups"], dependencies=[Depends(require_user)])

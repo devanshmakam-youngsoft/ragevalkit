@@ -1,5 +1,5 @@
 """Errors raised while reading an uploaded document."""
-from ragevalkit.exceptions import RagevalError
+from ragevalkit.core.exceptions.base import RagevalError
 
 
 class DocumentError(RagevalError):

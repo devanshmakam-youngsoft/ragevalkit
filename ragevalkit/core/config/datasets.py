@@ -1,7 +1,7 @@
 """Spreadsheet handling for test cases."""
 from pathlib import Path
 
-from ragevalkit.config.base import Settings
+from ragevalkit.core.config.base import Settings
 
 
 class DatasetSettings(Settings):

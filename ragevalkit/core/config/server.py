@@ -1,7 +1,7 @@
 """Where the server runs and where results are kept."""
 from pathlib import Path
 
-from ragevalkit.config.base import Settings
+from ragevalkit.core.config.base import Settings
 
 
 class ServerSettings(Settings):

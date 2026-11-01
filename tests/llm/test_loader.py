@@ -3,7 +3,7 @@ import sys
 import threading
 import types
 
-from ragevalkit.config import Config
+from ragevalkit.core.config import Config
 from ragevalkit.generation.model_client import GenerationModelClient
 from ragevalkit.llm import loader
 

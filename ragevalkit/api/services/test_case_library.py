@@ -1,6 +1,6 @@
 """Single test cases in the library."""
 from ragevalkit.api.schemas.test_cases import CreateTestCase
-from ragevalkit.exceptions import NotFoundError
+from ragevalkit.core.exceptions.base import NotFoundError
 from ragevalkit.storage.store import EvalStore
 
 

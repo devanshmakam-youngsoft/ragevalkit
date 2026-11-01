@@ -21,7 +21,7 @@ import json
 import logging
 import time
 
-from ragevalkit.judging.exceptions import JudgeError
+from ragevalkit.core.exceptions.answer_judge import JudgeError
 from ragevalkit.judging.insights import check_insights, parse_insights
 from ragevalkit.judging.prompts import (
     grader_format,

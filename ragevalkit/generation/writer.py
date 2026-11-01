@@ -5,8 +5,8 @@ import logging
 import time
 from typing import Callable
 
+from ragevalkit.core.exceptions.testcase_generator import GenerationError
 from ragevalkit.generation.checks import validate
-from ragevalkit.generation.exceptions import GenerationError
 from ragevalkit.generation.message_builder import build_messages
 from ragevalkit.generation.planning import Task
 from ragevalkit.generation.prompts import retry_instruction

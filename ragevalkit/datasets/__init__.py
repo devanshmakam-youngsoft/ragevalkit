@@ -1,5 +1,5 @@
 """Reading test case spreadsheets into a validated table."""
-from ragevalkit.datasets.exceptions import DatasetError
+from ragevalkit.core.exceptions.spreadsheet_loader import DatasetError
 from ragevalkit.datasets.loader import (
     OPTIONAL_COLUMNS,
     REQUIRED_COLUMNS,

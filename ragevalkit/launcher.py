@@ -8,10 +8,10 @@ from typing import Callable
 
 from ragevalkit import llm
 from ragevalkit.api import create_app
-from ragevalkit.config import Config
-from ragevalkit.config.dotenv import load_dotenv
-from ragevalkit.exceptions import ConfigError
-from ragevalkit.logs import configure_logging
+from ragevalkit.core.config import Config
+from ragevalkit.core.config.dotenv import load_dotenv
+from ragevalkit.core.diagnostics import configure_logging
+from ragevalkit.core.exceptions.base import ConfigError
 
 
 def serve(

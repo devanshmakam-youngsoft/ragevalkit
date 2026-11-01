@@ -1,5 +1,5 @@
 """Writing test cases from uploaded documents."""
-from ragevalkit.config.base import Settings
+from ragevalkit.core.config.base import Settings
 
 
 class GenerationSettings(Settings):

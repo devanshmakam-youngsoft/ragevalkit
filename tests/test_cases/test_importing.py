@@ -7,7 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from ragevalkit.api import create_app
-from ragevalkit.config import Config
+from ragevalkit.core.config import Config
 from ragevalkit.storage.store import EvalStore
 from ragevalkit.test_cases.importing.row_parser import parse_rows, split_labels
 from ragevalkit.test_cases.importing.table_reader import detect_mapping
@@ -168,7 +168,7 @@ def test_update_by_slot_rewrites_the_existing_case_and_stays_idempotent(store):
 
 
 def test_an_unknown_group_id_is_rejected(store):
-    from ragevalkit.storage.exceptions import GroupNotFound
+    from ragevalkit.core.exceptions.data_access import GroupNotFound
     with pytest.raises(GroupNotFound):
         store.import_cases([row(2, "c1", 1, "q")], group_ids=["grp_nope"])
 

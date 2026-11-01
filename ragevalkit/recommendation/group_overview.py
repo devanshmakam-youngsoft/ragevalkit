@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Iterable
 
-from ragevalkit.recommendation.constants import (
+from ragevalkit.core.constants.recommendation_defaults import (
     DEFAULT_ANSWER_WEIGHT,
     DEFAULT_MATERIAL_WEIGHT,
     DEFAULT_MIN_QUALITY,

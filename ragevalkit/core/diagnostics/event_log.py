@@ -5,9 +5,9 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 
-from ragevalkit.config import Config
-from ragevalkit.logs.issues import Issue, make_issue
-from ragevalkit.logs.redaction import redact
+from ragevalkit.core.config import Config
+from ragevalkit.core.diagnostics.issues import Issue, make_issue
+from ragevalkit.core.diagnostics.redaction import redact
 
 LINE_FORMAT = "%(asctime)s %(levelname)-7s %(message)s"
 logger = logging.getLogger(__name__)

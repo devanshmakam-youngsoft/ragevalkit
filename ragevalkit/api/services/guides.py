@@ -1,6 +1,6 @@
 """The guide for the Help page, and which optional parts of the dashboard are switched on."""
-from ragevalkit.config import Config
-from ragevalkit.exceptions import NotFoundError
+from ragevalkit.core.config import Config
+from ragevalkit.core.exceptions.base import NotFoundError
 from ragevalkit.guides import GUIDE_PATH
 
 

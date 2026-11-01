@@ -1,5 +1,5 @@
 """The AI judge: which model grades answers, and how it is called."""
-from ragevalkit.config.base import Settings
+from ragevalkit.core.config.base import Settings
 
 
 class JudgeSettings(Settings):

@@ -3,8 +3,8 @@ import json
 import tempfile
 from pathlib import Path
 
-from ragevalkit.config import Config
-from ragevalkit.exceptions import InvalidInput, TooLargeError
+from ragevalkit.core.config import Config
+from ragevalkit.core.exceptions.base import InvalidInput, TooLargeError
 from ragevalkit.storage.store import EvalStore
 from ragevalkit.test_cases.importing.fields import FIELD_LABELS, FIELDS, MAX_BYTES
 from ragevalkit.test_cases.importing.row_parser import Problem, parse_rows

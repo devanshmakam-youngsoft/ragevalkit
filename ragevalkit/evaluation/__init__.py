@@ -48,7 +48,7 @@ The dataset's question set is hashed on load and stored in the run summary as
 question_fingerprint. The dashboard can compare fingerprints across versions to
 warn when questions changed between runs.
 """
-from ragevalkit.evaluation.exceptions import RunBusy, RunError
+from ragevalkit.core.exceptions.evaluation_runner import RunBusy, RunError
 from ragevalkit.evaluation.run import Run
 from ragevalkit.evaluation.runner import RunManager
 

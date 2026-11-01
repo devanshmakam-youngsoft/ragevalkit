@@ -1,9 +1,9 @@
 """Errors are explained in plain words, and secrets never reach a log or the dashboard."""
 import pytest
 
-from ragevalkit.documents.exceptions import DocumentError
-from ragevalkit.judging.exceptions import JudgeError
-from ragevalkit.logs import explain, redact
+from ragevalkit.core.diagnostics import explain, redact
+from ragevalkit.core.exceptions.answer_judge import JudgeError
+from ragevalkit.core.exceptions.document_reader import DocumentError
 
 
 @pytest.mark.parametrize("error,expected", [

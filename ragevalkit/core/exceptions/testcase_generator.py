@@ -1,5 +1,5 @@
 """Errors raised while writing test cases from documents."""
-from ragevalkit.exceptions import RagevalError
+from ragevalkit.core.exceptions.base import RagevalError
 
 
 class GenerationError(RagevalError):

@@ -1,8 +1,8 @@
 """Finished runs ("versions") as the dashboard reads them."""
 from pathlib import Path
 
-from ragevalkit.config import Config
-from ragevalkit.exceptions import NotFoundError
+from ragevalkit.core.config import Config
+from ragevalkit.core.exceptions.base import NotFoundError
 from ragevalkit.storage.store import EvalStore
 from ragevalkit.storage.version_names import valid_version
 

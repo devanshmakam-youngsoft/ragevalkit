@@ -1,5 +1,5 @@
 """Errors raised while starting or running an evaluation."""
-from ragevalkit.exceptions import RagevalError
+from ragevalkit.core.exceptions.base import RagevalError
 
 
 class RunError(RagevalError):

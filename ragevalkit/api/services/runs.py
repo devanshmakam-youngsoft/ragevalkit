@@ -1,8 +1,8 @@
 """Looking up and controlling runs that are going on."""
-from ragevalkit.evaluation.exceptions import RunBusy
+from ragevalkit.core.exceptions.base import NotFoundError
+from ragevalkit.core.exceptions.evaluation_runner import RunBusy
 from ragevalkit.evaluation.run import Run
 from ragevalkit.evaluation.runner import RunManager
-from ragevalkit.exceptions import NotFoundError
 
 
 def get_run(manager: RunManager, run_id: str) -> Run:

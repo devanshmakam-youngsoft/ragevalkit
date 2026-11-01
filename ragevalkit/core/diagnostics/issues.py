@@ -3,8 +3,8 @@ import traceback
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 
-from ragevalkit.logs.plain_language import explain
-from ragevalkit.logs.redaction import redact
+from ragevalkit.core.diagnostics.plain_language import explain
+from ragevalkit.core.diagnostics.redaction import redact
 
 
 @dataclass

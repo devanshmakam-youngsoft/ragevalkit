@@ -8,7 +8,7 @@ import pytest
 
 from ragevalkit import recording
 from ragevalkit.api import create_app
-from ragevalkit.config import Config
+from ragevalkit.core.config import Config
 from ragevalkit.evaluation.material import select_material
 
 

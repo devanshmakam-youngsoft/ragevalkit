@@ -8,9 +8,9 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from ragevalkit.api.error_handlers import register_error_handlers
 from ragevalkit.api.routes import DASHBOARD_ROUTERS, HEALTH_ROUTER
-from ragevalkit.config import Config
+from ragevalkit.core.config import Config
+from ragevalkit.core.exceptions.handlers import register_error_handlers
 from ragevalkit.evaluation.runner import RunManager
 from ragevalkit.generation.manager import GenerationManager
 from ragevalkit.storage.store import EvalStore

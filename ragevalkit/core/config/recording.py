@@ -1,5 +1,5 @@
 """What ``step()`` and ``note()`` capture while your pipeline runs."""
-from ragevalkit.config.base import Settings
+from ragevalkit.core.config.base import Settings
 
 
 class RecordingSettings(Settings):

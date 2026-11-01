@@ -3,11 +3,11 @@ import logging
 
 from tinydb import Query
 
+from ragevalkit.core.exceptions.data_access import VersionNotFound
 from ragevalkit.run_summary.case_scores import build_case_scores
 from ragevalkit.run_summary.nodes import summary_nodes
 from ragevalkit.storage.base import StoreBase
 from ragevalkit.storage.excel_export import build_results_workbook
-from ragevalkit.storage.exceptions import VersionNotFound
 from ragevalkit.test_cases.identity import case_id_for
 
 logger = logging.getLogger(__name__)

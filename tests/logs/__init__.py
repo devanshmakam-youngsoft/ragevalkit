@@ -1,1 +1,1 @@
-"""Tests for ragevalkit.logs."""
+"""Tests for ragevalkit.core.diagnostics."""

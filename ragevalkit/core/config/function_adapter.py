@@ -1,5 +1,5 @@
 """How your pipeline function is called and how its answer is read."""
-from ragevalkit.config.base import Settings
+from ragevalkit.core.config.base import Settings
 
 
 class FunctionAdapterSettings(Settings):

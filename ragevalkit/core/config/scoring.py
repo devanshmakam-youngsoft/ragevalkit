@@ -1,5 +1,5 @@
 """How answers are scored and how the version to ship is chosen."""
-from ragevalkit.config.base import Settings
+from ragevalkit.core.config.base import Settings
 
 
 class ScoringSettings(Settings):

@@ -6,11 +6,11 @@ from pathlib import Path
 
 from fastapi import UploadFile
 
-from ragevalkit.config import Config
-from ragevalkit.documents.constants import SUPPORTED_MESSAGE, SUPPORTED_SUFFIXES
-from ragevalkit.exceptions import InvalidInput, NotFoundError, TooLargeError
-from ragevalkit.generation.categories import CATEGORIES
-from ragevalkit.generation.exceptions import GenerationBusy
+from ragevalkit.core.config import Config
+from ragevalkit.core.constants.document_reading import SUPPORTED_MESSAGE, SUPPORTED_SUFFIXES
+from ragevalkit.core.constants.generator_categories import CATEGORIES
+from ragevalkit.core.exceptions.base import InvalidInput, NotFoundError, TooLargeError
+from ragevalkit.core.exceptions.testcase_generator import GenerationBusy
 from ragevalkit.generation.manager import GenerationManager
 from ragevalkit.storage.store import EvalStore
 

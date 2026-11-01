@@ -13,7 +13,7 @@ from ragevalkit.api.schemas import (
 from ragevalkit.api.services.lookups import ensure_found
 from ragevalkit.api.services.test_case_library import create_test_case as create_library_test_case
 from ragevalkit.api.services.test_case_library import find_test_case
-from ragevalkit.exceptions import InvalidInput
+from ragevalkit.core.exceptions.base import InvalidInput
 from ragevalkit.storage.store import EvalStore
 
 router = APIRouter(prefix="/api/test-cases", tags=["test cases"], dependencies=[Depends(require_user)])

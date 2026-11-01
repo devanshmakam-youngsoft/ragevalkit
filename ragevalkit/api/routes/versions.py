@@ -7,7 +7,7 @@ from ragevalkit.api.services.versions import (
     get_version_with_deleted_flags,
     read_version_log,
 )
-from ragevalkit.config import Config
+from ragevalkit.core.config import Config
 from ragevalkit.storage.store import EvalStore
 
 router = APIRouter(prefix="/api/versions", tags=["versions"], dependencies=[Depends(require_user)])

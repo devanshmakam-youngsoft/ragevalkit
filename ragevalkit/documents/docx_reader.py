@@ -6,8 +6,8 @@ from docx import Document
 from docx.table import Table
 from docx.text.paragraph import Paragraph
 
-from ragevalkit.documents.constants import MAX_UNPACKED_BYTES, MIN_TEXT_CHARS
-from ragevalkit.documents.exceptions import DocumentError
+from ragevalkit.core.constants.document_reading import MAX_UNPACKED_BYTES, MIN_TEXT_CHARS
+from ragevalkit.core.exceptions.document_reader import DocumentError
 from ragevalkit.documents.models import ReadDocument
 from ragevalkit.documents.passages import pack_into_chunks, split_long_unit
 

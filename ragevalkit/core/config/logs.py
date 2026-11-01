@@ -1,5 +1,5 @@
 """Log files: how big they get and how many problems one run reports."""
-from ragevalkit.config.base import Settings
+from ragevalkit.core.config.base import Settings
 
 
 class LogSettings(Settings):

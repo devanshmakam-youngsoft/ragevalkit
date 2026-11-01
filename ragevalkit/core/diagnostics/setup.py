@@ -2,8 +2,8 @@
 import logging
 from logging.handlers import RotatingFileHandler
 
-from ragevalkit.config import Config
-from ragevalkit.logs.event_log import LINE_FORMAT
+from ragevalkit.core.config import Config
+from ragevalkit.core.diagnostics.event_log import LINE_FORMAT
 
 LOGGER_NAME = "ragevalkit"
 _OURS = "_ragevalkit_handler"

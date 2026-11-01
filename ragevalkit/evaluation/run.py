@@ -2,7 +2,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from ragevalkit.logs import EventLog
+from ragevalkit.core.diagnostics import EventLog
 
 
 class Run:

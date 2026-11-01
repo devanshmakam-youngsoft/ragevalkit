@@ -1,5 +1,5 @@
 """Who may open the dashboard."""
-from ragevalkit.config.base import Settings
+from ragevalkit.core.config.base import Settings
 
 
 class AccessSettings(Settings):

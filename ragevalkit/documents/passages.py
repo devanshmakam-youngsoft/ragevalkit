@@ -1,7 +1,7 @@
 """Cutting a document's text into passages of a size a model can write questions from."""
 import re
 
-from ragevalkit.documents.constants import TARGET_CHARS
+from ragevalkit.core.constants.document_reading import TARGET_CHARS
 from ragevalkit.documents.models import Chunk
 from ragevalkit.documents.text_cleaning import normalise
 
