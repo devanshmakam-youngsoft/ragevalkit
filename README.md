@@ -18,7 +18,7 @@ Evaluate any RAG pipeline, chatbot or agent. You give ragevalkit a Python functi
 pip install git+https://github.com/devanshmakam-youngsoft/ragevalkit.git
 ```
 
-To pin a release, add a tag, for example `@v0.1.3` (tags: `v0.1.0` to `v0.1.3`). Features described below that are newer than that tag (document-based test case generation, bulk import, the paired findings) are on `main` until the next tag is made.
+To pin a release, add a tag, for example `@v0.1.3` (tags: `v0.1.0` to `v0.1.4`). `v0.1.4` is the first release with the backend layout described below and the `data_dir` option in place of `store_path` and `log_dir`; code written for an earlier tag that passes those two options needs the one change.
 
 In `requirements.txt`:
 

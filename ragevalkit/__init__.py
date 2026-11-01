@@ -33,7 +33,7 @@ from ragevalkit.launcher import serve
 from ragevalkit.services.step_recorder.notes import note
 from ragevalkit.services.step_recorder.steps import step
 
-__version__ = "0.1.3"
+__version__ = "0.1.4"
 __all__ = [
     "serve", "step", "note", "__version__",
     # exceptions
