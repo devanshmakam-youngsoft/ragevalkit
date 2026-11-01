@@ -9,9 +9,9 @@ from fastapi.testclient import TestClient
 from ragevalkit.api import create_app
 from ragevalkit.core.config import Config
 from ragevalkit.data_access.store import EvalStore
-from ragevalkit.test_cases.importing.row_parser import parse_rows, split_labels
-from ragevalkit.test_cases.importing.table_reader import detect_mapping
-from ragevalkit.test_cases.importing.template import template_workbook
+from ragevalkit.services.testcase_import.row_parser import parse_rows, split_labels
+from ragevalkit.services.testcase_import.table_reader import detect_mapping
+from ragevalkit.services.testcase_import.template import template_workbook
 
 
 def table(**cols):

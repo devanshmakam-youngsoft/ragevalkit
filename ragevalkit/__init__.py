@@ -30,8 +30,8 @@ from ragevalkit.core.exceptions import (
     VersionNotFound,
 )
 from ragevalkit.launcher import serve
-from ragevalkit.recording.notes import note
-from ragevalkit.recording.steps import step
+from ragevalkit.services.step_recorder.notes import note
+from ragevalkit.services.step_recorder.steps import step
 
 __version__ = "0.1.3"
 __all__ = [

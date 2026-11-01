@@ -1,1 +1,1 @@
-"""Tests for ragevalkit.llm."""
+"""Tests for ragevalkit.services.llm_client."""

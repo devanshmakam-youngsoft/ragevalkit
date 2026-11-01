@@ -2,13 +2,13 @@
 from fastapi import APIRouter, Depends, Response
 
 from ragevalkit.api.dependencies import get_config, get_store, require_user
-from ragevalkit.api.services.versions import (
+from ragevalkit.core.config import Config
+from ragevalkit.data_access.store import EvalStore
+from ragevalkit.services.evaluation_runner.version_reader import (
     export_version,
     get_version_with_deleted_flags,
     read_version_log,
 )
-from ragevalkit.core.config import Config
-from ragevalkit.data_access.store import EvalStore
 
 router = APIRouter(prefix="/api/versions", tags=["versions"], dependencies=[Depends(require_user)])
 

@@ -5,8 +5,8 @@ from fastapi.testclient import TestClient
 from ragevalkit.api import create_app
 from ragevalkit.core.config import Config
 from ragevalkit.data_access.store import EvalStore
-from ragevalkit.recommendation.engine import recommend
-from ragevalkit.recommendation.group_overview import group_overview
+from ragevalkit.services.version_recommender.engine import recommend
+from ragevalkit.services.version_recommender.group_overview import group_overview
 from ragevalkit.utils.case_scores import build_case_scores, case_key
 
 

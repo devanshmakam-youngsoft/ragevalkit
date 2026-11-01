@@ -11,11 +11,11 @@ from ragevalkit.api import create_app
 from ragevalkit.core.config import Config
 from ragevalkit.core.exceptions.document_reader import DocumentError
 from ragevalkit.core.exceptions.testcase_generator import GenerationError
-from ragevalkit.documents.models import Chunk
-from ragevalkit.documents.ordering import spread_order
-from ragevalkit.documents.reader import read_document
-from ragevalkit.documents.text_cleaning import normalise
-from ragevalkit.generation import Task, generate_item, plan_tasks, validate
+from ragevalkit.services.document_reader.models import Chunk
+from ragevalkit.services.document_reader.ordering import spread_order
+from ragevalkit.services.document_reader.reader import read_document
+from ragevalkit.services.document_reader.text_cleaning import normalise
+from ragevalkit.services.testcase_generator import Task, generate_item, plan_tasks, validate
 
 # ---- helpers ------------------------------------------------------------------------------
 
@@ -421,7 +421,7 @@ def test_a_restart_marks_unfinished_batches_but_keeps_their_items(make_client):
     store = client.app.state.store
     store.save_batch({"batch_id": "old", "status": "running", "created_at": "2026-01-01T00:00:00+00:00",
                       "expires_at": "2999-01-01T00:00:00+00:00", "items": [{"item_id": "x", "category": "direct", "turns": [{}]}]})
-    from ragevalkit.generation import GenerationManager
+    from ragevalkit.services.testcase_generator import GenerationManager
     GenerationManager(client.app.state.config, store, llm=FakeLLM())
     assert store.get_batch("old")["status"] == "interrupted" and len(store.get_batch("old")["items"]) == 1
 

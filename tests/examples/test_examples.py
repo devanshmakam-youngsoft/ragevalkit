@@ -30,8 +30,8 @@ def serve_example(tmp_path, monkeypatch):
     caught = {}
     monkeypatch.setattr("uvicorn.run", lambda app, **options: caught.update(app=app))
     monkeypatch.setattr("ragevalkit.launcher.configure_logging", lambda config: None)
-    monkeypatch.setattr("ragevalkit.launcher.llm.load_litellm", lambda: None)
-    monkeypatch.setattr("ragevalkit.metrics.semantic_similarity", lambda *args, **options: 0.5)   # no model download
+    monkeypatch.setattr("ragevalkit.launcher.llm_client.load_litellm", lambda: None)
+    monkeypatch.setattr("ragevalkit.services.text_metrics.semantic_similarity", lambda *args, **options: 0.5)   # no model download
     monkeypatch.setattr("ragevalkit.launcher.threading.Timer", lambda *args, **options: SimpleNamespace(start=lambda: None))
 
     def serve(name, fake_judge=True):
@@ -290,7 +290,7 @@ def example_modules(monkeypatch):
 
 
 def test_production_runs_the_same_pipeline_with_steps_doing_nothing(example_modules):
-    from ragevalkit.recording.recorder import current_recorder
+    from ragevalkit.services.step_recorder.recorder import current_recorder
 
     import production_app
     reply = TestClient(production_app.app).post("/chat", json={"message": "Can I get a refund?"}).json()

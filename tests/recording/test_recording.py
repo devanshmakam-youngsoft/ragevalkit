@@ -6,33 +6,33 @@ from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
-from ragevalkit import recording
 from ragevalkit.api import create_app
 from ragevalkit.core.config import Config
-from ragevalkit.evaluation.material import select_material
+from ragevalkit.services import step_recorder
+from ragevalkit.services.evaluation_runner.material import select_material
 
 
 def run_question(body, detail="all"):
     """What the runner does around one call of the developer's function."""
-    recording.begin_question(detail)
+    step_recorder.begin_question(detail)
     try:
         body()
     finally:
-        recording.end_question()
-    return recording.collect_question()
+        step_recorder.end_question()
+    return step_recorder.collect_question()
 
 
 @pytest.fixture(autouse=True)
 def default_limits(monkeypatch):
-    monkeypatch.setitem(recording.LIMITS, "value", 1000)
-    monkeypatch.setitem(recording.LIMITS, "material", 20000)
+    monkeypatch.setitem(step_recorder.LIMITS, "value", 1000)
+    monkeypatch.setitem(step_recorder.LIMITS, "material", 20000)
 
 
 # ---- steps and notes from any thread --------------------------------------------------------------------
 
 def test_steps_started_in_a_thread_pool_are_recorded_with_their_material_and_sources():
     def search(name, delay):
-        with recording.step(name) as s:
+        with step_recorder.step(name) as s:
             time.sleep(delay)
             s.material = f"text from {name}"
             s.sources = [f"{name}.pdf"]
@@ -51,14 +51,14 @@ def test_steps_started_in_a_thread_pool_are_recorded_with_their_material_and_sou
 def test_notes_from_a_thread_reach_the_question():
     def body():
         with ThreadPoolExecutor(1) as pool:
-            pool.submit(lambda: recording.note("intent", "billing")).result()
+            pool.submit(lambda: step_recorder.note("intent", "billing")).result()
 
     assert run_question(body)["flags"] == {"intent": "billing"}
 
 
 def test_steps_are_listed_in_the_order_they_started_not_the_order_they_finished():
     def body():
-        first, second = recording.step("first"), recording.step("second")      # started in this order...
+        first, second = step_recorder.step("first"), step_recorder.step("second")      # started in this order...
         with second:
             pass
         with first:                                                              # ...finished in the other
@@ -68,21 +68,21 @@ def test_steps_are_listed_in_the_order_they_started_not_the_order_they_finished(
 
 
 def test_a_step_that_finishes_after_its_question_is_over_does_not_land_in_the_next_one():
-    recording.begin_question("all")
-    late = recording.step("late")
+    step_recorder.begin_question("all")
+    late = step_recorder.step("late")
     late.__enter__()
-    recording.end_question()
-    assert recording.collect_question()["steps"] == []
+    step_recorder.end_question()
+    assert step_recorder.collect_question()["steps"] == []
 
-    recording.begin_question("all")
+    step_recorder.begin_question("all")
     late.__exit__(None, None, None)                  # the slow thread from question 1 ends during question 2
-    recording.end_question()
-    assert recording.collect_question()["steps"] == []
+    step_recorder.end_question()
+    assert step_recorder.collect_question()["steps"] == []
 
 
 def test_async_steps_run_together_are_all_recorded():
     async def work(name):
-        with recording.step(name):
+        with step_recorder.step(name):
             await asyncio.sleep(0.01)
 
     async def main():
@@ -92,17 +92,17 @@ def test_async_steps_run_together_are_all_recorded():
 
 
 def test_nothing_is_recorded_outside_an_evaluation_run():
-    with recording.step("outside") as s:
+    with step_recorder.step("outside") as s:
         s.material = "x"
-    recording.note("k", "v")
-    assert recording.collect_question() == {"steps": [], "flags": {}}
+    step_recorder.note("k", "v")
+    assert step_recorder.collect_question() == {"steps": [], "flags": {}}
 
 
 def test_detail_modes_keep_what_they_promise():
     def body():
-        with recording.step("quiet"):
+        with step_recorder.step("quiet"):
             pass
-        with recording.step("loud") as s:
+        with step_recorder.step("loud") as s:
             s.material = "retrieved"
 
     assert {s["name"] for s in run_question(body, "selected")["steps"]} == {"loud"}
@@ -112,17 +112,17 @@ def test_detail_modes_keep_what_they_promise():
 
 # ---- what counts as the retrieved text ------------------------------------------------------------------
 
-@recording.step("rewrite")
+@step_recorder.step("rewrite")
 def rewrite(q):
     return "rewritten " + q
 
 
-@recording.step("retrieval", material=True)
+@step_recorder.step("retrieval", material=True)
 def retrieve(q):
     return "DOCUMENT TEXT " * 100              # 1,400 characters: far more than the old 400-character cut
 
 
-@recording.step("llm")
+@step_recorder.step("llm")
 def generate(q):
     return "THE ANSWER ITSELF"
 
@@ -140,22 +140,22 @@ def test_only_the_step_that_declares_material_supplies_it_in_full():
 def test_a_context_manager_that_sets_material_also_counts_as_declared():
     def body():
         generate("q")
-        with recording.step("search") as s:
+        with step_recorder.step("search") as s:
             s.material = "from the search"
 
     assert select_material(run_question(body)["steps"]) == "from the search"
 
 
 def test_when_nothing_is_declared_decorated_outputs_are_still_used_and_the_log_explains(caplog, monkeypatch):
-    import ragevalkit.evaluation.material as material_module
+    import ragevalkit.services.evaluation_runner.material as material_module
     monkeypatch.setattr(material_module, "_warned_undeclared_material", False)
 
-    @recording.step("search")
+    @step_recorder.step("search")
     def search(q):
         return "found text"
 
     steps = run_question(lambda: (search("q"), generate("q")))["steps"]
-    with caplog.at_level(logging.WARNING, logger="ragevalkit.evaluation.material"):
+    with caplog.at_level(logging.WARNING, logger="ragevalkit.services.evaluation_runner.material"):
         assert select_material(steps) == "found text\n\nTHE ANSWER ITSELF"        # how earlier versions behaved
         select_material(steps)
     warnings = [r.getMessage() for r in caplog.records if "No step declared its material" in r.getMessage()]
@@ -163,14 +163,14 @@ def test_when_nothing_is_declared_decorated_outputs_are_still_used_and_the_log_e
 
 
 def test_a_single_undeclared_step_is_taken_as_the_retriever_without_a_warning(caplog, monkeypatch):
-    import ragevalkit.evaluation.material as material_module
+    import ragevalkit.services.evaluation_runner.material as material_module
     monkeypatch.setattr(material_module, "_warned_undeclared_material", False)
 
-    @recording.step("search")
+    @step_recorder.step("search")
     def search(q):
         return "found text"
 
-    with caplog.at_level(logging.WARNING, logger="ragevalkit.evaluation.material"):
+    with caplog.at_level(logging.WARNING, logger="ragevalkit.services.evaluation_runner.material"):
         assert select_material(run_question(lambda: search("q"))["steps"]) == "found text"
     assert not caplog.records
 
@@ -178,7 +178,7 @@ def test_a_single_undeclared_step_is_taken_as_the_retriever_without_a_warning(ca
 # ---- the limits ----------------------------------------------------------------------------------------
 
 def test_shown_values_are_cut_with_a_marker_saying_how_much_is_missing():
-    @recording.step("step")
+    @step_recorder.step("step")
     def long_output(text):
         return text
 
@@ -188,10 +188,10 @@ def test_shown_values_are_cut_with_a_marker_saying_how_much_is_missing():
 
 
 def test_material_is_cut_at_its_own_larger_limit(monkeypatch):
-    monkeypatch.setitem(recording.LIMITS, "material", 50)
+    monkeypatch.setitem(step_recorder.LIMITS, "material", 50)
 
     def body():
-        with recording.step("search") as s:
+        with step_recorder.step("search") as s:
             s.material = "m" * 80
 
     material = select_material(run_question(body)["steps"])
@@ -199,20 +199,20 @@ def test_material_is_cut_at_its_own_larger_limit(monkeypatch):
 
 
 def test_the_limits_can_be_set():
-    recording.configure(max_step_value_chars=7, max_material_chars=9)
+    step_recorder.configure(max_step_value_chars=7, max_material_chars=9)
     try:
-        assert recording.LIMITS == {"value": 7, "material": 9}
+        assert step_recorder.LIMITS == {"value": 7, "material": 9}
     finally:
-        recording.configure(max_step_value_chars=1000, max_material_chars=20000)
+        step_recorder.configure(max_step_value_chars=1000, max_material_chars=20000)
 
 
 def test_a_vector_is_summarised_not_stored():
-    @recording.step("embed")
+    @step_recorder.step("embed")
     def embed(q):
         return [0.1] * 1536
 
     assert run_question(lambda: embed("q"))["steps"][0]["output"] == "[1536 numbers]"
-    assert recording.display_text([1, 2, 3]) == "[1, 2, 3]"           # a short list is shown as it is
+    assert step_recorder.display_text([1, 2, 3]) == "[1, 2, 3]"           # a short list is shown as it is
 
 
 # ---- through the runner --------------------------------------------------------------------------------
@@ -226,12 +226,12 @@ def test_a_step_that_ran_several_times_has_its_time_added_up(tmp_path):
     def fn(question):
         with ThreadPoolExecutor(2) as pool:                    # the same search, on two indexes at once
             list(pool.map(lambda _: _timed_search(), range(2)))
-        with recording.step("llm"):
+        with step_recorder.step("llm"):
             time.sleep(0.01)
         return "answer"
 
     def _timed_search():
-        with recording.step("search") as s:
+        with step_recorder.step("search") as s:
             time.sleep(0.05)
             s.material = "chunk"
 
@@ -244,6 +244,6 @@ def test_a_step_that_ran_several_times_has_its_time_added_up(tmp_path):
 def test_the_runner_applies_the_configured_limits(tmp_path):
     config = Config(store_path=tmp_path / "s.json", require_login=False, eval_secret="s", step_value_chars=30, material_chars=40)
     app = create_app(config, fn=lambda q: "a", generation_llm=lambda m: "{}")
-    assert recording.LIMITS == {"value": 30, "material": 40}
-    recording.configure(max_step_value_chars=1000, max_material_chars=20000)
+    assert step_recorder.LIMITS == {"value": 30, "material": 40}
+    step_recorder.configure(max_step_value_chars=1000, max_material_chars=20000)
     del app

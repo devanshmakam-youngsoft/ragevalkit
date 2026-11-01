@@ -8,12 +8,12 @@ from ragevalkit.core.config import Config
 from ragevalkit.core.constants.case_types import NON_RAG, RAG, is_non_rag
 from ragevalkit.core.constants.generator_categories import CASE_TYPE
 from ragevalkit.core.exceptions.document_reader import DocumentError
-from ragevalkit.documents.models import Chunk
-from ragevalkit.documents.reader import read_document
-from ragevalkit.documents.text_cleaning import normalise
-from ragevalkit.generation import Task, validate
-from ragevalkit.generation.message_builder import build_messages, system_prompt
 from ragevalkit.prompts.testcase_generator import CATEGORY_PROMPTS
+from ragevalkit.services.document_reader.models import Chunk
+from ragevalkit.services.document_reader.reader import read_document
+from ragevalkit.services.document_reader.text_cleaning import normalise
+from ragevalkit.services.testcase_generator import Task, validate
+from ragevalkit.services.testcase_generator.message_builder import build_messages, system_prompt
 
 PASSAGE = ("Employees must submit expense claims within thirty days of travel. Managers approve claims above five hundred "
            "dollars within five working days. Late claims are paid in the next monthly cycle unless finance grants an "

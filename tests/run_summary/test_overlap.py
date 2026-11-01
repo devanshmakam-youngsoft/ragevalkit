@@ -6,9 +6,9 @@ import pandas as pd
 import pytest
 
 from ragevalkit.data_access.store import EvalStore
-from ragevalkit.judging.insights import parse_insights
-from ragevalkit.judging.judge import Judge
-from ragevalkit.run_summary.group_stats import build_group_stats
+from ragevalkit.services.answer_judge.insights import parse_insights
+from ragevalkit.services.answer_judge.judge import Judge
+from ragevalkit.services.run_summarizer.group_stats import build_group_stats
 
 
 @pytest.fixture
@@ -105,7 +105,7 @@ def test_parse_insights_rejects_replies_with_nothing_usable(raw):
 
 
 def test_summarize_run_returns_bullets_retries_bad_replies_and_gives_up_cleanly(monkeypatch):
-    monkeypatch.setattr("ragevalkit.judging.judge.time.sleep", lambda s: None)
+    monkeypatch.setattr("ragevalkit.services.answer_judge.judge.time.sleep", lambda s: None)
     judge = Judge(SimpleNamespace(judge_prompt_override="", judge_retries=2, summary_prompt=""))
     replies = iter(["garbage", json.dumps({"pitfalls": ["a"], "suggestions": ["b"]})])
     sent = []
@@ -132,7 +132,7 @@ def make_judge(retries=3):
 
 
 def test_a_summary_without_suggestions_is_sent_back_with_the_reason_until_it_has_them(monkeypatch):
-    monkeypatch.setattr("ragevalkit.judging.judge.time.sleep", lambda s: None)
+    monkeypatch.setattr("ragevalkit.services.answer_judge.judge.time.sleep", lambda s: None)
     judge = make_judge()
     replies = iter([json.dumps({"pitfalls": ["Slow search."], "suggestions": []}),
                     json.dumps({"pitfalls": ["Slow search."], "suggestions": ["Check the search index."]})])
@@ -146,14 +146,14 @@ def test_a_summary_without_suggestions_is_sent_back_with_the_reason_until_it_has
 
 
 def test_when_the_model_never_gives_suggestions_what_it_did_give_is_kept(monkeypatch):
-    monkeypatch.setattr("ragevalkit.judging.judge.time.sleep", lambda s: None)
+    monkeypatch.setattr("ragevalkit.services.answer_judge.judge.time.sleep", lambda s: None)
     judge = make_judge(retries=2)
     judge._call = lambda messages, json_mode=False: json.dumps({"pitfalls": ["Slow search."]})
     assert judge.summarize_run("stats") == {"pitfalls": ["Slow search."], "suggestions": []}      # the runner fills the gap
 
 
 def test_a_failing_call_is_retried_then_the_summary_gives_up_cleanly(monkeypatch):
-    monkeypatch.setattr("ragevalkit.judging.judge.time.sleep", lambda s: None)
+    monkeypatch.setattr("ragevalkit.services.answer_judge.judge.time.sleep", lambda s: None)
     judge = make_judge(retries=2)
     calls = []
 
@@ -174,7 +174,7 @@ PAIR = {"pitfalls": ["a slow step"], "suggestions": ["speed it up"], "items": [{
     ({"pitfalls": ["a slow step", "a slow step", "None."], "suggestions": "- speed it up"}, PAIR),
 ])
 def test_summary_replies_are_read_whatever_names_and_shapes_the_model_used(reply, expected):
-    from ragevalkit.judging.insights import check_insights
+    from ragevalkit.services.answer_judge.insights import check_insights
     found, problem = check_insights(json.dumps(reply))
     assert problem == "" and found == expected
 
@@ -188,7 +188,7 @@ def test_the_summary_prompt_asks_for_actions_never_empty_and_no_jargon():
 
 
 def test_suggestions_read_from_the_numbers_are_never_empty_and_fit_the_run():
-    from ragevalkit.judging.fallback_insights import default_suggestions
+    from ragevalkit.services.answer_judge.fallback_insights import default_suggestions
     clean = {"failed_rows": 0, "avg_material_marks": 9.5, "avg_total_time": 2.0, "scores": {"tiers": {"low": 0}}}
     assert default_suggestions(clean, []) == ["Keep this version as the baseline and add harder test cases (indirect and multi-turn questions) to find where it breaks."]
     troubled = {"failed_rows": 2, "avg_material_marks": 5.0, "avg_total_time": 4.0, "avg_retrieval": 3.0, "avg_llm": 0.5,
@@ -200,7 +200,7 @@ def test_suggestions_read_from_the_numbers_are_never_empty_and_fit_the_run():
 
 
 def test_the_model_is_told_each_steps_share_of_the_response_time():
-    from ragevalkit.judging.run_summary_input import stats_for_llm
+    from ragevalkit.services.answer_judge.run_summary_input import stats_for_llm
     summary = {"total_rows": 2, "failed_rows": 0, "avg_answer_marks": 9, "avg_material_marks": 9, "avg_keyword_recall": 0.5,
                "avg_semantic_similarity": 0.5, "avg_total_time": 4.0, "avg_retrieval": 3.0, "scores": {}}
     assert "retrieval=3.0s (75% of the response time)" in stats_for_llm(summary, [])
@@ -213,14 +213,14 @@ PAIRED = {"items": [{"watch_out": "The multi-turn group scores lowest.", "sugges
 
 
 def test_paired_findings_are_accepted_and_keep_their_pairing():
-    from ragevalkit.judging.insights import check_insights
+    from ragevalkit.services.answer_judge.insights import check_insights
     found, problem = check_insights(json.dumps(PAIRED))
     assert problem == "" and found["items"] == PAIRED["items"]
     assert found["pitfalls"] == [i["watch_out"] for i in PAIRED["items"]] and found["suggestions"] == [i["suggestion"] for i in PAIRED["items"]]
 
 
 def test_a_finding_without_its_suggestion_is_sent_back_naming_the_item(monkeypatch):
-    monkeypatch.setattr("ragevalkit.judging.judge.time.sleep", lambda s: None)
+    monkeypatch.setattr("ragevalkit.services.answer_judge.judge.time.sleep", lambda s: None)
     judge = make_judge()
     broken = {"items": [PAIRED["items"][0], {"watch_out": "Finding documents takes most of the time.", "suggestion": ""}]}
     replies = iter([json.dumps(broken), json.dumps(PAIRED)])
@@ -231,13 +231,13 @@ def test_a_finding_without_its_suggestion_is_sent_back_naming_the_item(monkeypat
 
 
 def test_unequal_parallel_lists_are_asked_to_use_the_paired_shape():
-    from ragevalkit.judging.insights import check_insights
+    from ragevalkit.services.answer_judge.insights import check_insights
     found, problem = check_insights(json.dumps({"pitfalls": ["a", "b"], "suggestions": ["c"]}))
     assert found is None and '"items"' in problem and "its own suggestion" in problem
 
 
 def test_a_watch_out_left_without_a_suggestion_gets_one_from_the_numbers():
-    from ragevalkit.judging.fallback_insights import finish_insights
+    from ragevalkit.services.answer_judge.fallback_insights import finish_insights
     summary = {"failed_rows": 2, "avg_material_marks": 9, "avg_total_time": 2.0, "scores": {"tiers": {"low": 0}}}
     half = {"items": [{"watch_out": "Some questions failed.", "suggestion": ""}, {"watch_out": "Slow.", "suggestion": "Look at the slowest step."}],
             "pitfalls": ["Some questions failed.", "Slow."], "suggestions": ["Look at the slowest step."]}
@@ -247,14 +247,14 @@ def test_a_watch_out_left_without_a_suggestion_gets_one_from_the_numbers():
 
 
 def test_older_style_lists_are_paired_by_position_and_never_left_blank():
-    from ragevalkit.judging.fallback_insights import finish_insights
+    from ragevalkit.services.answer_judge.fallback_insights import finish_insights
     done = finish_insights({"pitfalls": ["One.", "Two."], "suggestions": ["Fix one."]}, {"failed_rows": 0, "scores": {}}, [])
     assert done["items"][0] == {"watch_out": "One.", "suggestion": "Fix one."}
     assert done["items"][1]["watch_out"] == "Two." and done["items"][1]["suggestion"]
 
 
 def test_the_model_is_told_the_figures_in_plain_words():
-    from ragevalkit.judging.run_summary_input import stats_for_llm
+    from ragevalkit.services.answer_judge.run_summary_input import stats_for_llm
     text = stats_for_llm({"total_rows": 1, "failed_rows": 0, "avg_answer_marks": 9, "avg_material_marks": 9, "avg_keyword_recall": 0.5,
                           "avg_semantic_similarity": 0.4, "avg_total_time": 2.0, "scores": {}}, [])
     assert "semantic" not in text.lower() and "recall" not in text.lower() and "meaning match" in text and "Step names" in text

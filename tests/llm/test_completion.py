@@ -3,9 +3,9 @@ import sys
 import types
 
 from ragevalkit.core.config import Config
-from ragevalkit.generation.model_client import GenerationModelClient
-from ragevalkit.judging.judge import Judge
-from ragevalkit.llm import completion
+from ragevalkit.services.answer_judge.judge import Judge
+from ragevalkit.services.llm_client import completion
+from ragevalkit.services.testcase_generator.model_client import GenerationModelClient
 
 
 def fake_litellm(monkeypatch):
@@ -35,7 +35,7 @@ def test_a_json_mode_rejection_is_logged_once_in_our_words_and_the_retry_still_a
         return types.SimpleNamespace(choices=[types.SimpleNamespace(message=types.SimpleNamespace(content='{"ok": 1}'))])
 
     module.completion = completion_stub
-    with caplog.at_level("INFO", logger="ragevalkit.llm.completion"):
+    with caplog.at_level("INFO", logger="ragevalkit.services.llm_client.completion"):
         reply = GenerationModelClient(Config(store_path="x", judge_model="groq/m"))([{"role": "user", "content": "hi"}])
     assert reply == '{"ok": 1}' and seen == [True, False]
     assert [r.getMessage() for r in caplog.records if "rejected JSON mode" in r.getMessage()] == [

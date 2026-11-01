@@ -1,1 +1,1 @@
-"""Tests for ragevalkit.generation and ragevalkit.documents."""
+"""Tests for ragevalkit.services.testcase_generator and ragevalkit.services.document_reader."""

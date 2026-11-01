@@ -3,9 +3,14 @@ from types import SimpleNamespace
 
 import pytest
 
-from ragevalkit.documents.models import Chunk
-from ragevalkit.documents.text_cleaning import normalise
-from ragevalkit.generation import GenerationModelClient, Task, parse_reply, validate
+from ragevalkit.services.document_reader.models import Chunk
+from ragevalkit.services.document_reader.text_cleaning import normalise
+from ragevalkit.services.testcase_generator import (
+    GenerationModelClient,
+    Task,
+    parse_reply,
+    validate,
+)
 
 MARKDOWN_PASSAGE = (
     "## Expenses\n\n**Employees** must submit expense claims within *thirty days* of travel. "

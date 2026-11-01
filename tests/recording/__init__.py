@@ -1,1 +1,1 @@
-"""Tests for ragevalkit.recording."""
+"""Tests for ragevalkit.services.step_recorder."""

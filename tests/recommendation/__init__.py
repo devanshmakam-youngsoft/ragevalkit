@@ -1,1 +1,1 @@
-"""Tests for ragevalkit.recommendation."""
+"""Tests for ragevalkit.services.version_recommender."""

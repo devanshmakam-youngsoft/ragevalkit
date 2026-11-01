@@ -5,7 +5,7 @@ from tinydb import Query
 
 from ragevalkit.core.exceptions.data_access import VersionNotFound
 from ragevalkit.data_access.base import StoreBase
-from ragevalkit.data_access.excel_export import build_results_workbook
+from ragevalkit.services.run_summarizer.excel_export import build_results_workbook
 from ragevalkit.utils.case_scores import build_case_scores
 from ragevalkit.utils.step_order import summary_nodes
 from ragevalkit.utils.testcase_identity import case_id_for

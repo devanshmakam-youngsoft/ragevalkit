@@ -4,8 +4,8 @@ from fastapi import HTTPException, Request
 from ragevalkit.core.config import Config
 from ragevalkit.core.security.sessions import read_token
 from ragevalkit.data_access.store import EvalStore
-from ragevalkit.evaluation.runner import RunManager
-from ragevalkit.generation.manager import GenerationManager
+from ragevalkit.services.evaluation_runner.runner import RunManager
+from ragevalkit.services.testcase_generator.manager import GenerationManager
 
 
 def get_config(request: Request) -> Config:

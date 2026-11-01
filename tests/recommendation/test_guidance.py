@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 
 from ragevalkit.data_access.store import EvalStore
-from ragevalkit.recommendation.engine import recommend
+from ragevalkit.services.version_recommender.engine import recommend
 
 
 def entry(key, answer, material=None, time=1.0):

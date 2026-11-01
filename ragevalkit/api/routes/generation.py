@@ -3,15 +3,15 @@ from fastapi import APIRouter, Depends, File, Form, UploadFile
 
 from ragevalkit.api.dependencies import get_config, get_generation_manager, get_store, require_user
 from ragevalkit.api.schemas import Approval, ItemEdit
-from ragevalkit.api.services.generation_batches import (
+from ragevalkit.core.config import Config
+from ragevalkit.data_access.store import EvalStore
+from ragevalkit.services.testcase_generator.manager import GenerationManager
+from ragevalkit.services.testcase_generator.review_batches import (
     batch_summary,
     discard_batch,
     get_batch,
     start_generation,
 )
-from ragevalkit.core.config import Config
-from ragevalkit.data_access.store import EvalStore
-from ragevalkit.generation.manager import GenerationManager
 
 router = APIRouter(prefix="/api/generate", tags=["generate"], dependencies=[Depends(require_user)])
 

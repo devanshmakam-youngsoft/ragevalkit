@@ -3,8 +3,11 @@ from types import SimpleNamespace
 
 import pytest
 
-from ragevalkit.evaluation.source_check import check_sources_by_keyword, parse_source_groups
-from ragevalkit.judging.judge import Judge
+from ragevalkit.services.answer_judge.judge import Judge
+from ragevalkit.services.evaluation_runner.source_check import (
+    check_sources_by_keyword,
+    parse_source_groups,
+)
 
 
 def test_parse_groups():

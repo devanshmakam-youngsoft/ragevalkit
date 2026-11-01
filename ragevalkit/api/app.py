@@ -12,8 +12,8 @@ from ragevalkit.api.routes import DASHBOARD_ROUTERS, HEALTH_ROUTER
 from ragevalkit.core.config import Config
 from ragevalkit.core.exceptions.handlers import register_error_handlers
 from ragevalkit.data_access.store import EvalStore
-from ragevalkit.evaluation.runner import RunManager
-from ragevalkit.generation.manager import GenerationManager
+from ragevalkit.services.evaluation_runner.runner import RunManager
+from ragevalkit.services.testcase_generator.manager import GenerationManager
 
 logger = logging.getLogger(__name__)
 

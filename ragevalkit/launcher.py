@@ -6,12 +6,12 @@ import webbrowser
 from pathlib import Path
 from typing import Callable
 
-from ragevalkit import llm
 from ragevalkit.api import create_app
 from ragevalkit.core.config import Config
 from ragevalkit.core.config.dotenv import load_dotenv
 from ragevalkit.core.diagnostics import configure_logging
 from ragevalkit.core.exceptions.base import ConfigError
+from ragevalkit.services import llm_client
 
 
 def serve(
@@ -260,7 +260,7 @@ def serve(
     configure_logging(config)
     if config.eval_env != "prod":
         try:
-            llm.load_litellm()   # once, here, before the server and its worker threads exist (see llm/loader.py)
+            llm_client.load_litellm()   # once, here, before the server and its worker threads exist (see llm/loader.py)
         except ImportError:
             logging.getLogger(__name__).warning("litellm is not installed: judging and test case generation will not work.")
     app = create_app(

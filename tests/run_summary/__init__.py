@@ -1,1 +1,1 @@
-"""Tests for ragevalkit.run_summary."""
+"""Tests for ragevalkit.services.run_summarizer."""

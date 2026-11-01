@@ -3,7 +3,7 @@ so it cannot say something the code does not do. When this fails, run: python sc
 import importlib.util
 from pathlib import Path
 
-from ragevalkit.guides import GUIDE_PATH
+from ragevalkit.services.app_info.guide import GUIDE_PATH
 
 ROOT = Path(__file__).parents[2]
 

@@ -4,8 +4,8 @@ import threading
 import types
 
 from ragevalkit.core.config import Config
-from ragevalkit.generation.model_client import GenerationModelClient
-from ragevalkit.llm import loader
+from ragevalkit.services.llm_client import loader
+from ragevalkit.services.testcase_generator.model_client import GenerationModelClient
 
 
 def fake_litellm(monkeypatch):
