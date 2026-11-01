@@ -4,6 +4,7 @@ from pathlib import Path
 from ragevalkit.core.config import Config
 from ragevalkit.core.exceptions.base import NotFoundError
 from ragevalkit.data_access.store import EvalStore
+from ragevalkit.services.run_summarizer.excel_export import build_results_workbook
 from ragevalkit.utils.version_names import valid_version
 
 
@@ -32,4 +33,4 @@ def export_version(store: EvalStore, version: str) -> bytes:
     """The version's results as an Excel workbook."""
     if not valid_version(version) or not store.exists(version):
         raise NotFoundError("Version not found")
-    return store.export_xlsx(version)
+    return build_results_workbook(store.get(version))

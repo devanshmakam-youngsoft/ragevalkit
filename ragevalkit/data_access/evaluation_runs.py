@@ -5,7 +5,6 @@ from tinydb import Query
 
 from ragevalkit.core.exceptions.data_access import VersionNotFound
 from ragevalkit.data_access.base import StoreBase
-from ragevalkit.services.run_summarizer.excel_export import build_results_workbook
 from ragevalkit.utils.case_scores import build_case_scores
 from ragevalkit.utils.step_order import summary_nodes
 from ragevalkit.utils.testcase_identity import case_id_for
@@ -131,6 +130,3 @@ class RunsRepository(StoreBase):
                 tc = r.get("tc_id") or case_id_for(str(r.get("chat_id", "")), int(r.get("turn_no") or 1), str(r.get("question", "")))
                 r["groups"] = sorted(names_of.get(tc, []))
 
-    def export_xlsx(self, version: str) -> bytes:
-        """The results of one version as an Excel workbook."""
-        return build_results_workbook(self.get(version))

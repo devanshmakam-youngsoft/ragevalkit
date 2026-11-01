@@ -1,4 +1,4 @@
-"""Small helpers for ids and values the repositories share."""
+"""Small helpers for ids and values stored records share."""
 import math
 import uuid
 

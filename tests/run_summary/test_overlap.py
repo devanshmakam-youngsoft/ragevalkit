@@ -8,6 +8,7 @@ import pytest
 from ragevalkit.data_access.store import EvalStore
 from ragevalkit.services.answer_judge.insights import parse_insights
 from ragevalkit.services.answer_judge.judge import Judge
+from ragevalkit.services.run_summarizer.excel_export import build_results_workbook
 from ragevalkit.services.run_summarizer.group_stats import build_group_stats
 
 
@@ -82,7 +83,7 @@ def test_the_excel_export_has_a_groups_column(store):
     import io
 
     import openpyxl
-    book = openpyxl.load_workbook(io.BytesIO(store.export_xlsx("1")))
+    book = openpyxl.load_workbook(io.BytesIO(build_results_workbook(store.get("1"))))
     sheet = book["Results"]
     header = [c.value for c in sheet[1]]
     col = header.index("groups")
