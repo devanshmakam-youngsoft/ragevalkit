@@ -4,7 +4,7 @@ import json
 
 import pandas as pd
 
-from ragevalkit.run_summary.nodes import node_order
+from ragevalkit.utils.step_order import node_order
 
 COLUMNS_BEFORE_NODES = [
     "chat_id", "session_id", "turn_no", "type", "question", "expected_answer",

@@ -10,8 +10,8 @@ from ragevalkit.api.services.generation_batches import (
     start_generation,
 )
 from ragevalkit.core.config import Config
+from ragevalkit.data_access.store import EvalStore
 from ragevalkit.generation.manager import GenerationManager
-from ragevalkit.storage.store import EvalStore
 
 router = APIRouter(prefix="/api/generate", tags=["generate"], dependencies=[Depends(require_user)])
 

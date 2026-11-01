@@ -3,8 +3,7 @@ from ragevalkit.core.exceptions.spreadsheet_loader import DatasetError
 from ragevalkit.datasets.loader import (
     OPTIONAL_COLUMNS,
     REQUIRED_COLUMNS,
-    compute_fingerprint,
     load_dataset,
 )
 
-__all__ = ["DatasetError", "OPTIONAL_COLUMNS", "REQUIRED_COLUMNS", "compute_fingerprint", "load_dataset"]
+__all__ = ["DatasetError", "OPTIONAL_COLUMNS", "REQUIRED_COLUMNS", "load_dataset"]

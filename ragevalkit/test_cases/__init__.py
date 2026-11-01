@@ -1,6 +1,6 @@
 """Test cases: what identifies one, which types exist, and how they are imported from spreadsheets."""
 from ragevalkit.core.constants.case_types import NON_RAG, RAG, TYPES, is_non_rag
-from ragevalkit.test_cases.identity import (
+from ragevalkit.utils.testcase_identity import (
     case_id_for,
     case_order,
     latest_versions,

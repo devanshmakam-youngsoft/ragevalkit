@@ -1,5 +1,5 @@
 """The pipeline steps ("nodes") a run recorded, and the order they ran in."""
-from ragevalkit.run_summary.averages import is_nan
+from ragevalkit.utils.score_math import is_nan
 
 METRIC_AVGS = {"answer_marks", "material_marks", "total_time", "keyword_recall", "bm25_score", "semantic_similarity"}
 

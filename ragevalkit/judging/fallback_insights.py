@@ -1,5 +1,5 @@
 """Findings read straight from a run's numbers, for when the model left a watch-out without a suggestion."""
-from ragevalkit.run_summary.nodes import summary_nodes
+from ragevalkit.utils.step_order import summary_nodes
 
 
 def default_suggestions(summary: dict, rows: list[dict]) -> list[str]:

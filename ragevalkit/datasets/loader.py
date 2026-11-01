@@ -1,27 +1,16 @@
 """Load and validate a test case spreadsheet (xlsx or csv)."""
-import hashlib
 from pathlib import Path
 
 import pandas as pd
 
 from ragevalkit.core.exceptions.spreadsheet_loader import DatasetError
+from ragevalkit.utils.fingerprint import compute_fingerprint
 
 REQUIRED_COLUMNS = ["chat_id", "turn_no", "type", "question", "expected_answer"]
 
 
 # Optional: kept automatically if present in the file (no extra_columns config needed).
 OPTIONAL_COLUMNS = ["expected_sources"]
-
-
-def compute_fingerprint(df: pd.DataFrame) -> str:
-    """12-char SHA-256 fingerprint of the question set (stable across identical uploads)."""
-    content = "\n".join(
-        sorted(
-            f"{r.chat_id}:{r.turn_no}:{r.question}:{r.expected_answer}"
-            for r in df.itertuples(index=False)
-        )
-    )
-    return hashlib.sha256(content.encode("utf-8")).hexdigest()[:12]
 
 
 def load_dataset(

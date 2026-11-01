@@ -1,7 +1,7 @@
 """One compact score per test case, so any two versions can be compared on the cases they share."""
 import hashlib
 
-from ragevalkit.run_summary.averages import is_nan
+from ragevalkit.utils.score_math import is_nan
 
 
 def case_key(chat_id, turn_no, question, expected_answer) -> str:

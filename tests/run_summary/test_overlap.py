@@ -5,10 +5,10 @@ from types import SimpleNamespace
 import pandas as pd
 import pytest
 
+from ragevalkit.data_access.store import EvalStore
 from ragevalkit.judging.insights import parse_insights
 from ragevalkit.judging.judge import Judge
 from ragevalkit.run_summary.group_stats import build_group_stats
-from ragevalkit.storage.store import EvalStore
 
 
 @pytest.fixture

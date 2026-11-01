@@ -2,7 +2,7 @@
 from ragevalkit.api.services.uploads import load_uploaded_spreadsheet
 from ragevalkit.core.config import Config
 from ragevalkit.core.exceptions.base import NotFoundError
-from ragevalkit.storage.store import EvalStore
+from ragevalkit.data_access.store import EvalStore
 
 
 def get_group(store: EvalStore, group_id: str, message: str | None = None) -> dict:

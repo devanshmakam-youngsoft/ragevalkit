@@ -7,7 +7,6 @@ from fastapi.responses import StreamingResponse
 
 from ragevalkit.api.dependencies import get_config, get_run_manager, get_store, require_user
 from ragevalkit.api.schemas import SelectionBody
-from ragevalkit.api.services.lookups import ensure_found
 from ragevalkit.api.services.run_requests import (
     check_version_name,
     parse_id_list,
@@ -17,8 +16,9 @@ from ragevalkit.api.services.run_requests import (
 from ragevalkit.api.services.runs import get_run, request_stop, run_issues
 from ragevalkit.core.config import Config
 from ragevalkit.core.exceptions.data_access import ConflictError
+from ragevalkit.data_access.store import EvalStore
 from ragevalkit.evaluation.runner import RunManager
-from ragevalkit.storage.store import EvalStore
+from ragevalkit.utils.ensure_found import ensure_found
 
 router = APIRouter(prefix="/api/runs", tags=["runs"], dependencies=[Depends(require_user)])
 

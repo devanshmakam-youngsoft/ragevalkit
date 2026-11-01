@@ -3,8 +3,8 @@ from pathlib import Path
 
 from ragevalkit.core.config import Config
 from ragevalkit.core.exceptions.base import NotFoundError
-from ragevalkit.storage.store import EvalStore
-from ragevalkit.storage.version_names import valid_version
+from ragevalkit.data_access.store import EvalStore
+from ragevalkit.utils.version_names import valid_version
 
 
 def get_version_with_deleted_flags(store: EvalStore, version: str) -> dict:

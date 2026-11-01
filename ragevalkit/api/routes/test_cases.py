@@ -10,11 +10,11 @@ from ragevalkit.api.schemas import (
     TestCaseStatusUpdate,
     TestCaseUpdate,
 )
-from ragevalkit.api.services.lookups import ensure_found
 from ragevalkit.api.services.test_case_library import create_test_case as create_library_test_case
 from ragevalkit.api.services.test_case_library import find_test_case
 from ragevalkit.core.exceptions.base import InvalidInput
-from ragevalkit.storage.store import EvalStore
+from ragevalkit.data_access.store import EvalStore
+from ragevalkit.utils.ensure_found import ensure_found
 
 router = APIRouter(prefix="/api/test-cases", tags=["test cases"], dependencies=[Depends(require_user)])
 

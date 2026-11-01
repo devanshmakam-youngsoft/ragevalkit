@@ -2,8 +2,8 @@
 import pandas as pd
 import pytest
 
+from ragevalkit.data_access.store import EvalStore
 from ragevalkit.recommendation.engine import recommend
-from ragevalkit.storage.store import EvalStore
 
 
 def entry(key, answer, material=None, time=1.0):

@@ -4,7 +4,7 @@ import logging
 import pandas as pd
 from tinydb import Query
 
-from ragevalkit.storage.base import StoreBase
+from ragevalkit.data_access.base import StoreBase
 
 logger = logging.getLogger(__name__)
 

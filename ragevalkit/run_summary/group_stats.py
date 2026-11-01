@@ -1,6 +1,6 @@
 """Per-group score averages for the groups a run covered."""
-from ragevalkit.run_summary.averages import column_of, mean_of
-from ragevalkit.test_cases.identity import case_id_for
+from ragevalkit.utils.score_math import column_of, mean_of
+from ragevalkit.utils.testcase_identity import case_id_for
 
 
 def build_group_stats(store, group_names: list[str], rows: list[dict]) -> dict:

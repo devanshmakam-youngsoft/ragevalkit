@@ -3,8 +3,8 @@ from ragevalkit.api.services.uploads import load_uploaded_spreadsheet
 from ragevalkit.core.config import Config
 from ragevalkit.core.exceptions.base import NotFoundError
 from ragevalkit.core.exceptions.spreadsheet_loader import DatasetError
+from ragevalkit.data_access.store import EvalStore
 from ragevalkit.datasets.loader import REQUIRED_COLUMNS, load_dataset
-from ragevalkit.storage.store import EvalStore
 
 
 def describe_default_dataset(cfg: Config) -> dict:

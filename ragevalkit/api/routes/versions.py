@@ -8,7 +8,7 @@ from ragevalkit.api.services.versions import (
     read_version_log,
 )
 from ragevalkit.core.config import Config
-from ragevalkit.storage.store import EvalStore
+from ragevalkit.data_access.store import EvalStore
 
 router = APIRouter(prefix="/api/versions", tags=["versions"], dependencies=[Depends(require_user)])
 

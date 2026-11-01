@@ -5,7 +5,7 @@ from pathlib import Path
 
 from ragevalkit.core.config import Config
 from ragevalkit.core.exceptions.base import InvalidInput, TooLargeError
-from ragevalkit.storage.store import EvalStore
+from ragevalkit.data_access.store import EvalStore
 from ragevalkit.test_cases.importing.fields import FIELD_LABELS, FIELDS, MAX_BYTES
 from ragevalkit.test_cases.importing.row_parser import Problem, parse_rows
 from ragevalkit.test_cases.importing.table_reader import clean_mapping, detect_mapping, read_table

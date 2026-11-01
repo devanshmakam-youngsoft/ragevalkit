@@ -9,7 +9,7 @@ from ragevalkit.api.services.datasets import (
 )
 from ragevalkit.api.services.recommendations import groups_with_history
 from ragevalkit.core.config import Config
-from ragevalkit.storage.store import EvalStore
+from ragevalkit.data_access.store import EvalStore
 
 router = APIRouter(prefix="/api", tags=["datasets"], dependencies=[Depends(require_user)])
 

@@ -1,7 +1,7 @@
 """Single test cases in the library."""
 from ragevalkit.api.schemas.test_cases import CreateTestCase
 from ragevalkit.core.exceptions.base import NotFoundError
-from ragevalkit.storage.store import EvalStore
+from ragevalkit.data_access.store import EvalStore
 
 
 def find_test_case(store: EvalStore, tc_id: str) -> dict:

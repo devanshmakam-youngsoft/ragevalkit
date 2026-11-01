@@ -26,15 +26,15 @@ WHY TinyDB (not SQLite)?
 
 LAYOUT
 ------
-  store.py                         EvalStore, assembled from the repositories below
-  base.py                          opens the file; the tables and the lock
-  runs_repository.py               versions, receipts, Excel export
-  case_library_repository.py       test cases and choosing what a run executes
-  case_import_repository.py        bulk import of test cases
-  groups_repository.py             groups (labels)
-  generation_batches_repository.py generated questions waiting for approval
-  datasets_repository.py           older uploaded datasets
-  excel_export.py, selection.py, records.py, version_names.py   helpers
+  store.py                  EvalStore, assembled from the repositories below
+  base.py                   opens the file; the tables and the lock
+  evaluation_runs.py        versions and their receipts
+  testcases.py              test cases, and choosing what a run executes
+  testcase_import.py        bulk import of test cases
+  testcase_groups.py        groups (labels)
+  generated_batches.py      generated questions waiting for approval
+  datasets.py               older uploaded datasets
+  records.py                small helpers for the stored records
 """
 from ragevalkit.core.exceptions.data_access import (
     ConflictError,
@@ -42,8 +42,8 @@ from ragevalkit.core.exceptions.data_access import (
     StoreError,
     VersionNotFound,
 )
-from ragevalkit.storage.selection import RunSelection
-from ragevalkit.storage.store import EvalStore
-from ragevalkit.storage.version_names import valid_version
+from ragevalkit.data_access.store import EvalStore
+from ragevalkit.schemas.internal.run_selection import RunSelection
+from ragevalkit.utils.version_names import valid_version
 
 __all__ = ["ConflictError", "EvalStore", "GroupNotFound", "RunSelection", "StoreError", "VersionNotFound", "valid_version"]

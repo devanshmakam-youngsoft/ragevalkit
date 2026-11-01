@@ -1,8 +1,8 @@
 """Which version to ship and how groups have done, with the settings given to serve()."""
 from ragevalkit.core.config import Config
 from ragevalkit.core.exceptions.base import InvalidInput, NotFoundError
+from ragevalkit.data_access.store import EvalStore
 from ragevalkit.recommendation import group_overview, recommend
-from ragevalkit.storage.store import EvalStore
 
 
 def recommendation_settings(cfg: Config, tolerance: float | None = None, max_time: float | None = None) -> dict:

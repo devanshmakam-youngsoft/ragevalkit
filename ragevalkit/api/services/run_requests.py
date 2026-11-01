@@ -10,9 +10,9 @@ from ragevalkit.core.config import Config
 from ragevalkit.core.exceptions.base import InvalidInput, NotFoundError
 from ragevalkit.core.exceptions.data_access import ConflictError
 from ragevalkit.core.exceptions.evaluation_runner import NoDatasetError
-from ragevalkit.storage.selection import RunSelection
-from ragevalkit.storage.store import EvalStore
-from ragevalkit.storage.version_names import valid_version
+from ragevalkit.data_access.store import EvalStore
+from ragevalkit.schemas.internal.run_selection import RunSelection
+from ragevalkit.utils.version_names import valid_version
 
 
 @dataclass

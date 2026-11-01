@@ -11,8 +11,8 @@ from ragevalkit.core.constants.document_reading import SUPPORTED_MESSAGE, SUPPOR
 from ragevalkit.core.constants.generator_categories import CATEGORIES
 from ragevalkit.core.exceptions.base import InvalidInput, NotFoundError, TooLargeError
 from ragevalkit.core.exceptions.testcase_generator import GenerationBusy
+from ragevalkit.data_access.store import EvalStore
 from ragevalkit.generation.manager import GenerationManager
-from ragevalkit.storage.store import EvalStore
 
 UPLOAD_READ_BYTES = 1024 * 1024
 
