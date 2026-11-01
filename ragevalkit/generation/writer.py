@@ -9,8 +9,8 @@ from ragevalkit.core.exceptions.testcase_generator import GenerationError
 from ragevalkit.generation.checks import validate
 from ragevalkit.generation.message_builder import build_messages
 from ragevalkit.generation.planning import Task
-from ragevalkit.generation.prompts import retry_instruction
 from ragevalkit.generation.reply_parser import parse_reply
+from ragevalkit.prompts.testcase_generator import retry_instruction
 
 logger = logging.getLogger(__name__)
 

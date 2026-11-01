@@ -23,15 +23,15 @@ import time
 
 from ragevalkit.core.exceptions.answer_judge import JudgeError
 from ragevalkit.judging.insights import check_insights, parse_insights
-from ragevalkit.judging.prompts import (
+from ragevalkit.judging.schemas import Grade, SourceCheckResult
+from ragevalkit.llm import complete
+from ragevalkit.prompts.answer_judge import (
     grader_format,
     grader_prompt,
     run_summary_format,
     run_summary_prompt,
     source_check_prompt,
 )
-from ragevalkit.judging.schemas import Grade, SourceCheckResult
-from ragevalkit.llm import complete
 
 logger = logging.getLogger(__name__)
 

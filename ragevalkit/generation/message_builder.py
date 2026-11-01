@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from ragevalkit.generation.planning import Task
-from ragevalkit.generation.prompts import CATEGORY_PROMPTS, common_rules
+from ragevalkit.prompts.testcase_generator import CATEGORY_PROMPTS, common_rules
 
 
 def system_prompt(category: str, turns: int) -> str:

@@ -180,7 +180,7 @@ def test_summary_replies_are_read_whatever_names_and_shapes_the_model_used(reply
 
 
 def test_the_summary_prompt_asks_for_actions_never_empty_and_no_jargon():
-    from ragevalkit.judging.prompts import run_summary_format, run_summary_prompt
+    from ragevalkit.prompts.answer_judge import run_summary_format, run_summary_prompt
     text = run_summary_prompt + run_summary_format
     for needle in ("do NOT restate", "never empty", "starting with a verb", "no jargon", "every item needs both parts", "THAT watch-out",
                    "Never write BM25", "Example of one finding"):

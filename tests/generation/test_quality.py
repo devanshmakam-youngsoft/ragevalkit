@@ -13,7 +13,7 @@ from ragevalkit.documents.reader import read_document
 from ragevalkit.documents.text_cleaning import normalise
 from ragevalkit.generation import Task, validate
 from ragevalkit.generation.message_builder import build_messages, system_prompt
-from ragevalkit.generation.prompts import CATEGORY_PROMPTS
+from ragevalkit.prompts.testcase_generator import CATEGORY_PROMPTS
 
 PASSAGE = ("Employees must submit expense claims within thirty days of travel. Managers approve claims above five hundred "
            "dollars within five working days. Late claims are paid in the next monthly cycle unless finance grants an "
