@@ -13,8 +13,7 @@ venv/
 .env
 
 # Eval output (created by serve() in whatever directory it runs from)
-eval_store.json
-eval_inputs/
+ragevalkit_data/
 
 # Claude Code local files
 .claude/
@@ -22,4 +21,3 @@ eval_inputs/
 # Frontend build artifacts
 node_modules/
 frontend/dist/
-eval_logs/

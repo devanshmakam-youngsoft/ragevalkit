@@ -9,6 +9,7 @@ from fastapi import UploadFile
 from ragevalkit.core.config import Config
 from ragevalkit.core.constants.document_reading import SUPPORTED_MESSAGE, SUPPORTED_SUFFIXES
 from ragevalkit.core.constants.generator_categories import CATEGORIES
+from ragevalkit.core.constants.library import TEMP_FOLDER_PREFIX
 from ragevalkit.core.exceptions.base import InvalidInput, NotFoundError, TooLargeError
 from ragevalkit.core.exceptions.testcase_generator import GenerationBusy
 from ragevalkit.data_access.store import EvalStore
@@ -66,7 +67,7 @@ async def start_generation(cfg: Config, manager: GenerationManager, files: list[
     except ValueError as e:
         raise InvalidInput("categories must be a JSON list") from e
 
-    workdir = Path(tempfile.mkdtemp(prefix="ragevalkit_gen_"))
+    workdir = Path(tempfile.mkdtemp(prefix=f"{TEMP_FOLDER_PREFIX}gen_"))
     try:
         saved = await _save_uploads(cfg, uploads, workdir)
         batch = manager.start(saved, workdir, per_category=per_category, categories=wanted, turns=turns)

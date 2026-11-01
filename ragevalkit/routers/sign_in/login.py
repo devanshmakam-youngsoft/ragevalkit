@@ -8,6 +8,7 @@ from ragevalkit.core.security.passwords import check_password, parse_users
 from ragevalkit.core.security.sessions import make_token
 from ragevalkit.routers.dependencies import current_user, get_config
 from ragevalkit.schemas.sign_in.requests import LoginBody
+from ragevalkit.schemas.sign_in.responses import Acknowledged, SignedInUser
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -19,7 +20,7 @@ def _secure(request: Request) -> bool:
 
 
 @router.post("/login")
-async def login(body: LoginBody, request: Request, response: Response, cfg: Config = Depends(get_config)) -> dict:
+async def login(body: LoginBody, request: Request, response: Response, cfg: Config = Depends(get_config)) -> SignedInUser:
     if cfg.require_login:
         user = check_password(parse_users(cfg.eval_users), body.username, body.password)
         if user is None:
@@ -42,13 +43,13 @@ async def login(body: LoginBody, request: Request, response: Response, cfg: Conf
 
 
 @router.post("/logout")
-def logout(response: Response, cfg: Config = Depends(get_config)) -> dict:
+def logout(response: Response, cfg: Config = Depends(get_config)) -> Acknowledged:
     response.delete_cookie(cfg.session_cookie, path="/")
     return {"ok": True}
 
 
 @router.get("/me")
-def me(request: Request) -> dict:
+def me(request: Request) -> SignedInUser:
     # Always require a session cookie: login is always shown first
     user = current_user(request)
     if user is None:

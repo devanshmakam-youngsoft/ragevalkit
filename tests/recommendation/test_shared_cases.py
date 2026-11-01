@@ -115,7 +115,7 @@ def test_case_scores_are_saved_compactly_with_run_time_groups():
 
 @pytest.fixture
 def client(tmp_path):
-    cfg = Config(store_path=tmp_path / "api.json", require_login=False, eval_secret="s")
+    cfg = Config(data_dir=tmp_path / "api", require_login=False, eval_secret="s")
     with TestClient(create_app(cfg, fn=lambda q: "a")) as c:
         yield c
 

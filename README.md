@@ -85,9 +85,8 @@ The most used `serve()` parameters (the full list, with every default, is in the
 |-----------|---------|-------------|
 | `fn` | required | Your pipeline function |
 | `port` | `8001` | Port for the dashboard |
-| `store_path` | `"eval_store.json"` | TinyDB file that holds everything |
+| `data_dir` | `"ragevalkit_data"` | The one folder everything is written to: `store.json`, `logs/`, `uploads/` |
 | `show_guide` | `True` | Show the guide on the dashboard's Help page; `False` hides the link and stops serving it |
-| `log_dir` | `None` | Folder for log files; default `eval_logs` next to `store_path` (see [Logs and problems](#logs-and-problems)) |
 | `require_login` | `True` | Show the login page; `False` lets anyone in as a guest |
 | `users` | `"admin:admin123"` | `"user:password"` pairs, comma separated |
 | `judge_model` | `"groq/openai/gpt-oss-120b"` | Any LiteLLM model string for the judge |
@@ -161,13 +160,22 @@ Each run also saves a detailed `scores` block (score tiers, per-question-type av
 
 ## Logs and problems
 
-Log files are written to `eval_logs/`, next to the results store (`log_dir` moves them):
+Everything is written to one data folder (`ragevalkit_data/` by default, `data_dir` moves it): the store, the logs and the uploads.
+
+```
+ragevalkit_data/
+├── store.json     results, test cases, groups, review batches
+├── logs/          server.log, runs/, generation/
+└── uploads/       spreadsheets uploaded for a run
+```
+
+The log files:
 
 | File | Contents |
 |---|---|
-| `eval_logs/server.log` | The library's own log lines; unexpected API errors with a reference number and the full traceback |
-| `eval_logs/runs/<time>_<version>.log` | One file per run: every question with its result and time, every problem with its traceback, how the run ended |
-| `eval_logs/generation/<batch>.log` | The same for test cases written from documents |
+| `logs/server.log` | The library's own log lines; unexpected API errors with a reference number and the full traceback |
+| `logs/runs/<time>_<version>.log` | One file per run: every question with its result and time, every problem with its traceback, how the run ended |
+| `logs/generation/<batch>.log` | The same for test cases written from documents |
 
 The dashboard reports problems in plain words and keeps the technical detail one click away: a problem count while a run is going, a *Problems during this run* section and a *Download log* button on each version, the reason on every question that could not be answered or graded, and a message with a reference number for server errors. A failing pipeline function never stops a run: that question is marked failed, the reason is recorded, and the run goes on. API keys and passwords are hidden before anything is written or shown.
 

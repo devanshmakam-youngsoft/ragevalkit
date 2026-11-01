@@ -53,7 +53,7 @@ def served_function(tmp_path):
     apps = []
 
     def build(fn, config_options=None, **options):
-        config = Config(store_path=tmp_path / f"store{len(apps)}.json", require_login=False,
+        config = Config(data_dir=tmp_path / f"store{len(apps)}", require_login=False,
                         run_semantic_similarity=False, run_bm25=False, **(config_options or {}))
         app = create_app(config, fn=fn, judge_fn=options.pop("judge_fn", JUDGE), **options)
         app.state.manager._llm_judge = SimpleNamespace(summarize_run=lambda stats: None)
@@ -330,7 +330,7 @@ def test_the_team_setup_example_is_a_valid_configuration(serve_example):
     config = serve_example("team_setup.py").state.config
     assert config.eval_users == "alice:pw-for-alice,bob:pw-for-bob" and config.eval_secret == "change-me"
     assert (config.answer_weight, config.material_weight, config.recommendation_tolerance, config.max_response_time) == (0.7, 0.3, 0.2, 8.0)
-    assert config.generator_model == "ollama/llama3" and config.logs_dir == Path("evals/logs") and config.store_path == Path("evals/eval_store.json")
+    assert config.generator_model == "ollama/llama3" and config.logs_dir == Path("evals/logs") and config.store_path == Path("evals/store.json")
 
 
 # ---- ci_gate.py -------------------------------------------------------------------------------------------------
@@ -338,7 +338,7 @@ def test_the_team_setup_example_is_a_valid_configuration(serve_example):
 @pytest.fixture
 def running_server(tmp_path):
     """A real server on a free port, with a group of test cases, the way ci_gate.py meets it."""
-    config = Config(store_path=tmp_path / "ci_store.json", require_login=False, run_semantic_similarity=False, run_bm25=False)
+    config = Config(data_dir=tmp_path / "ci_store", require_login=False, run_semantic_similarity=False, run_bm25=False)
     app = create_app(config, fn=lambda question: "Refunds are allowed within 30 days.", judge_fn=JUDGE)
     app.state.manager._llm_judge = SimpleNamespace(summarize_run=lambda stats: None)
     store = app.state.store

@@ -52,7 +52,7 @@ def test_threads_never_load_litellm_at_the_same_time(monkeypatch):
     for name in loader._LAZY_PARTS:
         monkeypatch.setitem(sys.modules, name, types.ModuleType(name))
     monkeypatch.setattr(loader.importlib, "import_module", slow_import)
-    model = GenerationModelClient(Config(store_path="x", judge_model="m"))
+    model = GenerationModelClient(Config(judge_model="m"))
     threads = [threading.Thread(target=model, args=([{"role": "user", "content": "hi"}],)) for _ in range(6)]
     [t.start() for t in threads]
     [t.join() for t in threads]

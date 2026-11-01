@@ -7,7 +7,7 @@ from ragevalkit.main import create_app
 
 
 def _client(tmp_path, **options):
-    app = create_app(Config(store_path=tmp_path / "eval_store.json", require_login=False, **options), fn=lambda question: "answer")
+    app = create_app(Config(data_dir=tmp_path / "data", require_login=False, **options), fn=lambda question: "answer")
     return TestClient(app), app
 
 
@@ -34,7 +34,7 @@ def test_with_show_guide_off_the_guide_is_hidden_and_not_served(tmp_path):
 
 
 def test_the_guide_needs_a_sign_in_when_login_is_required(tmp_path):
-    app = create_app(Config(store_path=tmp_path / "eval_store.json"), fn=lambda question: "answer")
+    app = create_app(Config(data_dir=tmp_path / "data"), fn=lambda question: "answer")
     try:
         assert TestClient(app).get("/api/help/guide").status_code == 401
     finally:

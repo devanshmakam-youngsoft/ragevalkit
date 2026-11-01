@@ -6,6 +6,7 @@ from datetime import datetime
 from pathlib import Path
 
 from ragevalkit.core.config import Config
+from ragevalkit.core.constants.library import LOGGER_NAME
 from ragevalkit.core.diagnostics.issues import Issue, make_issue
 from ragevalkit.core.diagnostics.redaction import redact
 
@@ -18,7 +19,7 @@ def _safe_name(text: str) -> str:
 
 
 class EventLog:
-    """``eval_logs/<folder>/<time>_<name>.log``: everything that happened, including full tracebacks.
+    """``<data folder>/logs/<folder>/<time>_<name>.log``: everything that happened, including full tracebacks.
 
     Lines also reach the server log. A folder that cannot be written to never stops the work: the lines then
     go to the server log only.
@@ -31,7 +32,7 @@ class EventLog:
         self._seen: dict[tuple, Issue] = {}
         self.path: Path | None = None
         self._handler: logging.FileHandler | None = None
-        self._logger = logging.getLogger(f"ragevalkit.{folder}.{uuid.uuid4().hex[:8]}")
+        self._logger = logging.getLogger(f"{LOGGER_NAME}.{folder}.{uuid.uuid4().hex[:8]}")
         self._open(config.logs_dir / folder, f"{datetime.now():%Y%m%d-%H%M%S}_{_safe_name(name)}.log")
 
     def _open(self, directory: Path, file_name: str) -> None:

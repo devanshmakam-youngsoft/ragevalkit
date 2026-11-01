@@ -112,8 +112,8 @@ def plan_run(
     if upload_name and upload_data is not None and save_as_group and group_name:
         return _plan_from_upload_as_group(cfg, store, upload_data, group_name, status)
     if upload_name and upload_data is not None:
-        cfg.inputs_dir.mkdir(parents=True, exist_ok=True)
-        path = cfg.inputs_dir / f"version_{version}_input.xlsx"
+        cfg.uploads_dir.mkdir(parents=True, exist_ok=True)
+        path = cfg.uploads_dir / f"version_{version}_input.xlsx"
         path.write_bytes(upload_data)
         return _plan_from_file(cfg, path, upload_name)
     if cfg.default_dataset:

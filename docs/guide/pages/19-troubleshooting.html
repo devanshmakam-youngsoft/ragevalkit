@@ -4,7 +4,7 @@ title: When something looks off
 lead: Find your symptom, see the likely reason, and what to do about it. Most things here take a minute to fix.
 minutes: 0
 -->
-<p>Start with the <b>Problems during this run</b> box on the version page: it says what went wrong in plain words, and <em>Show technical details</em> gives the error. The full log is the <em>Download log</em> button, or <code>eval_logs/runs/</code>. Then look for your symptom here.</p>
+<p>Start with the <b>Problems during this run</b> box on the version page: it says what went wrong in plain words, and <em>Show technical details</em> gives the error. The full log is the <em>Download log</em> button, or <code>logs/runs/</code> in the data folder. Then look for your symptom here.</p>
 <input class="filter" id="fix-filter" type="search" placeholder="Search symptoms: login, context, sources, port&hellip;" aria-label="Search symptoms">
 <details class="fix"><summary>Every score is 0.0, but nothing failed</summary><div class="body">
     <p class="why">The judge is almost always right here: the test cases ask about things your pipeline does not know (for example questions generated from other documents), so it answers &ldquo;I could not find that&rdquo; and there is no retrieved text.</p>
@@ -76,4 +76,4 @@ minutes: 0
     <p class="why">The small local model for the &ldquo;meaning&rdquo; score could not load, usually the first time on a machine with no internet.</p>
     <p><b>Do:</b> connect once so it can download, or set <code>run_semantic_similarity=False</code>. All other scores are unaffected.</p></div></details>
 <details class="fix"><summary>Where are the logs, and what should I send when asking for help?</summary><div class="body">
-    <p><b>Do:</b> on the version page press <em>Download log</em>, or open <code>eval_logs/runs/</code> next to your <code>eval_store.json</code>. For an error outside a run (a message with a reference number), search <code>eval_logs/server.log</code> for that reference. Keys and passwords are already hidden.</p></div></details>
+    <p><b>Do:</b> on the version page press <em>Download log</em>, or open <code>logs/runs/</code> in your data folder (<code>ragevalkit_data/</code> by default). For an error outside a run (a message with a reference number), search <code>logs/server.log</code> for that reference. Keys and passwords are already hidden.</p></div></details>

@@ -12,7 +12,7 @@ from ragevalkit.services.evaluation_runner.runner import RunManager
 
 @pytest.fixture
 def config(tmp_path):
-    return Config(store_path=tmp_path / "eval_store.json", run_semantic_similarity=False, run_bm25=False)
+    return Config(data_dir=tmp_path / "data", run_semantic_similarity=False, run_bm25=False)
 
 
 @pytest.fixture
@@ -79,8 +79,6 @@ def test_the_issue_count_is_part_of_the_run_state_and_the_details_are_kept_apart
 
 
 def test_a_log_folder_that_cannot_be_written_never_stops_the_run(config, store, tmp_path):
-    blocker = tmp_path / "not_a_folder"
-    blocker.write_text("a file where the log folder should be")
-    config.log_dir = blocker
+    config.logs_dir.write_text("a file where the logs folder should be")
     run = _finished(_manager(config, store, lambda question: "an answer"), _questions(1))
     assert run.status == "completed" and store.get("v1")["summary"]["log_file"] is None

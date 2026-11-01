@@ -218,7 +218,7 @@ def test_a_vector_is_summarised_not_stored():
 # ---- through the runner --------------------------------------------------------------------------------
 
 def make_manager(tmp_path, fn):
-    app = create_app(Config(store_path=tmp_path / "s.json", require_login=False, eval_secret="s"), fn=fn, generation_llm=lambda m: "{}")
+    app = create_app(Config(data_dir=tmp_path / "data", require_login=False, eval_secret="s"), fn=fn, generation_llm=lambda m: "{}")
     return app.state.manager
 
 
@@ -242,7 +242,7 @@ def test_a_step_that_ran_several_times_has_its_time_added_up(tmp_path):
 
 
 def test_the_runner_applies_the_configured_limits(tmp_path):
-    config = Config(store_path=tmp_path / "s.json", require_login=False, eval_secret="s", step_value_chars=30, material_chars=40)
+    config = Config(data_dir=tmp_path / "data", require_login=False, eval_secret="s", step_value_chars=30, material_chars=40)
     app = create_app(config, fn=lambda q: "a", generation_llm=lambda m: "{}")
     assert step_recorder.LIMITS == {"value": 30, "material": 40}
     step_recorder.configure(max_step_value_chars=1000, max_material_chars=20000)

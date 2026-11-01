@@ -298,7 +298,7 @@ def make_client(tmp_path):
 
     def build(llm=None, **config):
         config.setdefault("generate_workers", 4)
-        cfg = Config(store_path=tmp_path / f"store{len(clients)}.json", require_login=False, eval_secret="s", **config)
+        cfg = Config(data_dir=tmp_path / f"store{len(clients)}", require_login=False, eval_secret="s", **config)
         c = TestClient(create_app(cfg, fn=lambda q: "a", generation_llm=llm or FakeLLM()))
         c.__enter__()
         clients.append(c)

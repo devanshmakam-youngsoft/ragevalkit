@@ -215,7 +215,7 @@ def test_group_names_are_unique_and_renamable(store):
 
 @pytest.fixture
 def client(tmp_path):
-    cfg = Config(store_path=tmp_path / "api.json", require_login=False, eval_secret="test-secret")
+    cfg = Config(data_dir=tmp_path / "api", require_login=False, eval_secret="test-secret")
     app = create_app(cfg, fn=lambda q: "answer")
     with TestClient(app) as c:
         yield c

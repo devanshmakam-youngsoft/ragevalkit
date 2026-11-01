@@ -177,7 +177,7 @@ def test_an_unknown_group_id_is_rejected(store):
 
 @pytest.fixture
 def client(tmp_path):
-    cfg = Config(store_path=tmp_path / "api.json", require_login=False, eval_secret="s")
+    cfg = Config(data_dir=tmp_path / "api", require_login=False, eval_secret="s")
     with TestClient(create_app(cfg, fn=lambda q: "a")) as c:
         yield c
 

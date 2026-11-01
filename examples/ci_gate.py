@@ -51,7 +51,7 @@ def run_gate() -> int:
         except urllib.error.HTTPError:
             time.sleep(POLL_SECONDS)
     else:
-        print(f"No result after {WAIT_SECONDS} seconds: look at the dashboard or at eval_logs/.")
+        print(f"No result after {WAIT_SECONDS} seconds: look at the dashboard or in the logs folder of the data directory.")
         return 2
 
     quality, failed = summary["avg_answer_marks"], summary["failed_rows"]

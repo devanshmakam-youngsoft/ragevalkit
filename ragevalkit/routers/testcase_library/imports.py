@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, File, Form, Response, UploadFile
 from ragevalkit.core.config import Config
 from ragevalkit.data_access.store import EvalStore
 from ragevalkit.routers.dependencies import get_config, get_store, require_user
+from ragevalkit.schemas.testcase_library.responses import ImportPreview, ImportResult
 from ragevalkit.services.testcase_import.import_workflow import (
     preview_import,
     read_upload,
@@ -31,7 +32,7 @@ async def preview_test_case_import(
     mapping: str | None = Form(None),
     cfg: Config = Depends(get_config),
     store: EvalStore = Depends(get_store),
-) -> dict:
+) -> ImportPreview:
     """What importing this file would do (new, updated, unchanged, unusable rows) without saving anything."""
     rows, problems, info = read_upload(cfg, file.filename, await file.read(), sheet, mapping)
     return preview_import(store, rows, problems, info)
@@ -47,7 +48,7 @@ async def import_test_cases(
     update_by_slot: bool = Form(False),       # same chat + turn, different question: update instead of add
     cfg: Config = Depends(get_config),
     store: EvalStore = Depends(get_store),
-) -> dict:
+) -> ImportResult:
     """Import the file's usable rows. Rows that cannot be used are returned so they can be fixed and re-imported."""
     rows, problems, info = read_upload(cfg, file.filename, await file.read(), sheet, mapping)
     return run_import(store, rows, problems, info, group_ids_json=group_ids, new_group_name=new_group_name, update_by_slot=update_by_slot)

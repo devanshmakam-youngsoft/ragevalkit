@@ -8,7 +8,7 @@ from ragevalkit.main import create_app
 
 @pytest.fixture
 def served(tmp_path):
-    config = Config(store_path=tmp_path / "eval_store.json", require_login=False)
+    config = Config(data_dir=tmp_path / "data", require_login=False)
     app = create_app(config, fn=lambda question: "answer")
     yield TestClient(app), app, config
     app.state.store.close()

@@ -2,6 +2,12 @@
 from pathlib import Path
 
 from ragevalkit.core.config.base import Settings
+from ragevalkit.core.constants.library import (
+    DATA_DIR_NAME,
+    LOGS_DIR_NAME,
+    STORE_FILE_NAME,
+    UPLOADS_DIR_NAME,
+)
 
 
 class ServerSettings(Settings):
@@ -14,18 +20,20 @@ class ServerSettings(Settings):
     backend_host: str = "127.0.0.1"
     backend_port: int = 8001
 
-    store_path: Path = Path("eval_store.json")
+    # Everything the library writes lives in this one folder: the store, the logs and the uploads
+    data_dir: Path = Path(DATA_DIR_NAME)
 
     # Show the Help page (the guide) in the dashboard
     show_guide: bool = True
 
-    # Folder for log files; empty means "eval_logs" beside the results store
-    log_dir: Path | None = None
-
     @property
-    def inputs_dir(self) -> Path:
-        return self.store_path.parent / "eval_inputs"
+    def store_path(self) -> Path:
+        return self.data_dir / STORE_FILE_NAME
 
     @property
     def logs_dir(self) -> Path:
-        return self.log_dir or self.store_path.parent / "eval_logs"
+        return self.data_dir / LOGS_DIR_NAME
+
+    @property
+    def uploads_dir(self) -> Path:
+        return self.data_dir / UPLOADS_DIR_NAME

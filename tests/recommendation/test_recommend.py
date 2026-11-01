@@ -112,7 +112,7 @@ def test_renaming_a_group_keeps_its_history(tmp_path):
 
 @pytest.fixture
 def client(tmp_path):
-    cfg = Config(store_path=tmp_path / "api.json", require_login=False, eval_secret="s",
+    cfg = Config(data_dir=tmp_path / "api", require_login=False, eval_secret="s",
                  answer_weight=0.0, material_weight=1.0)
     with TestClient(create_app(cfg, fn=lambda q: "a")) as c:
         yield c

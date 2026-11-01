@@ -154,7 +154,7 @@ def test_unreadable_word_files_say_what_to_do(tmp_path):
 
 @pytest.fixture
 def client(tmp_path):
-    cfg = Config(store_path=tmp_path / "s.json", require_login=False, eval_secret="s")
+    cfg = Config(data_dir=tmp_path / "data", require_login=False, eval_secret="s")
     with TestClient(create_app(cfg, fn=lambda q: "a", generation_llm=lambda m: "{}")) as c:
         yield c
 

@@ -8,6 +8,7 @@ from typing import Callable
 
 from ragevalkit.core.config import Config
 from ragevalkit.core.config.dotenv import load_dotenv
+from ragevalkit.core.constants.library import DATA_DIR_NAME
 from ragevalkit.core.diagnostics import configure_logging
 from ragevalkit.core.exceptions.base import ConfigError
 from ragevalkit.main import create_app
@@ -18,8 +19,7 @@ def serve(
     fn: Callable,
     # --- server ---
     port: int = 8001,
-    store_path: str = "eval_store.json",
-    log_dir: str | None = None,
+    data_dir: str = DATA_DIR_NAME,
     log_level: str = "INFO",
     show_guide: bool = True,
     open_browser: bool = True,
@@ -87,9 +87,9 @@ def serve(
             Can also return a ``dict`` (ragevalkit extracts the answer via ``answer_keys``)
             or a Pydantic model. Async functions are supported.
         port: HTTP port for the server. Default ``8001``.
-        store_path: Path to the TinyDB JSON results file. Created automatically.
-        log_dir: Folder for log files. Default: ``eval_logs`` next to ``store_path``. It holds ``server.log`` and one file
-            per evaluation run (``runs/``) and per test case generation (``generation/``), with full tracebacks.
+        data_dir: The one folder everything is written to, created automatically: ``store.json`` (results, test cases,
+            groups), ``logs/`` (``server.log``, one file per run in ``runs/`` and per generation in ``generation/``, with full
+            tracebacks) and ``uploads/`` (spreadsheets uploaded for a run). Default ``ragevalkit_data`` in the folder you start from.
         log_level: Level of ``server.log`` and the console (``"INFO"`` by default; ``"DEBUG"`` for more).
         show_guide: Show the guide on the dashboard's Help page (default ``True``). With ``False`` the Help link is
             hidden and the guide is not served.
@@ -228,8 +228,7 @@ def serve(
 
     config = Config(
         backend_port=port,
-        store_path=store_path,
-        log_dir=Path(log_dir) if log_dir else None,
+        data_dir=Path(data_dir),
         log_level=log_level,
         show_guide=show_guide,
         eval_env=eval_env,

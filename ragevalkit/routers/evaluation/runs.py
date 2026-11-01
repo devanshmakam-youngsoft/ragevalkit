@@ -10,6 +10,15 @@ from ragevalkit.core.exceptions.data_access import ConflictError
 from ragevalkit.data_access.store import EvalStore
 from ragevalkit.routers.dependencies import get_config, get_run_manager, get_store, require_user
 from ragevalkit.schemas.evaluation.requests import SelectionBody
+from ragevalkit.schemas.evaluation.responses import (
+    RunArchiveState,
+    RunDeleted,
+    RunIssues,
+    RunPreview,
+    RunSnapshot,
+    StopRequested,
+    VersionSummary,
+)
 from ragevalkit.services.evaluation_runner.run_control import get_run, request_stop, run_issues
 from ragevalkit.services.evaluation_runner.run_planning import (
     check_version_name,
@@ -26,7 +35,7 @@ STREAM_POLL_SECONDS = 0.3      # how often a watching browser is sent new progre
 
 
 @router.post("/preview")
-def preview_run(body: SelectionBody, store: EvalStore = Depends(get_store)) -> dict:
+def preview_run(body: SelectionBody, store: EvalStore = Depends(get_store)) -> RunPreview:
     """Dry run: what would a run with this selection execute? Powers the live count in the Execute dialog."""
     selection = store.resolve_selection(body.group_ids, body.tc_ids, status=body.status_filter, include_context=body.include_context)
     return selection_preview(selection)
@@ -49,7 +58,7 @@ async def start_run(
     cfg: Config = Depends(get_config),
     store: EvalStore = Depends(get_store),
     manager: RunManager = Depends(get_run_manager),
-) -> dict:
+) -> RunSnapshot:
     version = check_version_name(version)
     if store.exists(version) and not overwrite:
         raise ConflictError(f"Version {version} already exists")
@@ -69,38 +78,38 @@ async def start_run(
 
 
 @router.get("")
-def list_runs(store: EvalStore = Depends(get_store)) -> list[dict]:
+def list_runs(store: EvalStore = Depends(get_store)) -> list[VersionSummary]:
     return store.list_runs(include_archived=False)
 
 
 @router.get("/{run_id}/issues")
-def get_run_issues(run_id: str, manager: RunManager = Depends(get_run_manager)) -> dict:
+def get_run_issues(run_id: str, manager: RunManager = Depends(get_run_manager)) -> RunIssues:
     """What went wrong during this run so far, in plain language, each with its technical detail."""
     return run_issues(manager, run_id)
 
 
 @router.post("/{run_id}/stop", status_code=202)
-def stop_run(run_id: str, manager: RunManager = Depends(get_run_manager)) -> dict:
+def stop_run(run_id: str, manager: RunManager = Depends(get_run_manager)) -> StopRequested:
     """Request an early stop for a running eval. Partial results are saved."""
     return request_stop(manager, run_id)
 
 
 @router.delete("/{run_id}", status_code=200)
-def delete_run(run_id: str, store: EvalStore = Depends(get_store)) -> dict:
+def delete_run(run_id: str, store: EvalStore = Depends(get_store)) -> RunDeleted:
     """Delete a completed run and all its receipts from the store."""
     ensure_found(store.delete_run(run_id), "Run not found")
     return {"run_id": run_id, "deleted": True}
 
 
 @router.patch("/{run_id}/archive", status_code=200)
-def archive_run(run_id: str, store: EvalStore = Depends(get_store)) -> dict:
+def archive_run(run_id: str, store: EvalStore = Depends(get_store)) -> RunArchiveState:
     """Archive a run so it is hidden from the default dashboard listing."""
     ensure_found(store.archive_run(run_id), "Run not found")
     return {"run_id": run_id, "archived": True}
 
 
 @router.patch("/{run_id}/unarchive", status_code=200)
-def unarchive_run(run_id: str, store: EvalStore = Depends(get_store)) -> dict:
+def unarchive_run(run_id: str, store: EvalStore = Depends(get_store)) -> RunArchiveState:
     """Restore an archived run to the default dashboard listing."""
     ensure_found(store.unarchive_run(run_id), "Run not found")
     return {"run_id": run_id, "archived": False}

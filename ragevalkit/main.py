@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from ragevalkit.core.config import Config
+from ragevalkit.core.constants.library import API_TITLE, LIBRARY_NAME
 from ragevalkit.core.exceptions.handlers import register_error_handlers
 from ragevalkit.data_access.store import EvalStore
 from ragevalkit.routers import DASHBOARD_ROUTERS, HEALTH_ROUTER
@@ -23,7 +24,7 @@ DEFAULT_SECRET = "dev-only-change-me"
 
 def _block_everything_but_health(app: FastAPI) -> None:
     """eval_env="prod": only /api/health answers. No store or manager is created."""
-    logger.warning("ragevalkit: eval_env='prod' — eval dashboard and routes are DISABLED. Only /api/health is active.")
+    logger.warning("%s: eval_env='prod' — eval dashboard and routes are DISABLED. Only /api/health is active.", LIBRARY_NAME)
     app.include_router(HEALTH_ROUTER)
 
     @app.api_route("/{full_path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
@@ -48,7 +49,7 @@ def _serve_dashboard(app: FastAPI) -> None:
     if STATIC_DIR.exists() and any(STATIC_DIR.iterdir()):
         app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
         return
-    logger.warning("ragevalkit/web/dashboard/ is empty. Run `npm run build` inside frontend/: it builds into ragevalkit/web/dashboard/.")
+    logger.warning("%s/web/dashboard/ is empty. Run `npm run build` inside frontend/: it builds into %s/web/dashboard/.", LIBRARY_NAME, LIBRARY_NAME)
 
     @app.get("/{full_path:path}")
     def _no_ui(full_path: str):
@@ -68,7 +69,7 @@ def create_app(
     if config.eval_secret == DEFAULT_SECRET and config.require_login:
         logger.warning("Using the default EVAL_SECRET. Set a strong secret before exposing this service.")
 
-    app = FastAPI(title="ragevalkit", docs_url="/api/docs", redoc_url=None)
+    app = FastAPI(title=API_TITLE, docs_url="/api/docs", redoc_url=None)
     app.state.config = config
     register_error_handlers(app)
 
@@ -84,7 +85,7 @@ def create_app(
     app.state.generator = GenerationManager(config, app.state.store, llm=generation_llm)
 
     if config.eval_env == "uat":
-        logger.info("ragevalkit: eval_env='uat' — UAT recording mode active.")
+        logger.info("%s: eval_env='uat' — UAT recording mode active.", LIBRARY_NAME)
 
     app.include_router(HEALTH_ROUTER)
     for router in DASHBOARD_ROUTERS:

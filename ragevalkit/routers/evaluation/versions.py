@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Response
 from ragevalkit.core.config import Config
 from ragevalkit.data_access.store import EvalStore
 from ragevalkit.routers.dependencies import get_config, get_store, require_user
+from ragevalkit.schemas.evaluation.responses import VersionDetail, VersionSummary
 from ragevalkit.services.evaluation_runner.version_reader import (
     export_version,
     get_version_with_deleted_flags,
@@ -16,12 +17,12 @@ EXCEL_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.
 
 
 @router.get("")
-def list_versions(store: EvalStore = Depends(get_store)) -> list[dict]:
+def list_versions(store: EvalStore = Depends(get_store)) -> list[VersionSummary]:
     return store.list_versions()
 
 
 @router.get("/{version}")
-def get_version(version: str, store: EvalStore = Depends(get_store)) -> dict:
+def get_version(version: str, store: EvalStore = Depends(get_store)) -> VersionDetail:
     return get_version_with_deleted_flags(store, version)
 
 
