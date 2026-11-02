@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from ragevalkit.core.exceptions.base import InvalidInput, NotFoundError, TooLargeError
-from ragevalkit.core.exceptions.data_access import ConflictError, VersionNotFound
+from ragevalkit.core.exceptions.db_services import ConflictError, VersionNotFound
 from ragevalkit.core.exceptions.evaluation_runner import RunBusy
 from ragevalkit.core.exceptions.handlers import register_error_handlers
 

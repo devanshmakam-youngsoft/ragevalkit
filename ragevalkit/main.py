@@ -11,8 +11,8 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from ragevalkit.core.config import Config
 from ragevalkit.core.constants.library import API_TITLE, LIBRARY_NAME
 from ragevalkit.core.exceptions.handlers import register_error_handlers
-from ragevalkit.data_access.store import EvalStore
 from ragevalkit.routers import DASHBOARD_ROUTERS, HEALTH_ROUTER
+from ragevalkit.services.db_services.store import EvalStore
 from ragevalkit.services.evaluation_runner.runner import RunManager
 from ragevalkit.services.testcase_generator.manager import GenerationManager
 

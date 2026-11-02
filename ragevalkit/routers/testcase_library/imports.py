@@ -2,9 +2,9 @@
 from fastapi import APIRouter, Depends, File, Form, Response, UploadFile
 
 from ragevalkit.core.config import Config
-from ragevalkit.data_access.store import EvalStore
 from ragevalkit.routers.dependencies import get_config, get_store, require_user
 from ragevalkit.schemas.testcase_library.responses import ImportPreview, ImportResult
+from ragevalkit.services.db_services.store import EvalStore
 from ragevalkit.services.testcase_import.import_workflow import (
     preview_import,
     read_upload,

@@ -2,7 +2,6 @@
 from fastapi import APIRouter, Depends, File, UploadFile
 
 from ragevalkit.core.config import Config
-from ragevalkit.data_access.store import EvalStore
 from ragevalkit.routers.dependencies import get_config, get_store, require_user
 from ragevalkit.schemas.testcase_library.group_requests import GroupName
 from ragevalkit.schemas.testcase_library.responses import (
@@ -20,6 +19,7 @@ from ragevalkit.schemas.testcase_library.responses import (
     MembersRemoved,
 )
 from ragevalkit.schemas.testcase_library.testcase_requests import TestCaseIds
+from ragevalkit.services.db_services.store import EvalStore
 from ragevalkit.services.testcase_library.group_actions import get_group, import_file_into_group
 from ragevalkit.services.version_recommender.recommendation_views import (
     groups_with_history,

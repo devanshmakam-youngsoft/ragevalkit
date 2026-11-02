@@ -3,8 +3,8 @@ import logging
 
 from tinydb import Query
 
-from ragevalkit.core.exceptions.data_access import VersionNotFound
-from ragevalkit.data_access.base import StoreBase
+from ragevalkit.core.exceptions.db_services import VersionNotFound
+from ragevalkit.services.db_services.base import StoreBase
 from ragevalkit.utils.case_scores import build_case_scores
 from ragevalkit.utils.step_order import summary_nodes
 from ragevalkit.utils.testcase_identity import case_id_for

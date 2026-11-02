@@ -12,7 +12,7 @@ from ragevalkit.core.constants.generator_categories import CATEGORIES
 from ragevalkit.core.constants.library import TEMP_FOLDER_PREFIX
 from ragevalkit.core.exceptions.base import InvalidInput, NotFoundError, TooLargeError
 from ragevalkit.core.exceptions.testcase_generator import GenerationBusy
-from ragevalkit.data_access.store import EvalStore
+from ragevalkit.services.db_services.store import EvalStore
 from ragevalkit.services.testcase_generator.manager import GenerationManager
 
 UPLOAD_READ_BYTES = 1024 * 1024

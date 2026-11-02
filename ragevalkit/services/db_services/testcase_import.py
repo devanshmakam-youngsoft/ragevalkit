@@ -2,8 +2,8 @@
 import logging
 from datetime import datetime, timezone
 
-from ragevalkit.core.exceptions.data_access import GroupNotFound
-from ragevalkit.data_access.base import StoreBase
+from ragevalkit.core.exceptions.db_services import GroupNotFound
+from ragevalkit.services.db_services.base import StoreBase
 from ragevalkit.utils.record_values import clean_expected_sources
 from ragevalkit.utils.testcase_identity import case_id_for, latest_versions
 

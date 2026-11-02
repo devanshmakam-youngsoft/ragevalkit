@@ -3,7 +3,7 @@
     base                   RagevalError, ConfigError, InvalidInput, NotFoundError, TooLargeError
     spreadsheet_loader     DatasetError
     document_reader        DocumentError
-    data_access            StoreError, VersionNotFound, ConflictError, GroupNotFound
+    db_services            StoreError, VersionNotFound, ConflictError, GroupNotFound
     evaluation_runner      RunError, RunBusy, NoDatasetError
     testcase_generator     GenerationError, GenerationBusy
     answer_judge           JudgeError
@@ -19,7 +19,7 @@ from ragevalkit.core.exceptions.base import (
     RagevalError,
     TooLargeError,
 )
-from ragevalkit.core.exceptions.data_access import (
+from ragevalkit.core.exceptions.db_services import (
     ConflictError,
     GroupNotFound,
     StoreError,

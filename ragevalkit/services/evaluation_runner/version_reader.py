@@ -3,7 +3,7 @@ from pathlib import Path
 
 from ragevalkit.core.config import Config
 from ragevalkit.core.exceptions.base import NotFoundError
-from ragevalkit.data_access.store import EvalStore
+from ragevalkit.services.db_services.store import EvalStore
 from ragevalkit.services.run_summarizer.excel_export import build_results_workbook
 from ragevalkit.utils.version_names import valid_version
 

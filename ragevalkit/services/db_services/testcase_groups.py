@@ -7,8 +7,8 @@ from tinydb import Query
 from tinydb.operations import delete
 
 from ragevalkit.core.exceptions.base import InvalidInput
-from ragevalkit.core.exceptions.data_access import ConflictError, GroupNotFound
-from ragevalkit.data_access.base import StoreBase
+from ragevalkit.core.exceptions.db_services import ConflictError, GroupNotFound
+from ragevalkit.services.db_services.base import StoreBase
 from ragevalkit.utils.record_values import clean_expected_sources, new_group_id
 from ragevalkit.utils.testcase_identity import latest_versions
 

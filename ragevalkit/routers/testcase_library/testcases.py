@@ -2,7 +2,6 @@
 from fastapi import APIRouter, Depends
 
 from ragevalkit.core.exceptions.base import InvalidInput
-from ragevalkit.data_access.store import EvalStore
 from ragevalkit.routers.dependencies import get_store, require_user
 from ragevalkit.schemas.testcase_library.responses import (
     DeletedTestCases,
@@ -19,6 +18,7 @@ from ragevalkit.schemas.testcase_library.testcase_requests import (
     TestCaseStatusUpdate,
     TestCaseUpdate,
 )
+from ragevalkit.services.db_services.store import EvalStore
 from ragevalkit.services.testcase_library.testcase_actions import (
     create_test_case as create_library_test_case,
 )

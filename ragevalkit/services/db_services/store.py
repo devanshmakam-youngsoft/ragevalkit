@@ -1,12 +1,12 @@
 """``EvalStore``: the results file, assembled from one repository per kind of data."""
 from pathlib import Path
 
-from ragevalkit.data_access.datasets import DatasetsRepository
-from ragevalkit.data_access.evaluation_runs import RunsRepository
-from ragevalkit.data_access.generated_batches import GenerationBatchesRepository
-from ragevalkit.data_access.testcase_groups import GroupsRepository
-from ragevalkit.data_access.testcase_import import CaseImportRepository
-from ragevalkit.data_access.testcases import CaseLibraryRepository
+from ragevalkit.services.db_services.datasets import DatasetsRepository
+from ragevalkit.services.db_services.evaluation_runs import RunsRepository
+from ragevalkit.services.db_services.generated_batches import GenerationBatchesRepository
+from ragevalkit.services.db_services.testcase_groups import GroupsRepository
+from ragevalkit.services.db_services.testcase_import import CaseImportRepository
+from ragevalkit.services.db_services.testcases import CaseLibraryRepository
 
 
 class EvalStore(

@@ -2,13 +2,13 @@
 from fastapi import APIRouter, Depends, File, UploadFile
 
 from ragevalkit.core.config import Config
-from ragevalkit.data_access.store import EvalStore
 from ragevalkit.routers.dependencies import get_config, get_store, require_user
 from ragevalkit.schemas.testcase_library.responses import (
     DatasetInfo,
     DatasetUploaded,
     GroupWithHistory,
 )
+from ragevalkit.services.db_services.store import EvalStore
 from ragevalkit.services.spreadsheet_loader.legacy_datasets import (
     describe_default_dataset,
     describe_uploaded_dataset,

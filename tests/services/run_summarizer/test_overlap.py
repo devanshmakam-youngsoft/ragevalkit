@@ -5,9 +5,9 @@ from types import SimpleNamespace
 import pandas as pd
 import pytest
 
-from ragevalkit.data_access.store import EvalStore
 from ragevalkit.services.answer_judge.insights import parse_insights
 from ragevalkit.services.answer_judge.judge import Judge
+from ragevalkit.services.db_services.store import EvalStore
 from ragevalkit.services.run_summarizer.excel_export import build_results_workbook
 from ragevalkit.services.run_summarizer.group_stats import build_group_stats
 

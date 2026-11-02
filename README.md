@@ -238,8 +238,8 @@ ragevalkit-lib/
 └── scripts/           build_guide.py, rename_library.py
 ```
 
-Inside the backend, each folder is a layer that only reaches downwards (`routers -> services -> data_access -> core, schemas, utils`;
-`tests/architecture` enforces it):
+Inside the backend, each folder is a layer that only reaches downwards (`routers -> services -> core, schemas, utils`; `services/db_services` is the only code that knows the JSON store's format;
+`tests/architecture` enforces both):
 
 ```
 ragevalkit/
@@ -252,8 +252,8 @@ ragevalkit/
 ├── schemas/             the shape of every request and response, same area folders; internal/ for shapes services share
 ├── services/            what the product does: evaluation_runner, answer_judge, testcase_generator, document_reader,
 │                        testcase_library, testcase_import, spreadsheet_loader, version_recommender, run_summarizer,
-│                        text_metrics, step_recorder, llm_client, app_info
-├── data_access/         reads and writes the JSON store (store.py and one file per kind of record)
+│                        text_metrics, step_recorder, llm_client, app_info, and db_services (reads and writes the
+│                        TinyDB JSON store: store.py and one file per kind of record)
 ├── prompts/             the instructions sent to AI models, one file each: answer_judge/, testcase_generator/
 ├── utils/               small shared helpers
 └── web/                 generated, do not edit: dashboard/ (built from frontend/) and guide/ (built from docs/guide/)

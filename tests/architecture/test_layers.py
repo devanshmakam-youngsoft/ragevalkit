@@ -1,6 +1,8 @@
 """The folders are layers, and a layer only reaches downwards:
 
-    routers  ->  services  ->  data_access  ->  core, schemas, utils        (prompts are used by services only)
+    routers  ->  services  ->  core, schemas, utils        (prompts are used by services only)
+
+Inside services, db_services (the TinyDB store) is a leaf: it reaches only core, schemas and utils.
 
 Every import in the package is read (not run) and checked against that, and the service features are checked for cycles.
 """
@@ -16,9 +18,8 @@ ALLOWED = {
     "utils": {"core", "schemas", "utils"},
     "schemas": {"core", "schemas", "utils"},
     "prompts": {"prompts"},
-    "data_access": {"core", "schemas", "utils", "data_access"},
-    "services": {"core", "schemas", "utils", "prompts", "data_access", "services"},
-    "routers": {"core", "schemas", "utils", "data_access", "services", "routers"},
+    "services": {"core", "schemas", "utils", "prompts", "services"},
+    "routers": {"core", "schemas", "utils", "services", "routers"},
 }
 
 
@@ -70,6 +71,13 @@ def test_service_features_do_not_import_each_other_in_a_circle():
 
     cycles = [c for c in (cycle_from(feature) for feature in graph) if c]
     assert not cycles, f"services import each other in a circle: {' -> '.join(cycles[0])}"
+
+
+def test_the_database_code_is_a_leaf_that_knows_nothing_about_the_rest_of_services():
+    broken = sorted({f"{file}: db_services must not import {module}" for file, layer, target, module in _imports()
+                     if file.parts[1:3] == ("services", "db_services")
+                     and (target not in {"core", "schemas", "utils"} and not module.startswith("ragevalkit.services.db_services"))})
+    assert not broken, "\n".join(broken)
 
 
 @pytest.mark.parametrize("folder", sorted(ALLOWED))

@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 
 from ragevalkit.core.diagnostics import redact
 from ragevalkit.core.exceptions.base import InvalidInput, NotFoundError, RagevalError, TooLargeError
-from ragevalkit.core.exceptions.data_access import ConflictError
+from ragevalkit.core.exceptions.db_services import ConflictError
 from ragevalkit.core.exceptions.document_reader import DocumentError
 from ragevalkit.core.exceptions.evaluation_runner import NoDatasetError, RunBusy
 from ragevalkit.core.exceptions.spreadsheet_loader import DatasetError

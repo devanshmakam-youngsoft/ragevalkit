@@ -4,9 +4,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 from ragevalkit.core.config import Config
-from ragevalkit.core.exceptions.data_access import ConflictError, GroupNotFound
-from ragevalkit.data_access.store import EvalStore
+from ragevalkit.core.exceptions.db_services import ConflictError, GroupNotFound
 from ragevalkit.main import create_app
+from ragevalkit.services.db_services.store import EvalStore
 
 
 @pytest.fixture
@@ -96,7 +96,7 @@ def test_a_case_can_only_be_active_or_inactive(store):
 def test_cases_an_older_version_only_hid_are_removed_when_the_store_opens(tmp_path):
     from tinydb import Query
 
-    from ragevalkit.data_access.store import EvalStore
+    from ragevalkit.services.db_services.store import EvalStore
     path = tmp_path / "old.json"
     first = EvalStore(path)
     first.import_cases([{"row": 2, "chat_id": "c1", "turn_no": 1, "type": "rag", "question": "q1", "expected_answer": "a",

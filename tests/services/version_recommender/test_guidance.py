@@ -2,7 +2,7 @@
 import pandas as pd
 import pytest
 
-from ragevalkit.data_access.store import EvalStore
+from ragevalkit.services.db_services.store import EvalStore
 from ragevalkit.services.version_recommender.engine import recommend
 
 

@@ -5,9 +5,9 @@ from datetime import datetime, timezone
 from tinydb import Query
 
 from ragevalkit.core.exceptions.base import InvalidInput
-from ragevalkit.core.exceptions.data_access import GroupNotFound
-from ragevalkit.data_access.base import StoreBase
+from ragevalkit.core.exceptions.db_services import GroupNotFound
 from ragevalkit.schemas.internal.run_selection import RunSelection, cases_to_dataframe
+from ragevalkit.services.db_services.base import StoreBase
 from ragevalkit.utils.testcase_identity import case_id_for, case_order, latest_versions
 
 logger = logging.getLogger(__name__)

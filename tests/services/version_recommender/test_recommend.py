@@ -5,8 +5,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from ragevalkit.core.config import Config
-from ragevalkit.data_access.store import EvalStore
 from ragevalkit.main import create_app
+from ragevalkit.services.db_services.store import EvalStore
 from ragevalkit.services.run_summarizer.builder import build_summary
 from ragevalkit.services.run_summarizer.scores import build_scores
 from ragevalkit.services.version_recommender.engine import recommend

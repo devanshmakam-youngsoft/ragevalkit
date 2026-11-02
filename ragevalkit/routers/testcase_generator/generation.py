@@ -2,7 +2,6 @@
 from fastapi import APIRouter, Depends, File, Form, UploadFile
 
 from ragevalkit.core.config import Config
-from ragevalkit.data_access.store import EvalStore
 from ragevalkit.routers.dependencies import (
     get_config,
     get_generation_manager,
@@ -20,6 +19,7 @@ from ragevalkit.schemas.testcase_generator.responses import (
     GenerationLimits,
     ItemRemoved,
 )
+from ragevalkit.services.db_services.store import EvalStore
 from ragevalkit.services.testcase_generator.manager import GenerationManager
 from ragevalkit.services.testcase_generator.review_batches import (
     batch_summary,
