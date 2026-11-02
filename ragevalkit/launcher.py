@@ -6,7 +6,12 @@ import webbrowser
 from pathlib import Path
 from typing import Callable
 
-from ragevalkit.core.config import Config, load_dotenv
+from ragevalkit.core.config import (
+    SEMANTIC_INSTALL_COMMAND,
+    Config,
+    load_dotenv,
+    semantic_extra_installed,
+)
 from ragevalkit.core.constants import DATA_DIR_NAME
 from ragevalkit.core.diagnostics import configure_logging
 from ragevalkit.core.exceptions import ConfigError
@@ -45,7 +50,7 @@ def serve(
     # --- built-in metrics ---
     run_keyword_recall: bool = True,
     run_bm25: bool = True,
-    run_semantic_similarity: bool = True,
+    run_semantic_similarity: bool | None = None,
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2",
     # --- custom / extra metrics ---
     extra_metrics: dict[str, Callable] | None = None,
@@ -134,7 +139,10 @@ def serve(
         max_response_time: Exclude version candidates slower than this (seconds) from recommendation.
         run_keyword_recall: Compute keyword recall between expected and generated answers.
         run_bm25: Compute BM25 lexical similarity score.
-        run_semantic_similarity: Compute cosine similarity via a local embedding model.
+        run_semantic_similarity: Compute the meaning score (cosine similarity from a small local embedding model).
+            ``None`` (the default) turns it on when the optional extra is installed
+            (``pip install "ragevalkit[semantic]"``) and leaves it off otherwise. ``True`` without the extra
+            stops ``serve()`` with a message saying how to install it.
         embedding_model: ``sentence-transformers`` model name for semantic similarity.
         extra_metrics: Additional scoring functions run alongside built-ins::
 
@@ -194,6 +202,11 @@ def serve(
         raise ConfigError(f"judge_retries must be >= 1, got {judge_retries}")
     if answer_weight < 0 or material_weight < 0:
         raise ConfigError("answer_weight and material_weight must be >= 0")
+    if run_semantic_similarity and not semantic_extra_installed():
+        raise ConfigError(
+            "run_semantic_similarity=True needs the optional semantic extra. "
+            f"Install it with: {SEMANTIC_INSTALL_COMMAND}  (or leave the option unset to skip the meaning score)"
+        )
     if history_format not in {"dict", "openai"}:
         raise ConfigError(
             f"history_format={history_format!r} is not valid. Choose 'dict' or 'openai'."

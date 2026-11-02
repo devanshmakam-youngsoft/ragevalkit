@@ -33,12 +33,14 @@ dependencies = [
     "litellm>=1.104,<1.107",
     "pandas>=2.2",
     "openpyxl>=3.1",
-    "sentence-transformers>=3.0",
     "pypdf>=4.0",
     "python-docx>=1.1",
 ]
 
 [project.optional-dependencies]
+# The meaning-similarity score runs a small local model. sentence-transformers brings PyTorch, a very large download,
+# so it is opt-in: pip install "ragevalkit[semantic]"
+semantic = ["sentence-transformers>=3.0"]
 dev = ["pytest", "httpx", "pytest-asyncio", "ruff"]
 
 [project.urls]

@@ -2,6 +2,8 @@
 from functools import lru_cache
 from typing import TYPE_CHECKING
 
+from ragevalkit.core.config import SEMANTIC_INSTALL_COMMAND
+
 if TYPE_CHECKING:
     from sentence_transformers import SentenceTransformer
 
@@ -9,7 +11,10 @@ if TYPE_CHECKING:
 @lru_cache(maxsize=1)
 def _embedder(model_name: str) -> "SentenceTransformer":
     # Imported on first use: loading sentence-transformers is slow and the metric can be switched off.
-    from sentence_transformers import SentenceTransformer
+    try:
+        from sentence_transformers import SentenceTransformer
+    except ImportError as e:
+        raise ImportError(f"The meaning score needs the optional extra: {SEMANTIC_INSTALL_COMMAND}") from e
     return SentenceTransformer(model_name)
 
 

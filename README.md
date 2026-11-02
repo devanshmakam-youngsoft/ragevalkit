@@ -20,6 +20,10 @@ pip install git+https://github.com/devanshmakam-youngsoft/ragevalkit.git
 
 To pin a release, add a tag, for example `@v0.1.3` (tags: `v0.1.0` to `v0.1.4`). `v0.1.4` is the first release with the backend layout described below and the `data_dir` option in place of `store_path` and `log_dir`; code written for an earlier tag that passes those two options needs the one change.
 
+The meaning-similarity score needs a small local model, which brings PyTorch (a very large download), so it is optional:
+`pip install "ragevalkit[semantic] @ git+https://github.com/devanshmakam-youngsoft/ragevalkit.git"`. Without it everything else
+works and that one score is left blank.
+
 In `requirements.txt`:
 
 ```

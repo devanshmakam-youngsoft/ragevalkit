@@ -342,7 +342,7 @@ class RunManager:
                 out["keyword_recall"] = text_metrics.keyword_recall(row.expected_answer, gen)
             if self.config.run_bm25:
                 out["bm25_score"] = text_metrics.bm25_score(row.expected_answer, gen)
-            if self.config.run_semantic_similarity:
+            if self.config.semantic_similarity_enabled:
                 try:
                     out["semantic_similarity"] = text_metrics.semantic_similarity(
                         row.expected_answer, gen, self.config.embedding_model

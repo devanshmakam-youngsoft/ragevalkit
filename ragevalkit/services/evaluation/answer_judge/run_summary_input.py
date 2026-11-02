@@ -41,7 +41,7 @@ def stats_for_llm(summary: dict, rows: list[dict]) -> str:
         f"By group: {group_line}\nSource checks: {source_line}\n"
         f"Rows: {summary['total_rows']} (failed: {summary['failed_rows']})\n"
         f"Avg answer marks: {summary['avg_answer_marks']}/10, avg material marks: {summary['avg_material_marks']}/10\n"
-        f"Key words found in answers (0 to 1): {summary['avg_keyword_recall']}; meaning match with the expected answer (0 to 1): {summary['avg_semantic_similarity']}\n"
+        f"Key words found in answers (0 to 1): {summary['avg_keyword_recall']}; meaning match with the expected answer (0 to 1): {'not measured' if summary['avg_semantic_similarity'] is None else summary['avg_semantic_similarity']}\n"
         f"Avg end-to-end time: {summary['avg_total_time']}s; time per step: {nodes}\n"
         f"(Step names: retrieval and faiss_search = finding documents; llm = the AI model writing the answer.)\n"
         f"Answer marks by type: {type_line}\nLowest scoring rows:\n{worst_lines}"

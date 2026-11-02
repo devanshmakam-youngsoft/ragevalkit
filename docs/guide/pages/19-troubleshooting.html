@@ -72,8 +72,9 @@ minutes: 0
 <details class="fix"><summary>&ldquo;Address already in use&rdquo;, or the page does not open</summary><div class="body">
     <p class="why">Another program is using the port, or the browser did not start.</p>
     <p><b>Do:</b> pick another one with <code>port=8003</code> and open <code>http://localhost:8003</code> yourself.</p></div></details>
-<details class="fix"><summary>&ldquo;Semantic similarity failed&rdquo; in the problems list</summary><div class="body">
-    <p class="why">The small local model for the &ldquo;meaning&rdquo; score could not load, usually the first time on a machine with no internet.</p>
+<details class="fix"><summary>The &ldquo;meaning&rdquo; score is blank, or &ldquo;Semantic similarity failed&rdquo; is in the problems list</summary><div class="body">
+    <p class="why">Blank: the optional extra is not installed, so the score is skipped. Failed: the small local model could not load, usually the first time on a machine with no internet.</p>
+    <p><b>Do:</b> for a blank score run <code>pip install "ragevalkit[semantic]"</code> and restart.</p>
     <p><b>Do:</b> connect once so it can download, or set <code>run_semantic_similarity=False</code>. All other scores are unaffected.</p></div></details>
 <details class="fix"><summary>Where are the logs, and what should I send when asking for help?</summary><div class="body">
     <p><b>Do:</b> on the version page press <em>Download log</em>, or open <code>logs/runs/</code> in your data folder (<code>ragevalkit_data/</code> by default). For an error outside a run (a message with a reference number), search <code>logs/server.log</code> for that reference. Keys and passwords are already hidden.</p></div></details>
