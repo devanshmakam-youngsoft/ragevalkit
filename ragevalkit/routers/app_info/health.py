@@ -1,7 +1,7 @@
 """Is the server up."""
 from fastapi import APIRouter
 
-from ragevalkit.schemas.app_info.responses import Health
+from ragevalkit.schemas.app_info import Health
 
 router = APIRouter(prefix="/api", tags=["health"])
 

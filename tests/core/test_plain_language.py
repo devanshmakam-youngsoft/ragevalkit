@@ -2,8 +2,7 @@
 import pytest
 
 from ragevalkit.core.diagnostics import explain, redact
-from ragevalkit.core.exceptions.answer_judge import JudgeError
-from ragevalkit.core.exceptions.document_reader import DocumentError
+from ragevalkit.core.exceptions import DocumentError, JudgeError
 
 
 @pytest.mark.parametrize("error,expected", [

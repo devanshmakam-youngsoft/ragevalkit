@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from ragevalkit.core.exceptions.spreadsheet_loader import DatasetError
+from ragevalkit.core.exceptions import DatasetError
 from ragevalkit.services.testcase_import.cell_values import cell_text, normalise_header
 from ragevalkit.services.testcase_import.fields import ALIASES, FIELDS, MAX_ROWS
 

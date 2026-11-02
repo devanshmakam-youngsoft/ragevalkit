@@ -1,6 +1,6 @@
 """Who may open the dashboard."""
 from ragevalkit.core.config.base import Settings
-from ragevalkit.core.constants.library import SESSION_COOKIE_NAME
+from ragevalkit.core.constants import SESSION_COOKIE_NAME
 
 
 class AccessSettings(Settings):

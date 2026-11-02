@@ -3,9 +3,9 @@ import sys
 import types
 
 from ragevalkit.core.config import Config
-from ragevalkit.services.answer_judge.judge import Judge
+from ragevalkit.services.answer_judge import Judge
 from ragevalkit.services.llm_client import completion
-from ragevalkit.services.testcase_generator.model_client import GenerationModelClient
+from ragevalkit.services.testcase_generator import GenerationModelClient
 
 
 def fake_litellm(monkeypatch):

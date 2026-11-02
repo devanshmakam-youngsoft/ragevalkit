@@ -6,7 +6,7 @@ from datetime import datetime
 from pathlib import Path
 
 from ragevalkit.core.config import Config
-from ragevalkit.core.constants.library import LOGGER_NAME
+from ragevalkit.core.constants import LOGGER_NAME
 from ragevalkit.core.diagnostics.issues import Issue, make_issue
 from ragevalkit.core.diagnostics.redaction import redact
 

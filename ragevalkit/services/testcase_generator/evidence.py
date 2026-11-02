@@ -10,8 +10,7 @@ import math
 import re
 from typing import Any
 
-from ragevalkit.services.document_reader.models import Chunk
-from ragevalkit.services.document_reader.text_cleaning import clean, normalise
+from ragevalkit.services.document_reader import Chunk, clean, normalise
 
 MIN_QUOTE_CHARS = 15
 MIN_FRAGMENT_WORDS = 4

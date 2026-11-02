@@ -2,7 +2,7 @@
 from pathlib import Path
 
 from ragevalkit.core.config.base import Settings
-from ragevalkit.core.constants.library import (
+from ragevalkit.core.constants import (
     DATA_DIR_NAME,
     LOGS_DIR_NAME,
     STORE_FILE_NAME,

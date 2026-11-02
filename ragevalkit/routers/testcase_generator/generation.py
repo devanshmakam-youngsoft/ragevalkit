@@ -8,8 +8,8 @@ from ragevalkit.routers.dependencies import (
     get_store,
     require_user,
 )
-from ragevalkit.schemas.testcase_generator.requests import Approval, ItemEdit
-from ragevalkit.schemas.testcase_generator.responses import (
+from ragevalkit.schemas.testcase_generator import (
+    Approval,
     ApproveResult,
     BatchCancelling,
     BatchDetail,
@@ -17,11 +17,12 @@ from ragevalkit.schemas.testcase_generator.responses import (
     BatchSummary,
     GeneratedItem,
     GenerationLimits,
+    ItemEdit,
     ItemRemoved,
 )
-from ragevalkit.services.db_services.store import EvalStore
-from ragevalkit.services.testcase_generator.manager import GenerationManager
-from ragevalkit.services.testcase_generator.review_batches import (
+from ragevalkit.services.db_services import EvalStore
+from ragevalkit.services.testcase_generator import (
+    GenerationManager,
     batch_summary,
     discard_batch,
     get_batch,

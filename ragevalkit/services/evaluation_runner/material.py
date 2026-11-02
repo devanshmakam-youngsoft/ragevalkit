@@ -1,7 +1,7 @@
 """Choosing which recorded steps supply the retrieved text the judge reads."""
 import logging
 
-from ragevalkit.core.constants.library import LIBRARY_NAME
+from ragevalkit.core.constants import LIBRARY_NAME
 from ragevalkit.services import step_recorder
 
 logger = logging.getLogger(__name__)

@@ -12,7 +12,7 @@ from fastapi.testclient import TestClient
 
 from ragevalkit.core.config import Config
 from ragevalkit.main import create_app
-from ragevalkit.schemas.app_info.responses import AppInfo, Features, Health
+from ragevalkit.schemas.app_info import AppInfo, Features, Health
 from ragevalkit.schemas.evaluation.responses import (
     IssueOut,
     Recommendation,
@@ -22,9 +22,9 @@ from ragevalkit.schemas.evaluation.responses import (
     VersionDetail,
     VersionSummary,
 )
-from ragevalkit.schemas.sign_in.responses import Acknowledged, SignedInUser
-from ragevalkit.schemas.testcase_generator.responses import GenerationLimits
-from ragevalkit.schemas.testcase_library.responses import (
+from ragevalkit.schemas.sign_in import Acknowledged, SignedInUser
+from ragevalkit.schemas.testcase_generator import GenerationLimits
+from ragevalkit.schemas.testcase_library import (
     DeletedTestCases,
     Group,
     GroupDeleted,

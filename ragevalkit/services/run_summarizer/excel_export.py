@@ -5,7 +5,7 @@ from typing import Any
 
 import pandas as pd
 
-from ragevalkit.utils.step_order import node_order
+from ragevalkit.utils import node_order
 
 # Optional receipt columns — included in Excel when at least one row has a value.
 OPTIONAL_RECEIPT_COLUMNS = [

@@ -3,7 +3,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 
 from ragevalkit.core.config import Config
-from ragevalkit.core.constants.library import LOGGER_NAME
+from ragevalkit.core.constants import LOGGER_NAME
 from ragevalkit.core.diagnostics.event_log import LINE_FORMAT
 
 _OURS = f"_{LOGGER_NAME}_handler"

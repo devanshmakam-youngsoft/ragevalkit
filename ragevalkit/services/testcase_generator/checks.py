@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import re
 
-from ragevalkit.services.document_reader.text_cleaning import normalise
+from ragevalkit.services.document_reader import normalise
 from ragevalkit.services.testcase_generator import evidence as evidence_of
 from ragevalkit.services.testcase_generator.planning import Task
 from ragevalkit.services.text_metrics import tokenize

@@ -3,8 +3,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from ragevalkit.services.document_reader.models import Chunk
-from ragevalkit.services.document_reader.text_cleaning import normalise
+from ragevalkit.services.document_reader import Chunk, normalise
 from ragevalkit.services.testcase_generator import (
     GenerationModelClient,
     Task,

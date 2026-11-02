@@ -17,6 +17,11 @@ from ragevalkit.services.testcase_import.fields import (
     MAX_BYTES,
     MAX_ROWS,
 )
+from ragevalkit.services.testcase_import.import_workflow import (
+    preview_import,
+    read_upload,
+    run_import,
+)
 from ragevalkit.services.testcase_import.row_parser import Problem, parse_rows, split_labels
 from ragevalkit.services.testcase_import.table_reader import (
     SUPPORTED_SUFFIXES,
@@ -27,6 +32,7 @@ from ragevalkit.services.testcase_import.table_reader import (
 from ragevalkit.services.testcase_import.template import template_workbook
 
 __all__ = [
-    "ALIASES", "FIELDS", "FIELD_LABELS", "MAX_BYTES", "MAX_ROWS", "Problem", "SUPPORTED_SUFFIXES", "clean_mapping",
-    "detect_mapping", "parse_rows", "read_table", "split_labels", "template_workbook",
+    "ALIASES", "FIELDS", "FIELD_LABELS", "MAX_BYTES", "MAX_ROWS", "Problem", "SUPPORTED_SUFFIXES",
+    "clean_mapping", "detect_mapping", "parse_rows", "preview_import", "read_table", "read_upload",
+    "run_import", "split_labels", "template_workbook"
 ]

@@ -6,8 +6,8 @@ import pandas as pd
 import pytest
 
 from ragevalkit.core.config import Config
-from ragevalkit.services.db_services.store import EvalStore
-from ragevalkit.services.evaluation_runner.runner import RunManager
+from ragevalkit.services.db_services import EvalStore
+from ragevalkit.services.evaluation_runner import RunManager
 
 
 @pytest.fixture

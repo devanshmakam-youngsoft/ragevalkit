@@ -3,18 +3,14 @@ from fastapi import APIRouter, Depends, File, UploadFile
 
 from ragevalkit.core.config import Config
 from ragevalkit.routers.dependencies import get_config, get_store, require_user
-from ragevalkit.schemas.testcase_library.responses import (
-    DatasetInfo,
-    DatasetUploaded,
-    GroupWithHistory,
-)
-from ragevalkit.services.db_services.store import EvalStore
-from ragevalkit.services.spreadsheet_loader.legacy_datasets import (
+from ragevalkit.schemas.testcase_library import DatasetInfo, DatasetUploaded, GroupWithHistory
+from ragevalkit.services.db_services import EvalStore
+from ragevalkit.services.spreadsheet_loader import (
     describe_default_dataset,
     describe_uploaded_dataset,
     import_uploaded_dataset,
 )
-from ragevalkit.services.version_recommender.recommendation_views import groups_with_history
+from ragevalkit.services.version_recommender import groups_with_history
 
 router = APIRouter(prefix="/api", tags=["datasets"], dependencies=[Depends(require_user)])
 

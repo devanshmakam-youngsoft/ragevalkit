@@ -3,8 +3,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from ragevalkit.core.exceptions.spreadsheet_loader import DatasetError
-from ragevalkit.utils.fingerprint import compute_fingerprint
+from ragevalkit.core.exceptions import DatasetError
+from ragevalkit.utils import compute_fingerprint
 
 REQUIRED_COLUMNS = ["chat_id", "turn_no", "type", "question", "expected_answer"]
 

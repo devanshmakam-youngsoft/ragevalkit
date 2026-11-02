@@ -3,9 +3,9 @@ from fastapi import APIRouter, Depends
 
 from ragevalkit.core.config import Config
 from ragevalkit.routers.dependencies import get_config, get_store, require_user
-from ragevalkit.schemas.evaluation.responses import Recommendation
-from ragevalkit.services.db_services.store import EvalStore
-from ragevalkit.services.version_recommender.recommendation_views import recommend_version
+from ragevalkit.schemas.evaluation import Recommendation
+from ragevalkit.services.db_services import EvalStore
+from ragevalkit.services.version_recommender import recommend_version
 
 router = APIRouter(prefix="/api/recommendation", tags=["recommendation"], dependencies=[Depends(require_user)])
 

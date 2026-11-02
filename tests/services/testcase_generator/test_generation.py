@@ -8,13 +8,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 from ragevalkit.core.config import Config
-from ragevalkit.core.exceptions.document_reader import DocumentError
-from ragevalkit.core.exceptions.testcase_generator import GenerationError
+from ragevalkit.core.exceptions import DocumentError, GenerationError
 from ragevalkit.main import create_app
-from ragevalkit.services.document_reader.models import Chunk
-from ragevalkit.services.document_reader.ordering import spread_order
-from ragevalkit.services.document_reader.reader import read_document
-from ragevalkit.services.document_reader.text_cleaning import normalise
+from ragevalkit.services.document_reader import Chunk, normalise, read_document, spread_order
 from ragevalkit.services.testcase_generator import Task, generate_item, plan_tasks, validate
 
 # ---- helpers ------------------------------------------------------------------------------

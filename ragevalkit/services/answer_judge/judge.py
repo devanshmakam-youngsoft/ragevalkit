@@ -22,7 +22,7 @@ import logging
 import time
 from typing import Any
 
-from ragevalkit.core.exceptions.answer_judge import JudgeError
+from ragevalkit.core.exceptions import JudgeError
 from ragevalkit.prompts.answer_judge import (
     grader_format,
     grader_prompt,

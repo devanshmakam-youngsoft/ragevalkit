@@ -5,11 +5,9 @@ from types import SimpleNamespace
 import pandas as pd
 import pytest
 
-from ragevalkit.services.answer_judge.insights import parse_insights
-from ragevalkit.services.answer_judge.judge import Judge
-from ragevalkit.services.db_services.store import EvalStore
-from ragevalkit.services.run_summarizer.excel_export import build_results_workbook
-from ragevalkit.services.run_summarizer.group_stats import build_group_stats
+from ragevalkit.services.answer_judge import Judge, parse_insights
+from ragevalkit.services.db_services import EvalStore
+from ragevalkit.services.run_summarizer import build_group_stats, build_results_workbook
 
 
 @pytest.fixture
@@ -175,7 +173,7 @@ PAIR = {"pitfalls": ["a slow step"], "suggestions": ["speed it up"], "items": [{
     ({"pitfalls": ["a slow step", "a slow step", "None."], "suggestions": "- speed it up"}, PAIR),
 ])
 def test_summary_replies_are_read_whatever_names_and_shapes_the_model_used(reply, expected):
-    from ragevalkit.services.answer_judge.insights import check_insights
+    from ragevalkit.services.answer_judge import check_insights
     found, problem = check_insights(json.dumps(reply))
     assert problem == "" and found == expected
 
@@ -201,7 +199,7 @@ def test_suggestions_read_from_the_numbers_are_never_empty_and_fit_the_run():
 
 
 def test_the_model_is_told_each_steps_share_of_the_response_time():
-    from ragevalkit.services.answer_judge.run_summary_input import stats_for_llm
+    from ragevalkit.services.answer_judge import stats_for_llm
     summary = {"total_rows": 2, "failed_rows": 0, "avg_answer_marks": 9, "avg_material_marks": 9, "avg_keyword_recall": 0.5,
                "avg_semantic_similarity": 0.5, "avg_total_time": 4.0, "avg_retrieval": 3.0, "scores": {}}
     assert "retrieval=3.0s (75% of the response time)" in stats_for_llm(summary, [])
@@ -214,7 +212,7 @@ PAIRED = {"items": [{"watch_out": "The multi-turn group scores lowest.", "sugges
 
 
 def test_paired_findings_are_accepted_and_keep_their_pairing():
-    from ragevalkit.services.answer_judge.insights import check_insights
+    from ragevalkit.services.answer_judge import check_insights
     found, problem = check_insights(json.dumps(PAIRED))
     assert problem == "" and found["items"] == PAIRED["items"]
     assert found["pitfalls"] == [i["watch_out"] for i in PAIRED["items"]] and found["suggestions"] == [i["suggestion"] for i in PAIRED["items"]]
@@ -232,13 +230,13 @@ def test_a_finding_without_its_suggestion_is_sent_back_naming_the_item(monkeypat
 
 
 def test_unequal_parallel_lists_are_asked_to_use_the_paired_shape():
-    from ragevalkit.services.answer_judge.insights import check_insights
+    from ragevalkit.services.answer_judge import check_insights
     found, problem = check_insights(json.dumps({"pitfalls": ["a", "b"], "suggestions": ["c"]}))
     assert found is None and '"items"' in problem and "its own suggestion" in problem
 
 
 def test_a_watch_out_left_without_a_suggestion_gets_one_from_the_numbers():
-    from ragevalkit.services.answer_judge.fallback_insights import finish_insights
+    from ragevalkit.services.answer_judge import finish_insights
     summary = {"failed_rows": 2, "avg_material_marks": 9, "avg_total_time": 2.0, "scores": {"tiers": {"low": 0}}}
     half = {"items": [{"watch_out": "Some questions failed.", "suggestion": ""}, {"watch_out": "Slow.", "suggestion": "Look at the slowest step."}],
             "pitfalls": ["Some questions failed.", "Slow."], "suggestions": ["Look at the slowest step."]}
@@ -248,14 +246,14 @@ def test_a_watch_out_left_without_a_suggestion_gets_one_from_the_numbers():
 
 
 def test_older_style_lists_are_paired_by_position_and_never_left_blank():
-    from ragevalkit.services.answer_judge.fallback_insights import finish_insights
+    from ragevalkit.services.answer_judge import finish_insights
     done = finish_insights({"pitfalls": ["One.", "Two."], "suggestions": ["Fix one."]}, {"failed_rows": 0, "scores": {}}, [])
     assert done["items"][0] == {"watch_out": "One.", "suggestion": "Fix one."}
     assert done["items"][1]["watch_out"] == "Two." and done["items"][1]["suggestion"]
 
 
 def test_the_model_is_told_the_figures_in_plain_words():
-    from ragevalkit.services.answer_judge.run_summary_input import stats_for_llm
+    from ragevalkit.services.answer_judge import stats_for_llm
     text = stats_for_llm({"total_rows": 1, "failed_rows": 0, "avg_answer_marks": 9, "avg_material_marks": 9, "avg_keyword_recall": 0.5,
                           "avg_semantic_similarity": 0.4, "avg_total_time": 2.0, "scores": {}}, [])
     assert "semantic" not in text.lower() and "recall" not in text.lower() and "meaning match" in text and "Step names" in text

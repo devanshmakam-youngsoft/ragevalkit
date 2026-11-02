@@ -8,10 +8,13 @@ from fastapi.testclient import TestClient
 
 from ragevalkit.core.config import Config
 from ragevalkit.main import create_app
-from ragevalkit.services.db_services.store import EvalStore
-from ragevalkit.services.testcase_import.row_parser import parse_rows, split_labels
-from ragevalkit.services.testcase_import.table_reader import detect_mapping
-from ragevalkit.services.testcase_import.template import template_workbook
+from ragevalkit.services.db_services import EvalStore
+from ragevalkit.services.testcase_import import (
+    detect_mapping,
+    parse_rows,
+    split_labels,
+    template_workbook,
+)
 
 
 def table(**cols):
@@ -168,7 +171,7 @@ def test_update_by_slot_rewrites_the_existing_case_and_stays_idempotent(store):
 
 
 def test_an_unknown_group_id_is_rejected(store):
-    from ragevalkit.core.exceptions.db_services import GroupNotFound
+    from ragevalkit.core.exceptions import GroupNotFound
     with pytest.raises(GroupNotFound):
         store.import_cases([row(2, "c1", 1, "q")], group_ids=["grp_nope"])
 

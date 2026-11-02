@@ -48,8 +48,24 @@ The dataset's question set is hashed on load and stored in the run summary as
 question_fingerprint. The dashboard can compare fingerprints across versions to
 warn when questions changed between runs.
 """
-from ragevalkit.core.exceptions.evaluation_runner import RunBusy, RunError
+from ragevalkit.core.exceptions import RunBusy, RunError
 from ragevalkit.services.evaluation_runner.run import Run
+from ragevalkit.services.evaluation_runner.run_control import get_run, request_stop, run_issues
+from ragevalkit.services.evaluation_runner.run_planning import (
+    check_version_name,
+    parse_id_list,
+    plan_run,
+    selection_preview,
+)
 from ragevalkit.services.evaluation_runner.runner import RunManager
+from ragevalkit.services.evaluation_runner.version_reader import (
+    export_version,
+    get_version_with_deleted_flags,
+    read_version_log,
+)
 
-__all__ = ["Run", "RunBusy", "RunError", "RunManager"]
+__all__ = [
+    "Run", "RunBusy", "RunError", "RunManager", "check_version_name", "export_version", "get_run",
+    "get_version_with_deleted_flags", "parse_id_list", "plan_run", "read_version_log", "request_stop",
+    "run_issues", "selection_preview"
+]

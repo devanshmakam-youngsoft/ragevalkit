@@ -4,11 +4,9 @@ import asyncio
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 from ragevalkit.core.config import Config
-from ragevalkit.core.security.passwords import check_password, parse_users
-from ragevalkit.core.security.sessions import make_token
+from ragevalkit.core.security import check_password, make_token, parse_users
 from ragevalkit.routers.dependencies import current_user, get_config
-from ragevalkit.schemas.sign_in.requests import LoginBody
-from ragevalkit.schemas.sign_in.responses import Acknowledged, SignedInUser
+from ragevalkit.schemas.sign_in import Acknowledged, LoginBody, SignedInUser
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 

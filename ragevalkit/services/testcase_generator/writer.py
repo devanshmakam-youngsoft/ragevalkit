@@ -5,7 +5,7 @@ import logging
 import time
 from typing import Callable
 
-from ragevalkit.core.exceptions.testcase_generator import GenerationError
+from ragevalkit.core.exceptions import GenerationError
 from ragevalkit.prompts.testcase_generator import retry_instruction
 from ragevalkit.services.testcase_generator.checks import validate
 from ragevalkit.services.testcase_generator.message_builder import build_messages

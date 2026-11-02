@@ -2,7 +2,7 @@
 from pathlib import Path
 
 from ragevalkit.core.config import Config
-from ragevalkit.core.exceptions.base import NotFoundError
+from ragevalkit.core.exceptions import NotFoundError
 
 GUIDE_PATH = Path(__file__).resolve().parents[2] / "web" / "guide" / "developer-guide.html"
 

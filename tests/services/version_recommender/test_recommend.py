@@ -6,11 +6,9 @@ from fastapi.testclient import TestClient
 
 from ragevalkit.core.config import Config
 from ragevalkit.main import create_app
-from ragevalkit.services.db_services.store import EvalStore
-from ragevalkit.services.run_summarizer.builder import build_summary
-from ragevalkit.services.run_summarizer.scores import build_scores
-from ragevalkit.services.version_recommender.engine import recommend
-from ragevalkit.services.version_recommender.group_overview import group_overview
+from ragevalkit.services.db_services import EvalStore
+from ragevalkit.services.run_summarizer import build_scores, build_summary
+from ragevalkit.services.version_recommender import group_overview, recommend
 
 
 def run(version, answer, material, time, *, rows=8, failed=0, archived=False, stopped=False, groups=None):

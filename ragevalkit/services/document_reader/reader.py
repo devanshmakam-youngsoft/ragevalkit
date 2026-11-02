@@ -1,8 +1,8 @@
 """Reading any supported document into passages."""
 from pathlib import Path
 
-from ragevalkit.core.constants.document_reading import SUPPORTED_MESSAGE, SUPPORTED_SUFFIXES
-from ragevalkit.core.exceptions.document_reader import DocumentError
+from ragevalkit.core.constants import SUPPORTED_MESSAGE, SUPPORTED_SUFFIXES
+from ragevalkit.core.exceptions import DocumentError
 from ragevalkit.services.document_reader.docx_reader import read_docx
 from ragevalkit.services.document_reader.models import ReadDocument
 from ragevalkit.services.document_reader.pdf_reader import read_pdf

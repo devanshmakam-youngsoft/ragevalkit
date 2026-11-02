@@ -1,7 +1,7 @@
 """Which names a version may have."""
 import pytest
 
-from ragevalkit.utils.version_names import valid_version
+from ragevalkit.utils import valid_version
 
 
 @pytest.mark.parametrize("name", ["1", "v2", "rerank-on", "ci_0102.1", "a" * 20])

@@ -4,14 +4,12 @@ from docx import Document
 from fastapi.testclient import TestClient
 
 from ragevalkit.core.config import Config
+from ragevalkit.core.constants import CASE_TYPE
 from ragevalkit.core.constants.case_types import NON_RAG, RAG, is_non_rag
-from ragevalkit.core.constants.generator_categories import CASE_TYPE
-from ragevalkit.core.exceptions.document_reader import DocumentError
+from ragevalkit.core.exceptions import DocumentError
 from ragevalkit.main import create_app
 from ragevalkit.prompts.testcase_generator import CATEGORY_PROMPTS
-from ragevalkit.services.document_reader.models import Chunk
-from ragevalkit.services.document_reader.reader import read_document
-from ragevalkit.services.document_reader.text_cleaning import normalise
+from ragevalkit.services.document_reader import Chunk, normalise, read_document
 from ragevalkit.services.testcase_generator import Task, validate
 from ragevalkit.services.testcase_generator.message_builder import build_messages, system_prompt
 

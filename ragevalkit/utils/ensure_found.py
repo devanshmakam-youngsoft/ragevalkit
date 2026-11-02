@@ -1,7 +1,7 @@
 """Turning "the store found nothing" into a clear not-found error."""
 from typing import TypeVar
 
-from ragevalkit.core.exceptions.base import NotFoundError
+from ragevalkit.core.exceptions import NotFoundError
 
 T = TypeVar("T")
 

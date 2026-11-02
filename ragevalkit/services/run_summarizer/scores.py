@@ -1,7 +1,7 @@
 """The detailed scores of one run."""
 import math
 
-from ragevalkit.utils.score_math import column_of, is_nan, mean_of
+from ragevalkit.utils import column_of, is_nan, mean_of
 
 
 def build_scores(rows: list[dict]) -> dict:

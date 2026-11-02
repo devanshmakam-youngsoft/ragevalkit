@@ -3,8 +3,7 @@ from dataclasses import dataclass, field
 
 import pandas as pd
 
-from ragevalkit.utils.fingerprint import compute_fingerprint
-from ragevalkit.utils.record_values import clean_expected_sources
+from ragevalkit.utils import clean_expected_sources, compute_fingerprint
 
 
 @dataclass

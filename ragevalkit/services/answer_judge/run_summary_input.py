@@ -1,7 +1,7 @@
 """The facts about a run that the judge reads before writing its findings."""
 import statistics
 
-from ragevalkit.utils.step_order import summary_nodes
+from ragevalkit.utils import summary_nodes
 
 
 def stats_for_llm(summary: dict, rows: list[dict]) -> str:

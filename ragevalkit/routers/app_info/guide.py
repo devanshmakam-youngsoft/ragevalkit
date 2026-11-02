@@ -4,8 +4,8 @@ from fastapi.responses import HTMLResponse
 
 from ragevalkit.core.config import Config
 from ragevalkit.routers.dependencies import get_config, require_user
-from ragevalkit.schemas.app_info.responses import Features
-from ragevalkit.services.app_info.guide import enabled_features, guide_page
+from ragevalkit.schemas.app_info import Features
+from ragevalkit.services.app_info import enabled_features, guide_page
 
 router = APIRouter(prefix="/api", tags=["help"], dependencies=[Depends(require_user)])
 

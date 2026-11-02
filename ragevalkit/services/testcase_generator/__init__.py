@@ -24,16 +24,23 @@ Every generated test case has the type ``rag``: its answer has to come from the 
 Modules: ``prompts/`` (what the model is told, one file each) · ``evidence`` (quotes are really in the document) ·
 ``checks`` (the rules) · ``llm`` (the model client; the call itself is ``llm.complete``) · ``writer`` · ``planning`` · ``manager``.
 """
-from ragevalkit.core.constants.generator_categories import CASE_TYPE, CATEGORIES, CATEGORY_LABELS
-from ragevalkit.core.exceptions.testcase_generator import GenerationBusy, GenerationError
+from ragevalkit.core.constants import CASE_TYPE, CATEGORIES, CATEGORY_LABELS
+from ragevalkit.core.exceptions import GenerationBusy, GenerationError
 from ragevalkit.services.testcase_generator.checks import validate
 from ragevalkit.services.testcase_generator.manager import GenerationManager
 from ragevalkit.services.testcase_generator.model_client import GenerationModelClient
 from ragevalkit.services.testcase_generator.planning import Task, plan_tasks
 from ragevalkit.services.testcase_generator.reply_parser import parse_reply
+from ragevalkit.services.testcase_generator.review_batches import (
+    batch_summary,
+    discard_batch,
+    get_batch,
+    start_generation,
+)
 from ragevalkit.services.testcase_generator.writer import generate_item
 
 __all__ = [
-    "CASE_TYPE", "CATEGORIES", "CATEGORY_LABELS", "GenerationBusy", "GenerationError", "GenerationManager",
-    "GenerationModelClient", "Task", "generate_item", "parse_reply", "plan_tasks", "validate",
+    "CASE_TYPE", "CATEGORIES", "CATEGORY_LABELS", "GenerationBusy", "GenerationError",
+    "GenerationManager", "GenerationModelClient", "Task", "batch_summary", "discard_batch",
+    "generate_item", "get_batch", "parse_reply", "plan_tasks", "start_generation", "validate"
 ]

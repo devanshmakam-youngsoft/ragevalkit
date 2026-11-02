@@ -4,8 +4,8 @@ from pathlib import Path
 
 from pypdf import PdfReader
 
-from ragevalkit.core.constants.document_reading import MAX_PAGES, MIN_TEXT_CHARS
-from ragevalkit.core.exceptions.document_reader import DocumentError
+from ragevalkit.core.constants import MAX_PAGES, MIN_TEXT_CHARS
+from ragevalkit.core.exceptions import DocumentError
 from ragevalkit.services.document_reader.models import ReadDocument
 from ragevalkit.services.document_reader.passages import (
     pack_into_chunks,

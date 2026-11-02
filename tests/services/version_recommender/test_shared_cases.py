@@ -4,10 +4,9 @@ from fastapi.testclient import TestClient
 
 from ragevalkit.core.config import Config
 from ragevalkit.main import create_app
-from ragevalkit.services.db_services.store import EvalStore
-from ragevalkit.services.version_recommender.engine import recommend
-from ragevalkit.services.version_recommender.group_overview import group_overview
-from ragevalkit.utils.case_scores import build_case_scores, case_key
+from ragevalkit.services.db_services import EvalStore
+from ragevalkit.services.version_recommender import group_overview, recommend
+from ragevalkit.utils import build_case_scores, case_key
 
 
 def entry(key, answer, material=8.0, time=1.0, ok=True, groups=()):

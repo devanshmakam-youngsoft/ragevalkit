@@ -27,11 +27,12 @@ from ragevalkit.core.exceptions.db_services import (
 )
 from ragevalkit.core.exceptions.document_reader import DocumentError
 from ragevalkit.core.exceptions.evaluation_runner import NoDatasetError, RunBusy, RunError
+from ragevalkit.core.exceptions.handlers import register_error_handlers
 from ragevalkit.core.exceptions.spreadsheet_loader import DatasetError
 from ragevalkit.core.exceptions.testcase_generator import GenerationBusy, GenerationError
 
 __all__ = [
-    "ConfigError", "ConflictError", "DatasetError", "DocumentError", "GenerationBusy", "GenerationError", "GroupNotFound",
-    "InvalidInput", "JudgeError", "NoDatasetError", "NotFoundError", "RagevalError", "RunBusy", "RunError", "StoreError",
-    "TooLargeError", "VersionNotFound",
+    "ConfigError", "ConflictError", "DatasetError", "DocumentError", "GenerationBusy", "GenerationError",
+    "GroupNotFound", "InvalidInput", "JudgeError", "NoDatasetError", "NotFoundError", "RagevalError",
+    "RunBusy", "RunError", "StoreError", "TooLargeError", "VersionNotFound", "register_error_handlers"
 ]

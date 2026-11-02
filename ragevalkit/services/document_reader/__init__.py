@@ -4,8 +4,8 @@ Only the text is used and nothing is kept: the uploaded file is deleted as soon 
 50 MB PDF costs no storage. Text is cut into passages of about ``TARGET_CHARS`` characters that remember
 which page(s) or section they came from, so every generated question can point at its evidence.
 """
-from ragevalkit.core.constants.document_reading import SUPPORTED_MESSAGE, SUPPORTED_SUFFIXES
-from ragevalkit.core.exceptions.document_reader import DocumentError
+from ragevalkit.core.constants import SUPPORTED_MESSAGE, SUPPORTED_SUFFIXES
+from ragevalkit.core.exceptions import DocumentError
 from ragevalkit.services.document_reader.models import Chunk, ReadDocument
 from ragevalkit.services.document_reader.ordering import spread_order
 from ragevalkit.services.document_reader.reader import read_document
