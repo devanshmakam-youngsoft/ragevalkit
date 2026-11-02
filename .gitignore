@@ -21,3 +21,6 @@ ragevalkit_data/
 # Frontend build artifacts
 node_modules/
 frontend/dist/
+
+# Screenshots and their planning files live outside git (kept in Google Drive)
+/screenshots_for_drive/
