@@ -239,11 +239,11 @@ ragevalkit-lib/
 ```
 
 Inside the backend, each folder is a layer that only reaches downwards (`routers -> services -> core, schemas, utils`; `services/db_services` is the only code that knows the JSON store's format;
-`tests/architecture` enforces both):
+`tests/architecture` enforces both).
 
 A folder is used through its `__init__`: code outside `services/db_services/` writes
 `from ragevalkit.services.db_services import EvalStore`, never `...db_services.store`. Files inside a folder import each other
-directly, and each `__init__` lists what the folder offers in `__all__` (`tests/architecture` checks this too).
+directly, and each `__init__` lists what the folder offers in `__all__` (`tests/architecture` checks this too). The folders:
 
 ```
 ragevalkit/
