@@ -35,9 +35,17 @@ repository folder name alone: rename the repository on GitHub yourself, then upd
 **Check the name is free** (a `404` means nobody has it):
 
 ```bash
-python -c "import urllib.request as u; \
-n='NAME'; \
-exec('try:\n u.urlopen(f\"https://pypi.org/pypi/{n}/json\"); print(n, \"is TAKEN\")\nexcept Exception as e:\n print(n, \"free\" if \"404\" in str(e) else e)')"
+python - <<'EOF'
+import urllib.error
+import urllib.request
+
+name = "NAME"
+try:
+    urllib.request.urlopen(f"https://pypi.org/pypi/{name}/json")
+    print(name, "is TAKEN")
+except urllib.error.HTTPError as error:
+    print(name, "is free" if error.code == 404 else f"unclear (HTTP {error.code})")
+EOF
 ```
 
 Or open `https://pypi.org/project/NAME/` in a browser: a "404 Not Found" page means it is free. PyPI treats `-`, `_` and `.`
