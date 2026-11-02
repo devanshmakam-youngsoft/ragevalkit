@@ -5,7 +5,7 @@ from ragevalkit.core.config import Config
 from ragevalkit.routers.dependencies import get_config, get_store, require_user
 from ragevalkit.schemas.testcase_library import ImportPreview, ImportResult
 from ragevalkit.services.db_services import EvalStore
-from ragevalkit.services.testcase_import import (
+from ragevalkit.services.testcases.testcase_import import (
     preview_import,
     read_upload,
     run_import,

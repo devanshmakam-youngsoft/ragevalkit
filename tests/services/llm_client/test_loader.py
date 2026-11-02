@@ -5,7 +5,7 @@ import types
 
 from ragevalkit.core.config import Config
 from ragevalkit.services.llm_client import loader
-from ragevalkit.services.testcase_generator import GenerationModelClient
+from ragevalkit.services.testcases.testcase_generator import GenerationModelClient
 
 
 def fake_litellm(monkeypatch):

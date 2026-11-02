@@ -20,8 +20,8 @@ from ragevalkit.schemas.testcase_library import (
     TestCaseIds,
 )
 from ragevalkit.services.db_services import EvalStore
-from ragevalkit.services.testcase_library import get_group, import_file_into_group
-from ragevalkit.services.version_recommender import groups_with_history, history_of_group
+from ragevalkit.services.evaluation.version_recommender import groups_with_history, history_of_group
+from ragevalkit.services.testcases.testcase_library import get_group, import_file_into_group
 from ragevalkit.utils import ensure_found
 
 router = APIRouter(prefix="/api/groups", tags=["groups"], dependencies=[Depends(require_user)])

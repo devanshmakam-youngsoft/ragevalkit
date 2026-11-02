@@ -238,7 +238,7 @@ ragevalkit-lib/
 └── scripts/           build_guide.py, rename_library.py
 ```
 
-Inside the backend, each folder is a layer that only reaches downwards (`routers -> services -> core, schemas, utils`; `services/db_services` is the only code that knows the JSON store's format;
+Inside the backend, each folder is a layer that only reaches downwards (`routers -> services -> core, schemas, utils`; `services/db_services` is the only code that knows the JSON store's format; inside services, `evaluation` may use `testcases`, and `testcases` may use neither `evaluation` nor anything above it;
 `tests/architecture` enforces both).
 
 A folder is used through its `__init__`: code outside `services/db_services/` writes
@@ -254,10 +254,13 @@ ragevalkit/
 │                        diagnostics/ (log files, plain-language problems), security/ (sign-in)
 ├── routers/             one folder per area, each file thin: evaluation/, testcase_library/, testcase_generator/, sign_in/, app_info/
 ├── schemas/             the shape of every request and response, same area folders; internal/ for shapes services share
-├── services/            what the product does: evaluation_runner, answer_judge, testcase_generator, document_reader,
-│                        testcase_library, testcase_import, spreadsheet_loader, version_recommender, run_summarizer,
-│                        text_metrics, step_recorder, llm_client, app_info, and db_services (reads and writes the
-│                        TinyDB JSON store: store.py and one file per kind of record)
+├── services/            what the product does
+│   ├── evaluation/      evaluation_runner, answer_judge, step_recorder, run_summarizer, version_recommender
+│   ├── testcases/       testcase_library, testcase_import, testcase_generator, document_reader, spreadsheet_loader
+│   ├── db_services/     reads and writes the TinyDB JSON store (store.py and one file per kind of record)
+│   ├── llm_client/      one safe way to call any AI model
+│   ├── text_metrics/    key words, BM25, meaning similarity (used by both groups)
+│   └── app_info/        the guide page and which dashboard features are on
 ├── prompts/             the instructions sent to AI models, one file each: answer_judge/, testcase_generator/
 ├── utils/               small shared helpers
 └── web/                 generated, do not edit: dashboard/ (built from frontend/) and guide/ (built from docs/guide/)

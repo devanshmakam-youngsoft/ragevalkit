@@ -21,7 +21,7 @@ from ragevalkit.schemas.testcase_generator import (
     ItemRemoved,
 )
 from ragevalkit.services.db_services import EvalStore
-from ragevalkit.services.testcase_generator import (
+from ragevalkit.services.testcases.testcase_generator import (
     GenerationManager,
     batch_summary,
     discard_batch,

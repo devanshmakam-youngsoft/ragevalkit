@@ -13,8 +13,8 @@ from ragevalkit.core.constants import API_TITLE, LIBRARY_NAME
 from ragevalkit.core.exceptions import register_error_handlers
 from ragevalkit.routers import DASHBOARD_ROUTERS, HEALTH_ROUTER
 from ragevalkit.services.db_services import EvalStore
-from ragevalkit.services.evaluation_runner import RunManager
-from ragevalkit.services.testcase_generator import GenerationManager
+from ragevalkit.services.evaluation.evaluation_runner import RunManager
+from ragevalkit.services.testcases.testcase_generator import GenerationManager
 
 logger = logging.getLogger(__name__)
 

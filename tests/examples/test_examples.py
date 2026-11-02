@@ -290,7 +290,7 @@ def example_modules(monkeypatch):
 
 
 def test_production_runs_the_same_pipeline_with_steps_doing_nothing(example_modules):
-    from ragevalkit.services.step_recorder.recorder import current_recorder
+    from ragevalkit.services.evaluation.step_recorder.recorder import current_recorder
 
     import production_app
     reply = TestClient(production_app.app).post("/chat", json={"message": "Can I get a refund?"}).json()

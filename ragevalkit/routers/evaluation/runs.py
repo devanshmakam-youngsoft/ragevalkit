@@ -20,7 +20,7 @@ from ragevalkit.schemas.evaluation import (
     VersionSummary,
 )
 from ragevalkit.services.db_services import EvalStore
-from ragevalkit.services.evaluation_runner import (
+from ragevalkit.services.evaluation.evaluation_runner import (
     RunManager,
     check_version_name,
     get_run,

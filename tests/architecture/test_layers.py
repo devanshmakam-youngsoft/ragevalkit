@@ -23,6 +23,11 @@ ALLOWED = {
 }
 
 
+SERVICE_GROUPS = {"evaluation", "testcases"}
+SERVICE_RANK = {"testcases": 1, "evaluation": 2}                   # everything else in services is a building block: rank 0
+FOLDERS_OF_FOLDERS = {"ragevalkit", "ragevalkit.services", "ragevalkit.services.evaluation", "ragevalkit.services.testcases"}
+
+
 def _imports():
     """(file, layer of the file, layer imported, dotted module) for every ragevalkit import in the package."""
     for path in PACKAGE.rglob("*.py"):
@@ -32,7 +37,9 @@ def _imports():
         for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
             modules = []
             if isinstance(node, ast.ImportFrom) and node.module and node.module.split(".")[0] == "ragevalkit":
-                modules = [node.module] + ([f"ragevalkit.{a.name}" for a in node.names] if node.module == "ragevalkit" else [])
+                modules = [node.module]
+                if node.module in FOLDERS_OF_FOLDERS:                   # `from ragevalkit.services import step_recorder`
+                    modules += [f"{node.module}.{a.name}" for a in node.names]
             elif isinstance(node, ast.Import):
                 modules = [a.name for a in node.names if a.name.split(".")[0] == "ragevalkit"]
             for module in modules:
@@ -51,14 +58,39 @@ def test_a_layer_only_imports_from_the_layers_below_it():
     assert not broken, "\n".join(broken)
 
 
+def _feature(parts: tuple[str, ...]) -> str | None:
+    """The service feature a path or dotted module belongs to ("evaluation/answer_judge", "db_services"), from its segments
+    after `ragevalkit/services`."""
+    if not parts:
+        return None
+    if parts[0] in SERVICE_GROUPS:
+        return "/".join(parts[:2]) if len(parts) > 1 else parts[0]
+    return parts[0]
+
+
+def _service_imports():
+    """(feature of the file, feature imported) for every import between service features."""
+    for file, layer, target, module in _imports():
+        if layer == "services" and target == "services" and len(file.parts) > 3:
+            mine, theirs = _feature(file.parts[2:-1] or file.parts[2:]), _feature(tuple(module.split(".")[2:]))
+            if mine and theirs and mine != theirs and not theirs.startswith(mine + "/") and not mine.startswith(theirs + "/"):
+                yield mine, theirs
+
+
+def _rank(feature: str) -> int:
+    return SERVICE_RANK.get(feature.split("/")[0], 0)
+
+
+def test_a_service_group_only_uses_the_groups_below_it():
+    """top-level services (db_services, llm_client, text_metrics, app_info) < testcases < evaluation."""
+    broken = sorted({f"{mine} must not import {theirs}" for mine, theirs in _service_imports() if _rank(theirs) > _rank(mine)})
+    assert not broken, "\n".join(broken)
+
+
 def test_service_features_do_not_import_each_other_in_a_circle():
     graph: dict[str, set[str]] = {}
-    for file, layer, target, module in _imports():
-        parts = file.parts
-        if layer == "services" and target == "services" and len(parts) > 3:
-            mine, theirs = parts[2], module.split(".")[2] if len(module.split(".")) > 2 else None
-            if theirs and theirs != mine:
-                graph.setdefault(mine, set()).add(theirs)
+    for mine, theirs in _service_imports():
+        graph.setdefault(mine, set()).add(theirs)
 
     def cycle_from(start: str, path: tuple[str, ...] = ()) -> tuple[str, ...] | None:
         if start in path:

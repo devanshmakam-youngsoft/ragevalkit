@@ -5,7 +5,7 @@ from ragevalkit.core.config import Config
 from ragevalkit.routers.dependencies import get_config, get_store, require_user
 from ragevalkit.schemas.evaluation import Recommendation
 from ragevalkit.services.db_services import EvalStore
-from ragevalkit.services.version_recommender import recommend_version
+from ragevalkit.services.evaluation.version_recommender import recommend_version
 
 router = APIRouter(prefix="/api/recommendation", tags=["recommendation"], dependencies=[Depends(require_user)])
 

@@ -17,8 +17,10 @@ from ragevalkit.schemas.testcase_library import (
     TestCaseUpdate,
 )
 from ragevalkit.services.db_services import EvalStore
-from ragevalkit.services.testcase_library import create_test_case as create_library_test_case
-from ragevalkit.services.testcase_library import find_test_case
+from ragevalkit.services.testcases.testcase_library import (
+    create_test_case as create_library_test_case,
+)
+from ragevalkit.services.testcases.testcase_library import find_test_case
 from ragevalkit.utils import ensure_found
 
 router = APIRouter(prefix="/api/test-cases", tags=["test cases"], dependencies=[Depends(require_user)])

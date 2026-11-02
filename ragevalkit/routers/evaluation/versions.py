@@ -5,7 +5,7 @@ from ragevalkit.core.config import Config
 from ragevalkit.routers.dependencies import get_config, get_store, require_user
 from ragevalkit.schemas.evaluation import VersionDetail, VersionSummary
 from ragevalkit.services.db_services import EvalStore
-from ragevalkit.services.evaluation_runner import (
+from ragevalkit.services.evaluation.evaluation_runner import (
     export_version,
     get_version_with_deleted_flags,
     read_version_log,
