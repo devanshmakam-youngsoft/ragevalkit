@@ -43,7 +43,7 @@ def build_results_workbook(data: dict) -> bytes:
     # The question/answer triplet — the heart of every row
     QA_COLS   = ["question", "expected_answer", "generated_answer"]
     # Judge scores + comments right after the answers
-    JUDGE_COLS = ["answer_marks", "answer_remarks", "material_marks", "material_remarks"]
+    JUDGE_COLS = ["answer_marks", "answer_remarks", "material_marks", "material_remarks", "remarks"]
     # Retrieved context and sources
     CTX_COLS  = ["retrieved_context", "sources"]
     # Lexical / embedding metrics
@@ -118,7 +118,7 @@ def build_results_workbook(data: dict) -> bytes:
         from openpyxl.styles import Alignment, Font, PatternFill
         from openpyxl.utils import get_column_letter
         WRAP_COLS = {"question", "expected_answer", "generated_answer",
-                     "answer_remarks", "material_remarks", "retrieved_context"}
+                     "answer_remarks", "material_remarks", "remarks", "retrieved_context"}
         HEADER_FILL = PatternFill("solid", fgColor="1A5276")
         HEADER_FONT = Font(bold=True, color="FFFFFF")
 

@@ -14,7 +14,13 @@ from ragevalkit.core.exceptions import JudgeError, RunBusy
 from ragevalkit.services import text_metrics
 from ragevalkit.services.db_services import EvalStore
 from ragevalkit.services.evaluation import step_recorder
-from ragevalkit.services.evaluation.answer_judge import Judge, finish_insights, stats_for_llm
+from ragevalkit.services.evaluation.answer_judge import (
+    Judge,
+    clean_answer_tags,
+    clean_material_tags,
+    finish_insights,
+    stats_for_llm,
+)
 from ragevalkit.services.evaluation.evaluation_runner.function_adapter import (
     answer_text_of,
     call_sync,
@@ -244,12 +250,15 @@ class RunManager:
                     "material_marks":  raw.get("material_marks") if material_applicable else None,
                     "material_comment": str(raw.get("material_comment",
                         "Not applicable (no retrieval expected)." if not material_applicable else "")),
+                    "answer_tags":     clean_answer_tags(raw.get("answer_tags")),
+                    "material_tags":   clean_material_tags(raw.get("material_tags")) if material_applicable else [],
                 }
             except Exception as e:
                 issue = run.log.issue("custom_judge", e, where)
                 return {
                     "answer_marks": 0, "answer_comment": issue.message,
                     "material_marks": None, "material_comment": "",
+                    "answer_tags": [], "material_tags": [],
                 }
 
         grade = self.judge.grade(question, expected, generated, material, material_applicable)
@@ -258,6 +267,8 @@ class RunManager:
             "answer_comment":  grade.answer_comment,
             "material_marks":  grade.material_marks,
             "material_comment": grade.material_comment,
+            "answer_tags":     grade.answer_tags,
+            "material_tags":   grade.material_tags,
         }
 
     def _process_row(self, row, session_id: str, history: list[dict], run: Run) -> dict:
@@ -372,6 +383,8 @@ class RunManager:
                 answer_remarks=grade["answer_comment"],
                 material_marks=grade["material_marks"],
                 material_remarks=grade["material_comment"],
+                answer_tags=grade["answer_tags"],
+                material_tags=grade["material_tags"],
             )
         except Exception as e:
             issue = run.log.issue("grading", e, where)

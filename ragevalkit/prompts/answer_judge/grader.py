@@ -1,4 +1,9 @@
 """The instructions that make the judge grade an answer: the rubric (replaceable) and the reply format (always added)."""
+from ragevalkit.prompts.answer_judge.remark_tags import (
+    ANSWER_TAGS,
+    MATERIAL_TAGS,
+    MAX_TAGS_PER_SCORE,
+)
 
 grader_prompt = """You are a strict but fair evaluator of an AI assistant or RAG system.
 You receive a Question, the Expected Answer (written by a human), the system's Generated Answer, and the
@@ -19,9 +24,21 @@ material_marks (integer 0-10, or null): does the Material contain enough informa
 
 # Appended to the grading prompt whether or not the developer replaced the rubric above, so a custom rubric only
 # has to say how to grade and the reply can always be read.
-grader_format = """
+def _word_list(vocabulary: dict) -> str:
+    return "\n".join(f"    {key}: {meaning}" for key, (_, _, meaning) in vocabulary.items())
+
+
+grader_format = f"""
 
 Respond ONLY with a JSON object with these exact keys:
-  answer_marks (integer 0-10), answer_comment, material_marks (integer 0-10, or null), material_comment
+  answer_marks (integer 0-10), answer_comment, answer_tags,
+  material_marks (integer 0-10, or null), material_comment, material_tags
 
-Give a one or two sentence comment for each score."""
+Give a one or two sentence comment for each score.
+
+answer_tags: a list of 1 to {MAX_TAGS_PER_SCORE} words from this list that say briefly why the answer got its mark:
+{_word_list(ANSWER_TAGS)}
+material_tags: a list of 0 to {MAX_TAGS_PER_SCORE} words from this list that say briefly why the material got its mark
+(an empty list when material_marks is null):
+{_word_list(MATERIAL_TAGS)}
+Use only the words in these lists, written exactly as shown."""

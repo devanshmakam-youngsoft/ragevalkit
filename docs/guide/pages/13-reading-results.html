@@ -19,8 +19,12 @@ minutes: 6
 <h2>Watch-outs and suggestions</h2>
 <p>At the end of each run the judge model writes plain-language findings: each thing to look at, paired with the next step to try. They name the group or question and use the numbers as evidence, rather than repeating the headline scores. Change what they look for with <code>summary_prompt</code> (<a href="#/your-judge">Your judge</a>).</p>
 
+<h2>Remarks: why a score is what it is</h2>
+<p>The <b>Remarks</b> column puts short coloured tags under each question, so you can see why before you open it: for the answer <em>Correct</em>, <em>Minor gaps</em>, <em>Incomplete</em>, <em>Partly correct</em>, <em>Wrong answer</em>, <em>Made-up detail</em>, <em>Off topic</em> or <em>No answer</em>; for the context <em>Context complete</em>, <em>Context partial</em>, <em>Key text missing</em>, <em>Irrelevant context</em>, <em>Too much noise</em> or <em>Nothing retrieved</em>. Rest the pointer on the tags to read the judge's full reason. Green tags are good, amber means look closer, red means something is wrong.</p>
+<p>The judge picks the tags from this fixed list in the same call that grades the answer, so the words stay the same from run to run. A run saved before tags existed, or a custom judge that gives none, gets one tag worked out from the mark. The notes your pipeline wrote with <code>note()</code> moved into the question's own panel.</p>
+
 <h2>One question at a time</h2>
-<p>Click any row to open that question: the answer, the expected answer, the judge's reason for each score, the retrieved text, the sources found and missing, the time per step, and your notes. This is where wrong answers get explained.</p>
+<p>Click any row to open that question: the answer, the expected answer, the tags and the judge's reason for each score, the retrieved text, the sources found and missing, the time per step, and your notes. This is where wrong answers get explained.</p>
 <ul>
   <li>Filter by group or score tier, and sort by score or time.</li>
   <li>A question whose test case has been deleted since is marked, and keeps its own copy of the text.</li>

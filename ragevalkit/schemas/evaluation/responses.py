@@ -99,6 +99,14 @@ class VersionSummary(ApiResponse):
     group_stats: dict[str, Any] | None = None  # the same averages for each group's own cases, keyed by group name
 
 
+class RemarkTag(ApiResponse):
+    """A short reason for a score, for example "Wrong answer" or "Context partial"."""
+
+    key: str                            # the fixed word the judge used
+    label: str                          # what the dashboard shows
+    tone: str                           # good, warn or bad: how the label is coloured
+
+
 class ResultRow(ApiResponse):
     """One question of a version: the answer, the scores and what happened inside."""
 
@@ -115,8 +123,10 @@ class ResultRow(ApiResponse):
     node_timings: dict[str, float] | None = None  # seconds spent in each recorded step
     answer_marks: int | None = None     # 0 to 10
     answer_remarks: str | None = None
+    answer_tags: list[RemarkTag] | None = None      # short reasons for the answer mark
     material_marks: int | None = None   # 0 to 10; null when no retrieval was expected or it was not graded
     material_remarks: str | None = None
+    material_tags: list[RemarkTag] | None = None    # short reasons for the context mark
     groups: list[str] | None = None     # the groups the test case belonged to when the run happened
     case_deleted: bool | None = None    # true when the test case has been deleted since
     error_message: str | None = None    # plain-language reason for a failed question

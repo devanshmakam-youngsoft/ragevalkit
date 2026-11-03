@@ -110,6 +110,12 @@ export interface GroupHistory {
   runs: GroupRunStat[];
 }
 
+export interface RemarkTag {
+  key: string;
+  label: string;
+  tone: "good" | "warn" | "bad";
+}
+
 export interface ResultRow {
   chat_id: string;
   session_id: string | null;
@@ -127,8 +133,12 @@ export interface ResultRow {
   node_timings: Record<string, number>;
   answer_marks: number | null;
   answer_remarks: string | null;
+  /** Short reasons for the answer mark, as the judge chose them from a fixed list. */
+  answer_tags?: RemarkTag[];
   material_marks: number | null;
   material_remarks: string | null;
+  /** The same for the context mark. */
+  material_tags?: RemarkTag[];
   keyword_recall: number | null;
   bm25_score: number | null;
   semantic_similarity: number | null;

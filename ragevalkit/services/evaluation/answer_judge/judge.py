@@ -105,6 +105,7 @@ class Judge:
         if not material_applicable:
             grade.material_marks = None
             grade.material_comment = "Not applicable (no retrieval expected)."
+            grade.material_tags = []
         return grade
 
     def check_sources(self, groups: list[list[str]], recorded: list[str]) -> SourceCheckResult:

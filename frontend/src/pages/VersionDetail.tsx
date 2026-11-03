@@ -5,6 +5,7 @@ import { Mark, ScorePill, SegmentBar, StepTimeBar, Stat } from "../components/Sc
 import { ChatTurn, GroupChips } from "../components/GroupChips";
 import { GLOSSARY, Hint, Term } from "../components/Hint";
 import { IssueList } from "../components/IssueList";
+import { RemarkChips } from "../components/RemarkChips";
 import { Pager, usePaging } from "../components/Pager";
 import { TechnicalDetails } from "../components/TechnicalDetails";
 import { TopBar } from "../components/TopBar";
@@ -289,7 +290,7 @@ export default function VersionDetail() {
                 {th("answer_marks", <Term k="answer" />)}
                 {th("material_marks", <Term k="context" />)}
                 {th("total_time_taken", <Term k="time" />)}
-                <th className="px-3 py-3 font-medium">Notes</th>
+                <th className="px-3 py-3 font-medium">Remarks</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
@@ -320,15 +321,10 @@ export default function VersionDetail() {
                   </td>
                   <td className="px-3 py-3.5 tabular-nums text-muted">{fmtSeconds(r.total_time_taken)}</td>
                   <td className="px-3 py-3.5">
-                    {r.flags && Object.keys(r.flags).length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {Object.entries(r.flags).map(([k, v]) => (
-                          <span key={k} className="inline-flex items-center rounded bg-surface-2 px-1.5 py-0.5 text-[10px]">
-                            <span className="text-muted">{k}:</span>&nbsp;<span className="font-medium">{v}</span>
-                          </span>
-                        ))}
-                      </div>
-                    )}
+                    <div className="flex max-w-[260px] flex-col gap-1.5">
+                      <RemarkChips label="Answer" tags={r.answer_tags} reason={r.answer_remarks} />
+                      <RemarkChips label="Context" tags={r.material_tags} reason={r.material_remarks} />
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -516,6 +512,8 @@ function RowDrawer({ row, onClose }: { row: ResultRow; onClose: () => void }) {
           <div className="mt-5">
             <div className="label mb-1.5">Why these scores</div>
             <div className="space-y-2 rounded border border-line p-3.5 text-sm leading-relaxed">
+              <RemarkChips label="Answer" tags={row.answer_tags} />
+              <RemarkChips label="Context" tags={row.material_tags} />
               {row.answer_remarks && <p><span className="font-semibold">{GLOSSARY.answer.label}:</span> {row.answer_remarks}</p>}
               {row.material_remarks && <p><span className="font-semibold">{GLOSSARY.context.label}:</span> {row.material_remarks}</p>}
             </div>
